@@ -1,0 +1,12 @@
+{
+  "type": "service_account",
+  "project_id": "heart-of-stars",
+  "private_key_id": "afe4dd0514afa9c20d57ce03ff84e5aba936acc1",
+  "private_key": "-----BEGIN PRIVATE KEY-----\nMIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQCnlqy/dpoSApvx\nK9FPMG4HkLVfPsxIFD0xcofM1XmUWO3atbBxoIyt3SGVIaCrrfXNGdV4EAhE6bSN\nGHMuKEyblotdYZSdqXb/t9waBxrVhV6azlLUFjgve2cb4s35MbC1gMsmU4ej30tD\nuGBuPEejFhVzUAbOoA6qbbQFANBtf1VLdezNGkF/jqeADUlZ0e3KGsNrqhQxuaQb\nnlfJv6ZBc5C1K8ZAslvYblcWFTJlDLQnC7okHZpZZUyy0Mw0SL5frjwWPOJ4htZX\nIswaXDZltqKuIEJrnJJFoO5VXxYIkCau4SxVcExnuevrNGSl0c7qAlfEXdUibO9b\nKo+Msk/3AgMBAAECggEARtVUpohGjp4zszfF/CaIGwJ65orwZPbI9oFmDJmeDamY\nvvxUW3J0g3gXnaTc+DNK1Sm6JEkCdb4h5hETfcritlBnD00TN6BM/8CCcy3VlbIN\nTnkuYR4TGV6bMhom3NC3079gHg7oIcdbVIA1oeIwlSncXyTP+72C9V3w3Lx/XAfq\nmgvwl+g+HD6OIhRj7/ARsuDh2EgfPD+rZLJnKToDNP4CoLJkZ8Hl4YQSs4E4+NzL\n3hYDEBF8VFkAe2QeDhtYlCC/MQVsklKbNFj3Lxwk4mhTxuv/5ZDkUDHjrp8TjVDd\nEuU/jLvJ71YPCH07q/53Am4S7HkWCejP9A+KQxa0YQKBgQDW/BfO0QOG5o0pPxeM\n3/775hr/BvOxi0e3noDQDwJBQHbl6aLOUCnK7/YpGQ6dxg6xvfnJ4K7wV6m8sh4m\nC+BAcsyR2zpWswJ9FnwL8piFuzBSwCDHgJGqZcINR4Z4+FKQBYss3UD23TOAa+gc\nArL1ep80Z3JLbvsmMMovSVrKPQKBgQDHj73WrQHvPCMmCxyk9iVLGlq8zedfK/tV\n1746sU1hBUOTCXI5KtjOr6tXNgfCVKJcNv+qfIrBdtVbsKhb1ST240tvb5JyHlIP\nCA1zX4SDPxX8GCSbQA+CY33XLdWi06WhRfuW+yFDB0pc3x2EsrN3y69jvKD8+ZUc\nCeL/a70KQwKBgF8bfWjYXMgUPMTPjZqcCdDktnK2X57e8CZSb8gbq7K0UyVZW9YL\n7sFBsVPzKt0vnpaRZe0igiH/li7NWbsZK+c3IjswkjmCzgoKpWwfscwPyMwDBT1d\nKpQImnWHe/0OVnAyk6SQaUoNB9i7ZB7oLsWcrsvfK9glS+RUV03eFNU9AoGAHh/X\ns2FYamm0kJia0VgK1yR6UAfxBk/YV+QCZk+/c4bc5YRGhtSt971S6w5P64jlHXB7\n9ZtpQr0Shg3LzFkHhHFZQNAh1jI3hudbSHBBy6IpSm3GkN0BulgUdfgISNUUKp0q\n1mbAZaLjGdPgW9ix+MJ5jl+6GZX/aUUgzBfSaIsCgYEArii6xZ0dSKi+UQ/eAgIh\nK3h6vN6b/cb5ifRuKpL0+JfY01cS6TvK0naIUBQfREfnM/JmIC3zPSSpiNYkZ/xa\ngZOVlMW4x3QLnb8UlkLsQGctmuOoawQKhLXkrnQ7lF6bBfO+ucqFr+BlBvJix0iC\nXQrmiZqThwnCzvYMAtrzg9M=\n-----END PRIVATE KEY-----\n",
+  "client_email": "unity-client@heart-of-stars.iam.gserviceaccount.com",
+  "client_id": "116897217963721274909",
+  "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+  "token_uri": "https://oauth2.googleapis.com/token",
+  "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
+  "client_x509_cert_url": "https://www.googleapis.com/robot/v1/metadata/x509/unity-client%40heart-of-stars.iam.gserviceaccount.com"
+}
