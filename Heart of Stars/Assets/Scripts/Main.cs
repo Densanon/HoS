@@ -6,6 +6,8 @@ public class Main : MonoBehaviour
 {
     List<string[]> SheetData;
     List<int[]> PlayerData;
+    ResourceData[] ResourceLibrary;
+    List<ResourceData> StatChanges;
 
     // Start is called before the first frame update
     void Start()
@@ -13,27 +15,10 @@ public class Main : MonoBehaviour
 
         SheetData = SheetReader.GetSheetData();
         PlayerData = new List<int[]>();
+        ResourceLibrary = new ResourceData[SheetData.Count];
+        StatChanges = new List<ResourceData>();
 
-        foreach(string[] item in SheetData)
-        {
-            int[] n = new int[3];
-            if (!PlayerPrefs.HasKey(item[0]))
-            {
-                PlayerPrefs.SetInt(item[0], 0);
-                n[0] = 0;
-                PlayerPrefs.SetInt($"{item[0]}Visible", 0);
-                n[1] = 0;
-                PlayerPrefs.SetInt($"{item[0]}Auto", 0);
-                n[2] = 0;
-            }
-            else
-            {
-                n[0] = PlayerPrefs.GetInt(item[0]);
-                n[1] = PlayerPrefs.GetInt($"{item[0]}Visible");
-                n[2] = PlayerPrefs.GetInt($"{item[0]}Auto");
-            }
-            PlayerData.Add(n);
-        }
+        LoadGameStats();
 
     }
 
@@ -41,5 +26,41 @@ public class Main : MonoBehaviour
     void Update()
     {
         
+    }
+
+    public void StatUpdateQue(ResourceData data)
+    {
+        if (!StatChanges.Contains(data))
+        {
+            StatChanges.Add(data);
+        }
+    }
+
+    void LoadGameStats()
+    {
+        for (int i = 0; i < SheetData.Count; i++)
+        {
+            ResourceData d = SaveSystem.LoadResource(SheetData[i][0]);
+            if(d != null)
+            {
+                ResourceLibrary[i] = d;
+                continue;
+            }
+            ResourceLibrary[i] = new ResourceData(SheetData[i][0], SheetData[i][2], SheetData[i][4], false, 0, 0, 0f);
+            if(SheetData[i][4] == "nothing=0")
+            {
+                ResourceLibrary[i].visibile = true;
+            }
+            SaveSystem.SaveResource(ResourceLibrary[i]);
+        }
+    }
+
+    void SaveStats()
+    {
+        foreach(ResourceData data in StatChanges)
+        {
+            SaveSystem.SaveResource(data);
+        }
+        StatChanges.Clear();
     }
 }
