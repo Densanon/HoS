@@ -23,7 +23,6 @@ public class SheetReader
 
     public static List<string[]> GetSheetData()
     {
-        Debug.Log("Starting in side reader.");
         string fullJsonPath = Application.dataPath + jsonPath;
         Stream jsonCreds = (Stream)File.Open(fullJsonPath, FileMode.Open);
         ServiceAccountCredential credential = ServiceAccountCredential.FromServiceAccountData(jsonCreds);
