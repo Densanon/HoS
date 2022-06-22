@@ -40,7 +40,7 @@ public class Main : MonoBehaviour
             ResourceLibrary[i] = new ResourceData(SheetData[i][0], SheetData[i][2], SheetData[i][4], false, 0, 0, 0f);
             if(SheetData[i][4] == "nothing=0")
             {
-                ResourceLibrary[i].visibile = true;
+                ResourceLibrary[i].AdjustVisibility(true);
             }
             SaveSystem.SaveResource(ResourceLibrary[i]);
         }
@@ -55,5 +55,19 @@ public class Main : MonoBehaviour
         {
             SaveSystem.SaveResource(data);
         }
+    }
+
+    public ResourceData ReturnData(string itemName)
+    {
+        foreach(ResourceData data in ResourceLibrary)
+        {
+            if(data.itemName == itemName)
+            {
+                return data;
+            }
+        }
+
+        Debug.LogError($"ReturnData: Could not find itemName : {itemName}");
+        return null;
     }
 }
