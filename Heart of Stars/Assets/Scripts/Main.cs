@@ -5,45 +5,36 @@ using UnityEngine;
 public class Main : MonoBehaviour
 {
     List<string[]> SheetData;
-    List<int[]> PlayerData;
+    List<string[]> LoadedData;
     ResourceData[] ResourceLibrary;
-    List<ResourceData> StatChanges;
 
-    // Start is called before the first frame update
     void Start()
     {
 
         SheetData = SheetReader.GetSheetData();
-        PlayerData = new List<int[]>();
         ResourceLibrary = new ResourceData[SheetData.Count];
-        StatChanges = new List<ResourceData>();
 
         LoadGameStats();
 
     }
 
-    // Update is called once per frame
-    void Update()
-    {
-        
-    }
-
-    public void StatUpdateQue(ResourceData data)
-    {
-        if (!StatChanges.Contains(data))
-        {
-            StatChanges.Add(data);
-        }
-    }
-
     void LoadGameStats()
     {
+        LoadedData = new List<string[]>();
+        string s = SaveSystem.LoadFile();
+        string[] ar = s.Split(';');
+        foreach(string str in ar)
+        {
+            string[] final = str.Split(',');
+            LoadedData.Add(final);
+        }
+
         for (int i = 0; i < SheetData.Count; i++)
         {
-            ResourceData d = SaveSystem.LoadResource(SheetData[i][0]);
-            if(d != null)
+            if(LoadedData[i][0] == SheetData[i][0])
             {
-                ResourceLibrary[i] = d;
+                ResourceLibrary[i] = new ResourceData(LoadedData[i][0], LoadedData[i][1], LoadedData[i][2], (LoadedData[i][3] == "true")?true:false,
+                    int.Parse(LoadedData[i][4]), int.Parse(LoadedData[i][5]), float.Parse(LoadedData[i][6]));
                 continue;
             }
             ResourceLibrary[i] = new ResourceData(SheetData[i][0], SheetData[i][2], SheetData[i][4], false, 0, 0, 0f);
@@ -53,14 +44,16 @@ public class Main : MonoBehaviour
             }
             SaveSystem.SaveResource(ResourceLibrary[i]);
         }
+
+        SaveSystem.SaveFile();
+        LoadedData.Clear();
     }
 
-    void SaveStats()
+    public void SaveStats()
     {
-        foreach(ResourceData data in StatChanges)
+        foreach(ResourceData data in ResourceLibrary)
         {
             SaveSystem.SaveResource(data);
         }
-        StatChanges.Clear();
     }
 }

@@ -34,4 +34,9 @@ public class ResourceData
         autoAmount = data.autoAmount;
         autoTime = data.autoTime;
     }
+
+    public string DigitizeForSerialization()
+    {
+        return $"{itemName},{displayName},{requirements},{visibile},{currentAmount},{autoAmount},{autoTime};";
+    }
 }

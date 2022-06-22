@@ -4,29 +4,45 @@ using System.Runtime.Serialization.Formatters.Binary;
 
 public static class SaveSystem 
 {
+    static string FileData;
+
+    public static void WipeString()
+    {
+        FileData = "";
+    }
     
     public static void SaveResource(ResourceData data)
     {
-        BinaryFormatter formatter = new BinaryFormatter();
-        string path = Application.persistentDataPath + $"/resource_{data.itemName}";
-        FileStream stream = new FileStream(path, FileMode.Create);
-
-        formatter.Serialize(stream, data);
-        stream.Close();
+        FileData = FileData + data.DigitizeForSerialization();
     }
 
-    public static ResourceData LoadResource(string itemName)
+    public static void SaveFile()
     {
-        string path = Application.persistentDataPath + $"/resource_{itemName}";
+        BinaryFormatter formatter = new BinaryFormatter();
+        string path = Application.persistentDataPath + $"/resource_shalom";
+        FileStream stream = new FileStream(path, FileMode.Create);
+
+        formatter.Serialize(stream, FileData);
+        stream.Close();
+
+        WipeString();
+    }
+
+
+    public static string LoadFile()
+    {
+        WipeString();
+
+        string path = Application.persistentDataPath + $"/resource_shalom";
         if (File.Exists(path))
         {
             BinaryFormatter formatter = new BinaryFormatter();
             FileStream stream = new FileStream(path, FileMode.Open);
 
-            ResourceData data = formatter.Deserialize(stream) as ResourceData;
+            FileData = formatter.Deserialize(stream) as string;
             stream.Close();
 
-            return data;
+            return FileData;
         }
         else
         {
