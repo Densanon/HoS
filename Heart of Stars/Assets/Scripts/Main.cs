@@ -6,43 +6,69 @@ public class Main : MonoBehaviour
 {
     List<string[]> SheetData;
     List<string[]> LoadedData;
+    List<string> itemNames;
+    [SerializeField]
     ResourceData[] ResourceLibrary;
+
+    public GameObject ResourePanelPrefab;
+    public Transform ResourcePanel;
 
     void Start()
     {
-
         SheetData = SheetReader.GetSheetData();
         ResourceLibrary = new ResourceData[SheetData.Count];
 
         LoadGameStats();
-
     }
 
     void LoadGameStats()
     {
         LoadedData = new List<string[]>();
+        itemNames = new List<string>();
+
         string s = SaveSystem.LoadFile();
-        string[] ar = s.Split(';');
-        foreach(string str in ar)
+        if(s != null)
         {
-            string[] final = str.Split(',');
-            LoadedData.Add(final);
+            string[] ar = s.Split(';');
+            foreach(string str in ar)
+            {
+                string[] final = str.Split(',');
+                LoadedData.Add(final);
+            }
+
+            for (int i = 0; i < LoadedData.Count; i++)
+            {
+                itemNames.Add(LoadedData[i][0]);
+            }
         }
 
-        for (int i = 0; i < SheetData.Count; i++)
+        
+
+        List<ResourceData> temp = new List<ResourceData>();
+
+        for(int j = 0; j < SheetData.Count;j++)
         {
-            if(LoadedData[i][0] == SheetData[i][0])
-            {
-                ResourceLibrary[i] = new ResourceData(LoadedData[i][0], LoadedData[i][1], LoadedData[i][2], (LoadedData[i][3] == "true")?true:false,
-                    int.Parse(LoadedData[i][4]), int.Parse(LoadedData[i][5]), float.Parse(LoadedData[i][6]));
+            GameObject obj;
+
+            if (itemNames.Contains(SheetData[j][0])){
+                ResourceLibrary[j] = new ResourceData(LoadedData[j][0], LoadedData[j][1], LoadedData[j][2], (LoadedData[j][3] == "true")?true:false,
+                    int.Parse(LoadedData[j][4]), int.Parse(LoadedData[j][5]), float.Parse(LoadedData[j][6]));
+                obj = Instantiate(ResourePanelPrefab, ResourcePanel);
+                obj.GetComponent<ResourceDisplayInfo>().Initialize(ResourceLibrary[j]);
+                SaveSystem.SaveResource(ResourceLibrary[j]);
                 continue;
             }
-            ResourceLibrary[i] = new ResourceData(SheetData[i][0], SheetData[i][2], SheetData[i][4], false, 0, 0, 0f);
-            if(SheetData[i][4] == "nothing=0")
+            
+            ResourceLibrary[j] = new ResourceData(SheetData[j][0], SheetData[j][2], SheetData[j][4], false, 0, 0, 0f);
+            if(SheetData[j][4] == "nothing=0")
             {
-                ResourceLibrary[i].AdjustVisibility(true);
+                ResourceLibrary[j].AdjustVisibility(true);
+                Debug.Log($"{ResourceLibrary[j].itemName} is a basic resource.");
             }
-            SaveSystem.SaveResource(ResourceLibrary[i]);
+            obj = Instantiate(ResourePanelPrefab, ResourcePanel);
+            obj.GetComponent<ResourceDisplayInfo>().Initialize(ResourceLibrary[j]);
+            Debug.Log($"There wasn't {ResourceLibrary[j].itemName}, so I made a new one.");
+            SaveSystem.SaveResource(ResourceLibrary[j]);
         }
 
         SaveSystem.SaveFile();
