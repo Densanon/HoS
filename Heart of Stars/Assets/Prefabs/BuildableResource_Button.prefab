@@ -39,7 +39,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: -628, y: -175}
+  m_AnchoredPosition: {x: 0, y: 0}
   m_SizeDelta: {x: 126.858, y: 125.7435}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!222 &8624208611523759279
@@ -148,10 +148,12 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a6f0519f6cadf3b459ad1b6c68a0cf8b, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  myImediateDependence: []
-  allMyDependence: []
+  myNamedresource: 
+  myNamedimediateDependencies: []
+  myNamedAllDependencies: []
   dependencyAmounts: 
   dependenciesAble: 
+  myText: {fileID: 8624208612327336977}
   pivot: {fileID: 8662317066425794688}
   buttonPrefab: {fileID: 4311139583789081462, guid: 7935b2d8249344043b2e603f39b5a0ac, type: 3}
 --- !u!1 &8624208612327336979
@@ -325,5 +327,5 @@ RectTransform:
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
   m_AnchoredPosition: {x: 0, y: 0}
-  m_SizeDelta: {x: 100, y: 100}
+  m_SizeDelta: {x: 1, y: 1}
   m_Pivot: {x: 0.5, y: 0.5}

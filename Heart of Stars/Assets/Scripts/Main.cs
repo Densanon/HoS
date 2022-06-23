@@ -13,12 +13,29 @@ public class Main : MonoBehaviour
     public GameObject ResourePanelPrefab;
     public Transform ResourcePanel;
 
+    public GameObject BuildableResourceButtonPrefab;
+    public GameObject Canvas;
+
+    int created = 0;
+
     void Start()
     {
+        //SaveSystem.SeriouslyDeleteAllSaveFiles();
+
         SheetData = SheetReader.GetSheetData();
         ResourceLibrary = new ResourceData[SheetData.Count];
 
         LoadGameStats();
+    }
+
+    private void Update()
+    {
+        if (Input.GetKeyDown(KeyCode.B) && created == 0)
+        {
+            created++;
+            GameObject obj = Instantiate(BuildableResourceButtonPrefab, Canvas.transform);
+            obj.GetComponent<Resource>().AssignResource(ResourceLibrary[Random.Range(0, ResourceLibrary.Length - 1)], true);
+        }
     }
 
     void LoadGameStats()
@@ -85,10 +102,12 @@ public class Main : MonoBehaviour
 
     public ResourceData ReturnData(string itemName)
     {
+        Debug.Log($"In Main:ReturnData:Looking for {itemName}");
         foreach(ResourceData data in ResourceLibrary)
         {
             if(data.itemName == itemName)
             {
+                Debug.Log($"Found a data type with name {data.itemName}");
                 return data;
             }
         }

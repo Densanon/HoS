@@ -147,10 +147,12 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a6f0519f6cadf3b459ad1b6c68a0cf8b, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  myImediateDependence: []
-  allMyDependence: []
+  myNamedresource: 
+  myNamedimediateDependencies: []
+  myNamedAllDependencies: []
   dependencyAmounts: 
   dependenciesAble: 
+  myText: {fileID: 5674661756315668578}
   pivot: {fileID: 0}
   buttonPrefab: {fileID: 0}
 --- !u!1 &6702547333783113187
