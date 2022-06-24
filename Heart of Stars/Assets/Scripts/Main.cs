@@ -18,9 +18,8 @@ public class Main : MonoBehaviour
 
     int created = 0;
 
-    void Start()
+    void Awake()
     {
-        //SaveSystem.SeriouslyDeleteAllSaveFiles();
 
         SheetData = SheetReader.GetSheetData();
         ResourceLibrary = new ResourceData[SheetData.Count];
@@ -35,7 +34,14 @@ public class Main : MonoBehaviour
             created++;
             GameObject obj = Instantiate(BuildableResourceButtonPrefab, Canvas.transform);
             obj.GetComponent<Resource>().AssignResource(ResourceLibrary[Random.Range(0, ResourceLibrary.Length - 1)], true);
+            //obj.GetComponent<RectTransform>().SetPositionAndRotation(new Vector3(-10f, 0f, 0f), Quaternion.identity);
         }
+    }
+
+    private void OnApplicationQuit()
+    {
+        SaveStats();
+        SaveSystem.SaveFile();
     }
 
     void LoadGameStats()
@@ -100,14 +106,19 @@ public class Main : MonoBehaviour
         }
     }
 
+    public void DeleteSaveFileData()
+    {
+        SaveSystem.SeriouslyDeleteAllSaveFiles();
+    }
+
     public ResourceData ReturnData(string itemName)
     {
-        Debug.Log($"In Main:ReturnData:Looking for {itemName}");
+        //Debug.Log($"In Main:ReturnData:Looking for {itemName}");
         foreach(ResourceData data in ResourceLibrary)
         {
             if(data.itemName == itemName)
             {
-                Debug.Log($"Found a data type with name {data.itemName}");
+                //Debug.Log($"Found a data type with name {data.itemName}");
                 return data;
             }
         }

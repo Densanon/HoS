@@ -17,13 +17,34 @@ public class ResourceDisplayInfo : MonoBehaviour
     [SerializeField]
     TMP_Text autoTText;
 
+    private void OnEnable()
+    {
+        Resource.OnClicked += UpdateInfo;
+        Resource.OnUpdate += UpdateInfo;
+    }
+
+    private void OnDisable()
+    {
+        Resource.OnClicked -= UpdateInfo;
+        Resource.OnUpdate -= UpdateInfo;
+    }
+
     public void Initialize(ResourceData data)
     {
         myResource = data;
         nameText.text = data.itemName;
         displayText.text = data.displayName;
-        curText.text = data.currentAmount.ToString();
-        autoAText.text = data.autoAmount.ToString();
-        autoTText.text = data.autoTime.ToString();
+        UpdateInfo(data);
+    }
+
+    void UpdateInfo(ResourceData source)
+    {
+        if(source == myResource)
+        {
+            //Debug.Log($"Resource Display: {myResource.displayName} received an update for my info.");
+            curText.text = myResource.currentAmount.ToString();
+            autoAText.text = myResource.autoAmount.ToString();
+            autoTText.text = myResource.autoTime.ToString();
+        }
     }
 }

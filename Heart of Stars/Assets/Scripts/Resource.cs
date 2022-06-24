@@ -6,16 +6,17 @@ using TMPro;
 
 public class Resource : MonoBehaviour
 {
-    private Action<ResourceData> OnClicked = delegate { };
+    public static Action<ResourceData> OnClicked = delegate { };
+    public static Action<ResourceData> OnUpdate = delegate { };
 
     Main main;
 
     [SerializeField]
-    string myNamedresource;
+    string myNamedResource;
     public ResourceData myResource;
     [SerializeField]
     string[] myNamedimediateDependencies;
-    ResourceData[] myImediateDependence;
+    List<ResourceData> myImediateDependence;
     [SerializeField]
     string[] myNamedAllDependencies;
     ResourceData[] allMyDependence;
@@ -28,19 +29,26 @@ public class Resource : MonoBehaviour
 
     public GameObject pivot;
     public GameObject buttonPrefab;
+    public GameObject alphaButton;
     bool doneWithDependencyCheck = false;
     bool Alpha = false;
 
-    private void OnEnable()
+    private void Awake()
     {
         main = GameObject.Find("Brain").GetComponent<Main>();
+        myImediateDependence = new List<ResourceData>();
     }
+
 
     public void AssignResource(ResourceData data, bool alpha)
     {
         Alpha = alpha;
         myResource = data;
-        myNamedresource = myResource.itemName;
+        myNamedResource = myResource.itemName;
+        if(Alpha != true)
+        {
+            myText.text = myResource.displayName;
+        }
         //Debug.Log($"My Resource is: {myResource.itemName}");
 
         List<string> tpDs = new List<string>();
@@ -63,24 +71,32 @@ public class Resource : MonoBehaviour
                 }
             }
 
-            
-            myImediateDependence = temp.ToArray();
-            dependenciesAble = new bool[myImediateDependence.Length];
+
+            for(int i = 0; i < temp.Count; i++)
+            {
+                myImediateDependence.Add(temp[i]);
+            }
+            Debug.Log($"ImmediateDependencycount: {myImediateDependence.Count}");
+            dependenciesAble = new bool[myImediateDependence.Count];
             dependencyAmounts = otherTemp.ToArray();
 
             myNamedimediateDependencies = tpDs.ToArray();
-            myText.text = myResource.displayName;
+
 
             if (alpha)
             {
                 GetAllDependencies(temp);
             }
         }
+
+        Debug.Log($"ImmediateDependencycount: second: {myImediateDependence.Count}");
+        if(Alpha != true)
+            transform.GetComponent<HoverAble>().Assignment(this);
     }
 
     void GetAllDependencies(List<ResourceData> dependencies)
     {
-        Debug.Log(dependencies.Count);
+        //Debug.Log(dependencies.Count);
         List<ResourceData> extendedList = dependencies;
         List<ResourceData> temp = new List<ResourceData>();
         foreach(ResourceData r in dependencies)
@@ -145,37 +161,85 @@ public class Resource : MonoBehaviour
 
     void SetupButtonLayout()
     {
-        Debug.Log("Setting up dependence UI");
-        for(int i = allMyDependence.Length-1; i > 0; i--)
+        List<Resource> deps = new List<Resource>();
+        //Debug.Log("Setting up dependence UI");
+
+        if (Alpha)
+        {
+            Resource res = alphaButton.GetComponent<Resource>();
+
+            res.AssignResource(myResource, false);
+            deps.Add(res);
+        }
+
+        for(int i = allMyDependence.Length-1; i > -1; i--)
         {
             GameObject Obj = Instantiate(buttonPrefab, new Vector3(pivot.transform.position.x, pivot.transform.position.y + 100f, pivot.transform.position.z), Quaternion.identity, pivot.transform);
             Resource source = Obj.GetComponent<Resource>();
             source.AssignResource(allMyDependence[i], false);
-            Debug.Log($"Making {source.myResource.itemName} button.");
-            if(i!=1)
+            deps.Add(source);
+            //Debug.Log($"Making {source.myResource.itemName} button.");
+            if (i != 1)
+            {
                 pivot.transform.Rotate(0f, 0f, -45f);
+                foreach(Resource r in deps)
+                {
+                    r.Rotate();
+                }
+            }
+
         }
+    }
+
+    public void Rotate()
+    {
+        transform.Rotate(0f, 0f, 45f);
     }
 
     public void ClickedButton()
     {
-        for(int i = 0; i < myImediateDependence.Length; i++)
+        if(myImediateDependence.Count != 0)
         {
-            if (myImediateDependence[i].currentAmount >= dependencyAmounts[i]) {
-                dependenciesAble[i] = true;
+            for(int i = 0; i < myImediateDependence.Count; i++)
+            {
+                if (myImediateDependence[i].currentAmount >= dependencyAmounts[i]) {
+                    dependenciesAble[i] = true;
+                }
+                else{
+                    dependenciesAble[i] = false;
+                    return;
+                }
             }
-            else{
-                dependenciesAble[i] = false;
-                return;
-            }
-        }
 
-        for(int i = 0; i < myImediateDependence.Length; i++)
+            for(int i = 0; i < myImediateDependence.Count; i++)
+            {
+                Debug.Log($"Dependency: {myImediateDependence[i].displayName} has {myImediateDependence[i].currentAmount} and will be losing {dependencyAmounts[i]} " +
+                    $"for a total of {myImediateDependence[i].currentAmount + dependencyAmounts[i] * -1}");
+                myImediateDependence[i].AdjustCurrentAmount(dependencyAmounts[i] * -1);
+                Debug.Log($"{myImediateDependence[i].displayName} now has {myImediateDependence[i].currentAmount}");
+                OnUpdate?.Invoke(myImediateDependence[i]);
+            }
+            myResource.AdjustCurrentAmount(1);
+
+            OnClicked?.Invoke(myResource);
+        }
+        else
         {
-            myImediateDependence[i].AdjustCurrentAmount(dependencyAmounts[i] * -1);
-        }
-        myResource.AdjustCurrentAmount(1);
+            Debug.Log($"Clicking on basic resource: {myResource.displayName}");
+            myResource.AdjustCurrentAmount(1);
 
-        OnClicked?.Invoke(myResource);
+            OnClicked?.Invoke(myResource);
+        }
+    }
+
+    public ResourceData[] GetImediateDependencyNames()
+    {
+        Debug.Log($"Resource: DependencyArray: {myImediateDependence}");
+        return myImediateDependence.ToArray(); ;
+    }
+
+    public int[] GetDependencyAmounts()
+    {
+        return dependencyAmounts;
     }
 }
