@@ -44,7 +44,7 @@ public class ResourceDisplayInfo : MonoBehaviour
             //Debug.Log($"Resource Display: {myResource.displayName} received an update for my info.");
             curText.text = myResource.currentAmount.ToString();
             autoAText.text = myResource.autoAmount.ToString();
-            autoTText.text = myResource.autoTime.ToString();
+            autoTText.text = myResource.craftTime.ToString();
         }
     }
 }

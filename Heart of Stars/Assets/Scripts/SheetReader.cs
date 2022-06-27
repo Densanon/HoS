@@ -34,10 +34,10 @@ public class SheetReader
         });
 
         // The ID of the spreadsheet to retrieve data from.
-        string spreadsheetId = "1Zz-h3l3HS6xVli1gmnYrjULatHN0S7NKMDsaLmopxYw";  // TODO: Update placeholder value.
+        string spreadsheetId = "1fwpQNO9ajJxneCR3Hi3kr5SL6pFDPLb1LkLEpIqjZ4Q";  // TODO: Update placeholder value.
 
         // The A1 notation of the values to retrieve.
-        string range = "A3:Z1000";  // TODO: Update placeholder value.
+        string range = "A2:Z1000";  // TODO: Update placeholder value.
 
         // How values should be represented in the output.
         // The default render option is ValueRenderOption.FORMATTED_VALUE.
@@ -77,6 +77,7 @@ public class SheetReader
         foreach(string i in removeJunkArray)
         {
             s = i.Remove(0, 2);
+            //Debug.Log($"Each item's array: {s}");
             string[] newArray = s.Split(",");
             string[] actualArray = new string[newArray.Length];
             for (int j = 0; j < newArray.Length; j++)

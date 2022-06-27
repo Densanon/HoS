@@ -38,7 +38,7 @@ public class ResourceInfoPanel : MonoBehaviour
     {
         myResource = data;
         myTitle_text.text = data.myResource.displayName;
-        myDetails_text.text = "Jordan you need to make sure that the resourcedata has a slot for details on each item.";
+        myDetails_text.text = data.myResource.discription;
 
         myResourceNeeds = data.GetImediateDependencyNames();
         int[] oTemp = data.GetDependencyAmounts();

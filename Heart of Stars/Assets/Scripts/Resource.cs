@@ -39,7 +39,6 @@ public class Resource : MonoBehaviour
         myImediateDependence = new List<ResourceData>();
     }
 
-
     public void AssignResource(ResourceData data, bool alpha)
     {
         Alpha = alpha;
@@ -53,11 +52,11 @@ public class Resource : MonoBehaviour
 
         List<string> tpDs = new List<string>();
 
-        if(data.requirements != "nothing=0")
+        if(data.consumableRequirements != "nothing=0")
         {
             List<ResourceData> temp = new List<ResourceData>();
             List<int> otherTemp = new List<int>();
-            string[] str = data.requirements.Split("-");
+            string[] str = data.consumableRequirements.Split("-");
             if(str[0] != "nothing=0")
             {
                 foreach(string s in str)
@@ -68,13 +67,32 @@ public class Resource : MonoBehaviour
                     otherTemp.Add(int.Parse(tAr[1]));
                     //Debug.Log($"My imediate resource dependency is: {temp[temp.Count - 1].itemName}");
                     tpDs.Add(tAr[0]);
+                    Debug.Log($"Adding consumable {tAr[0]} to dependencies");
                 }
             }
+
+            str = data.nonConsumableRequirements.Split("-");
+            if(str[0] != "nothing")
+            {
+                foreach (string s in str)
+                {
+                    string[] tAr = s.Split('=');
+                    //Debug.Log($"Looking for {tAr[0]}");
+                    temp.Add(main.ReturnData(tAr[0]));
+                    otherTemp.Add(1);
+                    //Debug.Log($"My imediate resource dependency is: {temp[temp.Count - 1].itemName}");
+                    tpDs.Add(tAr[0]);
+                    Debug.Log($"Adding nonconsumable {tAr[0]} to dependencies");
+                }
+            }
+
+            //WE WERE ATTEMPTING TO GET THE CONSUMABEL AND NONCONSUMABLES TO WORK WITH THE BUTTONS
 
 
             for(int i = 0; i < temp.Count; i++)
             {
                 myImediateDependence.Add(temp[i]);
+                Debug.Log($"These are: {temp[i].displayName}");
             }
             Debug.Log($"ImmediateDependencycount: {myImediateDependence.Count}");
             dependenciesAble = new bool[myImediateDependence.Count];
@@ -120,7 +138,7 @@ public class Resource : MonoBehaviour
             foreach (ResourceData dt in extendedList)
             {
                 //Debug.Log("Going into the foreach loop.");
-                str = dt.requirements.Split("-");
+                str = dt.consumableRequirements.Split("-");
                 //Debug.Log($"Looking at the new string array str {str[0]}");
                 if (str[0] != "nothing=0")
                 {
@@ -130,10 +148,32 @@ public class Resource : MonoBehaviour
                         string[] tAr = s.Split('=');
                         //Debug.Log($"Resource:GetAllDependencyCheck:Dependency: {tAr[0]}");
                         ResourceData TD = main.ReturnData(tAr[0]);
-                        dump.Add(TD);
-                        temp.Add(TD);
-                        //Debug.Log($"In extensions: {dt.itemName} : dependency {TD.itemName}");
-                        tempDependenceListNames.Add(TD.itemName);
+                        if (!temp.Contains(TD))
+                        {
+                            dump.Add(TD);
+                            temp.Add(TD);
+                            //Debug.Log($"In extensions: {dt.itemName} : dependency {TD.itemName}");
+                            tempDependenceListNames.Add(TD.itemName);
+                        }
+                    }
+                }
+
+                str = dt.nonConsumableRequirements.Split("-");
+                if (str[0] != "nothing")
+                {
+                    foreach (string s in str)
+                    {
+                        //Debug.Log($"Resource:GetAllDependencyCheck:Dependency: {s}");
+                        string[] tAr = s.Split('=');
+                        //Debug.Log($"Resource:GetAllDependencyCheck:Dependency: {tAr[0]}");
+                        ResourceData TD = main.ReturnData(tAr[0]);
+                        if (!temp.Contains(TD))
+                        {
+                            dump.Add(TD);
+                            temp.Add(TD);
+                            //Debug.Log($"In extensions: {dt.itemName} : dependency {TD.itemName}");
+                            tempDependenceListNames.Add(TD.itemName);
+                        }
                     }
                 }
             }
@@ -219,15 +259,14 @@ public class Resource : MonoBehaviour
                 Debug.Log($"{myImediateDependence[i].displayName} now has {myImediateDependence[i].currentAmount}");
                 OnUpdate?.Invoke(myImediateDependence[i]);
             }
-            myResource.AdjustCurrentAmount(1);
 
+            main.AddToQue(myResource, int.Parse(myResource.itemsToGain.Split("=")[1]));
             OnClicked?.Invoke(myResource);
         }
         else
         {
             Debug.Log($"Clicking on basic resource: {myResource.displayName}");
-            myResource.AdjustCurrentAmount(1);
-
+            main.AddToQue(myResource, int.Parse(myResource.itemsToGain.Split("=")[1]));
             OnClicked?.Invoke(myResource);
         }
     }
@@ -241,5 +280,12 @@ public class Resource : MonoBehaviour
     public int[] GetDependencyAmounts()
     {
         return dependencyAmounts;
+    }
+
+    public void BecomeVisible()
+    {
+        myResource.AdjustVisibility(true);
+        main.StartQueUpdate(myResource);
+
     }
 }
