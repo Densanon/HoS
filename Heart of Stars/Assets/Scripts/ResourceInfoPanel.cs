@@ -17,6 +17,8 @@ public class ResourceInfoPanel : MonoBehaviour
     TMP_Text myDependenciesNeededAmounts_text;
     [SerializeField]
     TMP_Text myDependenciesCurAmount_text;
+    [SerializeField]
+    TMP_Text amountOwned_text;
 
     ResourceData[] myResourceNeeds;
 
@@ -39,6 +41,7 @@ public class ResourceInfoPanel : MonoBehaviour
         myResource = data;
         myTitle_text.text = data.myResource.displayName;
         myDetails_text.text = data.myResource.discription;
+        amountOwned_text.text = $"Amount Owner: {data.myResource.currentAmount}";
 
         myResourceNeeds = data.GetImediateDependencyNames();
         int[] oTemp = data.GetDependencyAmounts();
@@ -64,6 +67,7 @@ public class ResourceInfoPanel : MonoBehaviour
     {
         if(source == myResource.myResource)
         {
+            amountOwned_text.text = $"Amount Owner: {myResource.myResource.currentAmount}";
             myDependenciesCurAmount_text.text = "";
             for (int i = 0; i < myResourceNeeds.Length; i++)
             {

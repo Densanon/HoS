@@ -59,10 +59,12 @@ public class Main : MonoBehaviour
 
     IEnumerator UpdateQue(ResourceData data)
     {
-        Debug.Log($"Starting {data.displayName} Que Update.");
+        Debug.Log($"Starting {data.displayName} Que Update, waiting for {data.craftTime}.");
         bool addedNormal = false;
         yield return new WaitForSeconds(data.craftTime);
-        if (data.visible  && QuedAmounts[System.Array.IndexOf(NameReferenceIndex, data.displayName)] > 0 || data.autoAmount > 0)
+        Debug.Log($"Made it through wait time on {data.displayName}.");
+        Debug.Log($"Data visible? {data.visible}, Que > 0? {QuedAmounts[System.Array.IndexOf(NameReferenceIndex, data.displayName)]}, Auto > 0? {data.autoAmount}");
+        if (data.visible  && (QuedAmounts[System.Array.IndexOf(NameReferenceIndex, data.displayName)] > 0 || data.autoAmount > 0))
         {
             Debug.Log($"Starting {data.displayName} Que Update process.");
             if (QuedAmounts[System.Array.IndexOf(NameReferenceIndex, data.displayName)] > 0)
@@ -82,6 +84,7 @@ public class Main : MonoBehaviour
                 data.AdjustCurrentAmount(data.autoAmount);
                 Debug.Log($"Adding {data.displayName} sinlge que.");
             }
+
             StartCoroutine(UpdateQue(data));
         }
     }
@@ -134,7 +137,7 @@ public class Main : MonoBehaviour
             //Load data from previous data on drive
             if (itemNames.Contains(SheetData[j][0])) {
                 ResourceLibrary[j] = new ResourceData(LoadedData[j][0], LoadedData[j][1], LoadedData[j][2], LoadedData[j][3], LoadedData[j][4], LoadedData[j][5],
-                    (LoadedData[j][6] == "true") ? true : false, int.Parse(LoadedData[j][7]), int.Parse(LoadedData[j][8]), float.Parse(LoadedData[j][9]), LoadedData[j][10], LoadedData[j][11],
+                    (LoadedData[j][6] == "True") ? true : false, int.Parse(LoadedData[j][7]), int.Parse(LoadedData[j][8]), float.Parse(LoadedData[j][9]), LoadedData[j][10], LoadedData[j][11],
                     LoadedData[j][12], LoadedData[j][13], LoadedData[j][14], LoadedData[j][15]);
 
                 NameReferenceIndex[j] = ResourceLibrary[j].displayName;

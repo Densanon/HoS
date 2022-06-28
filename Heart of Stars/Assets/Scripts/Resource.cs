@@ -51,27 +51,30 @@ public class Resource : MonoBehaviour
         //Debug.Log($"My Resource is: {myResource.itemName}");
 
         List<string> tpDs = new List<string>();
+        List<ResourceData> temp = new List<ResourceData>();
+        List<int> otherTemp = new List<int>();
 
-        if(data.consumableRequirements != "nothing=0")
+        //check for consumable dependencies
+        string[] str = data.consumableRequirements.Split("-");
+        if (data.consumableRequirements != "nothing=0")
         {
-            List<ResourceData> temp = new List<ResourceData>();
-            List<int> otherTemp = new List<int>();
-            string[] str = data.consumableRequirements.Split("-");
-            if(str[0] != "nothing=0")
+            foreach(string s in str)
             {
-                foreach(string s in str)
-                {
-                    string[] tAr = s.Split('=');
-                    //Debug.Log($"Looking for {tAr[0]}");
-                    temp.Add(main.ReturnData(tAr[0]));
-                    otherTemp.Add(int.Parse(tAr[1]));
-                    //Debug.Log($"My imediate resource dependency is: {temp[temp.Count - 1].itemName}");
-                    tpDs.Add(tAr[0]);
-                    Debug.Log($"Adding consumable {tAr[0]} to dependencies");
-                }
+                string[] tAr = s.Split('=');
+                //Debug.Log($"Looking for {tAr[0]}");
+                temp.Add(main.ReturnData(tAr[0]));
+                otherTemp.Add(int.Parse(tAr[1]));
+                //Debug.Log($"My imediate resource dependency is: {temp[temp.Count - 1].itemName}");
+                tpDs.Add(tAr[0]);
+                Debug.Log($"Adding consumable {tAr[0]} to dependencies");
             }
 
-            str = data.nonConsumableRequirements.Split("-");
+        }
+
+        //check for nonconsumable dependencies
+        str = data.nonConsumableRequirements.Split("-");
+        if(data.nonConsumableRequirements != "nothing")
+        {
             if(str[0] != "nothing")
             {
                 foreach (string s in str)
@@ -85,26 +88,24 @@ public class Resource : MonoBehaviour
                     Debug.Log($"Adding nonconsumable {tAr[0]} to dependencies");
                 }
             }
-
-            //WE WERE ATTEMPTING TO GET THE CONSUMABEL AND NONCONSUMABLES TO WORK WITH THE BUTTONS
-
-
-            for(int i = 0; i < temp.Count; i++)
-            {
-                myImediateDependence.Add(temp[i]);
-                Debug.Log($"These are: {temp[i].displayName}");
-            }
-            Debug.Log($"ImmediateDependencycount: {myImediateDependence.Count}");
-            dependenciesAble = new bool[myImediateDependence.Count];
-            dependencyAmounts = otherTemp.ToArray();
-
-            myNamedimediateDependencies = tpDs.ToArray();
+        }
 
 
-            if (alpha)
-            {
-                GetAllDependencies(temp);
-            }
+        for(int i = 0; i < temp.Count; i++)
+        {
+            myImediateDependence.Add(temp[i]);
+            Debug.Log($"These are: {temp[i].displayName}");
+        }
+
+        Debug.Log($"ImmediateDependencycount: {myImediateDependence.Count}");
+        dependenciesAble = new bool[myImediateDependence.Count];
+        dependencyAmounts = otherTemp.ToArray();
+        myNamedimediateDependencies = tpDs.ToArray();
+
+
+        if (Alpha)
+        {
+            GetAllDependencies(temp);
         }
 
         Debug.Log($"ImmediateDependencycount: second: {myImediateDependence.Count}");
@@ -219,7 +220,7 @@ public class Resource : MonoBehaviour
             source.AssignResource(allMyDependence[i], false);
             deps.Add(source);
             //Debug.Log($"Making {source.myResource.itemName} button.");
-            if (i != 1)
+            if (i != 0)
             {
                 pivot.transform.Rotate(0f, 0f, -45f);
                 foreach(Resource r in deps)
@@ -253,27 +254,33 @@ public class Resource : MonoBehaviour
 
             for(int i = 0; i < myImediateDependence.Count; i++)
             {
-                Debug.Log($"Dependency: {myImediateDependence[i].displayName} has {myImediateDependence[i].currentAmount} and will be losing {dependencyAmounts[i]} " +
-                    $"for a total of {myImediateDependence[i].currentAmount + dependencyAmounts[i] * -1}");
-                myImediateDependence[i].AdjustCurrentAmount(dependencyAmounts[i] * -1);
-                Debug.Log($"{myImediateDependence[i].displayName} now has {myImediateDependence[i].currentAmount}");
-                OnUpdate?.Invoke(myImediateDependence[i]);
+                if(myImediateDependence[i].groups != "tool")
+                {
+                    Debug.Log($"Dependency: {myImediateDependence[i].displayName} has {myImediateDependence[i].currentAmount} and will be losing {dependencyAmounts[i]} " +
+                        $"for a total of {myImediateDependence[i].currentAmount + dependencyAmounts[i] * -1}");
+                    myImediateDependence[i].AdjustCurrentAmount(dependencyAmounts[i] * -1);
+                    Debug.Log($"{myImediateDependence[i].displayName} now has {myImediateDependence[i].currentAmount}");
+                    OnUpdate?.Invoke(myImediateDependence[i]);
+                }
             }
 
             main.AddToQue(myResource, int.Parse(myResource.itemsToGain.Split("=")[1]));
             OnClicked?.Invoke(myResource);
+            StartCoroutine(UpdateMyInformation());
         }
         else
         {
             Debug.Log($"Clicking on basic resource: {myResource.displayName}");
             main.AddToQue(myResource, int.Parse(myResource.itemsToGain.Split("=")[1]));
             OnClicked?.Invoke(myResource);
+            StartCoroutine(UpdateMyInformation());
+
         }
     }
 
     public ResourceData[] GetImediateDependencyNames()
     {
-        Debug.Log($"Resource: DependencyArray: {myImediateDependence}");
+        //Debug.Log($"Resource: DependencyArray: {myImediateDependence}");
         return myImediateDependence.ToArray(); ;
     }
 
@@ -287,5 +294,11 @@ public class Resource : MonoBehaviour
         myResource.AdjustVisibility(true);
         main.StartQueUpdate(myResource);
 
+    }
+
+    IEnumerator UpdateMyInformation()
+    {
+        yield return new WaitForSeconds(myResource.craftTime + 0.1f);
+        OnUpdate?.Invoke(myResource);
     }
 }
