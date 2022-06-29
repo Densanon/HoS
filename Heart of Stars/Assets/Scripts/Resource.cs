@@ -31,24 +31,25 @@ public class Resource : MonoBehaviour
     public GameObject buttonPrefab;
     public GameObject alphaButton;
     bool doneWithDependencyCheck = false;
-    bool Alpha = false;
+    public bool Alpha = false;
+    public bool panelButton = false;
 
-    private void Awake()
-    {
-        main = GameObject.Find("Brain").GetComponent<Main>();
-        myImediateDependence = new List<ResourceData>();
-    }
-
-    public void AssignResource(ResourceData data, bool alpha)
+    public void AssignResource(ResourceData data, bool alpha, Main theMain)
     {
         Alpha = alpha;
         myResource = data;
+        main = theMain;
         myNamedResource = myResource.itemName;
         if(Alpha != true)
         {
+            Debug.Log($"Resource: {data.displayName}: resource: {myResource}");
+            Debug.Log($"Looking for text object? {myText}");
+            if(myText != null)
             myText.text = myResource.displayName;
         }
         //Debug.Log($"My Resource is: {myResource.itemName}");
+
+        myImediateDependence = new List<ResourceData>();
 
         List<string> tpDs = new List<string>();
         List<ResourceData> temp = new List<ResourceData>();
@@ -109,8 +110,14 @@ public class Resource : MonoBehaviour
         }
 
         Debug.Log($"ImmediateDependencycount: second: {myImediateDependence.Count}");
-        if(Alpha != true)
-            transform.GetComponent<HoverAble>().Assignment(this);
+        if(Alpha != true && transform.GetComponent<HoverAble>() != null)
+        {
+            HoverAble h = transform.GetComponent<HoverAble>();
+            h.Assignment(this, main);
+            if(panelButton)
+                h.panelButton = true;
+
+        }
     }
 
     void GetAllDependencies(List<ResourceData> dependencies)
@@ -209,7 +216,7 @@ public class Resource : MonoBehaviour
         {
             Resource res = alphaButton.GetComponent<Resource>();
 
-            res.AssignResource(myResource, false);
+            res.AssignResource(myResource, false, main);
             deps.Add(res);
         }
 
@@ -217,7 +224,7 @@ public class Resource : MonoBehaviour
         {
             GameObject Obj = Instantiate(buttonPrefab, new Vector3(pivot.transform.position.x, pivot.transform.position.y + 100f, pivot.transform.position.z), Quaternion.identity, pivot.transform);
             Resource source = Obj.GetComponent<Resource>();
-            source.AssignResource(allMyDependence[i], false);
+            source.AssignResource(allMyDependence[i], false, main);
             deps.Add(source);
             //Debug.Log($"Making {source.myResource.itemName} button.");
             if (i != 0)
@@ -225,7 +232,8 @@ public class Resource : MonoBehaviour
                 pivot.transform.Rotate(0f, 0f, -45f);
                 foreach(Resource r in deps)
                 {
-                    r.Rotate();
+                    //r.Rotate();
+                    r.ResetRotation();
                 }
             }
 
@@ -235,6 +243,11 @@ public class Resource : MonoBehaviour
     public void Rotate()
     {
         transform.Rotate(0f, 0f, 45f);
+    }
+
+    public void ResetRotation()
+    {
+        transform.rotation = Quaternion.identity;
     }
 
     public void ClickedButton()
@@ -250,6 +263,10 @@ public class Resource : MonoBehaviour
                     dependenciesAble[i] = false;
                     return;
                 }
+            }
+
+            if(myResource.groups == "tool" && myResource.currentAmount == myResource.atMostAmount){
+                return;
             }
 
             for(int i = 0; i < myImediateDependence.Count; i++)
@@ -270,11 +287,15 @@ public class Resource : MonoBehaviour
         }
         else
         {
+            if (myResource.groups == "tool" && myResource.currentAmount == myResource.atMostAmount)
+            {
+                return;
+            }
+
             Debug.Log($"Clicking on basic resource: {myResource.displayName}");
             main.AddToQue(myResource, int.Parse(myResource.itemsToGain.Split("=")[1]));
             OnClicked?.Invoke(myResource);
             StartCoroutine(UpdateMyInformation());
-
         }
     }
 

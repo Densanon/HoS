@@ -124,6 +124,10 @@ PrefabInstance:
       propertyPath: m_Name
       value: AlphaButton
       objectReference: {fileID: 0}
+    - target: {fileID: 6058596089986612471, guid: 7935b2d8249344043b2e603f39b5a0ac, type: 3}
+      propertyPath: buttonPrefab
+      value: 
+      objectReference: {fileID: 4311139583789081462, guid: 7935b2d8249344043b2e603f39b5a0ac, type: 3}
     - target: {fileID: 8724134551133647760, guid: 7935b2d8249344043b2e603f39b5a0ac, type: 3}
       propertyPath: m_Pivot.x
       value: 0.5

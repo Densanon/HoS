@@ -5,7 +5,7 @@ using TMPro;
 
 public class ResourceInfoPanel : MonoBehaviour
 {
-    Resource myResource;
+    ResourceData myResource;
 
     [SerializeField]
     TMP_Text myTitle_text;
@@ -22,6 +22,11 @@ public class ResourceInfoPanel : MonoBehaviour
 
     ResourceData[] myResourceNeeds;
 
+    [SerializeField]
+    GameObject buttonPrefab;
+    [SerializeField]
+    Transform buttonContainer;
+
     private void OnEnable()
     {
         Resource.OnClicked += UpdateInfo;
@@ -36,12 +41,12 @@ public class ResourceInfoPanel : MonoBehaviour
         HoverAble.OnHoverUpdate -= UpdateInfo;
     }
 
-    public void Assignment(Resource data)
+    public void Assignment(Resource data, Main main)
     {
-        myResource = data;
+        myResource = data.myResource;
         myTitle_text.text = data.myResource.displayName;
         myDetails_text.text = data.myResource.discription;
-        amountOwned_text.text = $"Amount Owner: {data.myResource.currentAmount}";
+        amountOwned_text.text = $"Amount Owned: {data.myResource.currentAmount}";
 
         myResourceNeeds = data.GetImediateDependencyNames();
         int[] oTemp = data.GetDependencyAmounts();
@@ -50,12 +55,50 @@ public class ResourceInfoPanel : MonoBehaviour
         myDependenciesNeededAmounts_text.text = "";
         myDependenciesCurAmount_text.text = "";
 
-        Debug.Log($"ResourceInfoPanel for {myResource.myResource.displayName} : {myResourceNeeds.Length}");
+        Debug.Log($"ResourceInfoPanel for {myResource.displayName} : {myResourceNeeds.Length}");
 
         if(myResourceNeeds != null)
         {
             for(int i = 0; i < myResourceNeeds.Length; i++)
             {
+                GameObject obj = Instantiate(buttonPrefab, buttonContainer);
+                Resource r = obj.GetComponent<Resource>();
+                r.panelButton = true;
+                r.AssignResource(myResourceNeeds[i], false, main);
+                r.ResetRotation();
+                myDependencies_text.text = myDependencies_text.text + myResourceNeeds[i].displayName + "\n";
+                myDependenciesNeededAmounts_text.text = myDependenciesNeededAmounts_text.text + oTemp[i].ToString() + "\n";
+                myDependenciesCurAmount_text.text = myDependenciesCurAmount_text.text + myResourceNeeds[i].currentAmount.ToString() + "\n";
+            }
+        }
+    }
+
+    public void Assignment(ResourceData data, Main main)
+    {
+        myResource = data;
+        myTitle_text.text = data.displayName;
+        myDetails_text.text = data.discription;
+        amountOwned_text.text = $"Amount Owned: {data.currentAmount}";
+
+        myResourceNeeds = main.ReturnDependencies(data);
+        int[] oTemp = main.ReturnDependencyAmounts(data);
+
+        myDependencies_text.text = "";
+        myDependenciesNeededAmounts_text.text = "";
+        myDependenciesCurAmount_text.text = "";
+
+        Debug.Log($"ResourceInfoPanel for {myResource.displayName} : {myResourceNeeds.Length}");
+
+        if (myResourceNeeds != null)
+        {
+            for (int i = 0; i < myResourceNeeds.Length; i++)
+            {
+                GameObject obj = Instantiate(buttonPrefab, buttonContainer);
+                Resource r = obj.GetComponent<Resource>();
+                r.panelButton = true;
+                r.AssignResource(data, false, main);
+                r.ResetRotation();
+
                 myDependencies_text.text = myDependencies_text.text + myResourceNeeds[i].displayName + "\n";
                 myDependenciesNeededAmounts_text.text = myDependenciesNeededAmounts_text.text + oTemp[i].ToString() + "\n";
                 myDependenciesCurAmount_text.text = myDependenciesCurAmount_text.text + myResourceNeeds[i].currentAmount.ToString() + "\n";
@@ -65,9 +108,9 @@ public class ResourceInfoPanel : MonoBehaviour
 
     public void UpdateInfo(ResourceData source)
     {
-        if(source == myResource.myResource)
+        if(source == myResource)
         {
-            amountOwned_text.text = $"Amount Owner: {myResource.myResource.currentAmount}";
+            amountOwned_text.text = $"Amount Owned: {myResource.currentAmount}";
             myDependenciesCurAmount_text.text = "";
             for (int i = 0; i < myResourceNeeds.Length; i++)
             {

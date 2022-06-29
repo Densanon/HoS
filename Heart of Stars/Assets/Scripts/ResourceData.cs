@@ -1,13 +1,10 @@
-using System.Collections;
-using System.Collections.Generic;
-using UnityEngine;
-
 [System.Serializable]
 public class ResourceData 
 {
     public string itemName { get; private set; }
     public string displayName { get; private set; }
     public string discription { get; private set; }
+    public string gameElementType { get; private set; }
     public string groups { get; private set; }
     public bool visible { get; private set; }
     public int currentAmount { get; private set; }
@@ -21,9 +18,10 @@ public class ResourceData
     public string imageName { get; private set; }
     public string soundName { get; private set; }
     public string achievement { get; private set; }
+    public int atMostAmount { get; private set; }
 
-    public ResourceData(string name, string display, string dis, string gr, string reqs, string nonReqs, bool vis, int cur, int autoA, float craft, 
-        string created, string coms, string createComs, string im, string snd, string ach)
+    public ResourceData(string name, string display, string dis, string gr, string eType, string reqs, string nonReqs, bool vis, int cur, int autoA, float craft, 
+        string created, string coms, string createComs, string im, string snd, string ach, int most)
     {
         itemName = name;
         displayName = display;
@@ -41,6 +39,7 @@ public class ResourceData
         imageName = im;
         soundName = snd;
         achievement = ach;
+        atMostAmount = most;
     }
 
     public ResourceData(ResourceData data)
@@ -49,6 +48,7 @@ public class ResourceData
         displayName = data.displayName;
         discription = data.discription;
         groups = data.groups;
+        gameElementType = data.gameElementType;
         consumableRequirements = data.consumableRequirements;
         nonConsumableRequirements = data.nonConsumableRequirements;
         visible = data.visible;
@@ -61,6 +61,17 @@ public class ResourceData
         imageName = data.imageName;
         soundName = data.soundName;
         achievement = data.achievement;
+        atMostAmount = data.atMostAmount;
+    }
+
+    public void SetAtMost(int most)
+    {
+        atMostAmount = most;
+    }
+
+    public void SetCurrentAmount(int amount)
+    {
+        currentAmount = amount;
     }
 
     public void AdjustCurrentAmount(int amount)
@@ -71,6 +82,11 @@ public class ResourceData
     public void AdjustAutoAmount(int amount)
     {
         autoAmount += amount;
+    }
+
+    public void SetCraftTimer(float amount)
+    {
+        craftTime = amount;
     }
 
     public void AdjustCraftTimer(float amount)

@@ -361,6 +361,10 @@ PrefabInstance:
   m_Modification:
     m_TransformParent: {fileID: 8724134551133647760}
     m_Modifications:
+    - target: {fileID: 2725684907314652506, guid: 262f9b713993379419f25e62e65b0f45, type: 3}
+      propertyPath: buttonPrefab
+      value: 
+      objectReference: {fileID: 4311139583789081462}
     - target: {fileID: 2855309400903919859, guid: 262f9b713993379419f25e62e65b0f45, type: 3}
       propertyPath: m_Pivot.x
       value: 0.5

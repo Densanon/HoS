@@ -11,16 +11,23 @@ public class HoverAble : MonoBehaviour
     bool panelActive = false;
     bool panelStall = false;
 
+    public bool panelButton = false;
+
     [SerializeField]
     GameObject myPanel;
 
-    Resource myResource;
+    ResourceData myResource;
 
-    public void Assignment(Resource data)
+    public void Assignment(Resource data, Main main)
+    {
+        myResource = data.myResource;
+        myPanel.GetComponent<ResourceInfoPanel>().Assignment(data, main);
+    }
+
+    public void Assignment(ResourceData data, Main main)
     {
         myResource = data;
-        //Debug.Log($"Hover Panel: {data}");
-        myPanel.GetComponent<ResourceInfoPanel>().Assignment(data);
+        myPanel.GetComponent<ResourceInfoPanel>().Assignment(data, main);
     }
 
     private void Update()
@@ -47,8 +54,12 @@ public class HoverAble : MonoBehaviour
         {
             panelActive = true;
             myPanel.SetActive(true);
-            transform.SetSiblingIndex(transform.parent.childCount-1);
-            OnHoverUpdate?.Invoke(myResource.myResource);
+            if (!panelButton)
+            {
+                transform.SetSiblingIndex(transform.parent.childCount-1);
+            }
+
+            OnHoverUpdate?.Invoke(myResource);
         }
     }
 
