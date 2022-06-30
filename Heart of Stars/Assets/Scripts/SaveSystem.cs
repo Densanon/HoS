@@ -11,9 +11,19 @@ public static class SaveSystem
         FileData = "";
     }
     
-    public static void SaveResource(ResourceData data)
+    public static void SaveResource(ResourceData data, bool last)
     {
-        FileData = FileData + data.DigitizeForSerialization();
+        if (!last)
+        {
+            FileData = FileData + data.DigitizeForSerialization();
+        }
+        else
+        {
+            string s = data.DigitizeForSerialization();
+            s = s.Remove(s.Length - 1);
+            FileData = FileData + s;
+
+        }
     }
 
     public static void SaveFile()
@@ -38,7 +48,7 @@ public static class SaveSystem
         string path = Application.persistentDataPath + "/resource_shalom";
         if (File.Exists(path))
         {
-            Debug.Log("Found a file, and should be grabbing it.");
+            //Debug.Log("Found a file, and should be grabbing it.");
             BinaryFormatter formatter = new BinaryFormatter();
             FileStream stream = new FileStream(path, FileMode.Open);
 

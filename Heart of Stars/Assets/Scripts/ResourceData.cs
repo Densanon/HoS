@@ -3,7 +3,7 @@ public class ResourceData
 {
     public string itemName { get; private set; }
     public string displayName { get; private set; }
-    public string discription { get; private set; }
+    public string description { get; private set; }
     public string gameElementType { get; private set; }
     public string groups { get; private set; }
     public bool visible { get; private set; }
@@ -20,13 +20,14 @@ public class ResourceData
     public string achievement { get; private set; }
     public int atMostAmount { get; private set; }
 
-    public ResourceData(string name, string display, string dis, string gr, string eType, string reqs, string nonReqs, bool vis, int cur, int autoA, float craft, 
+    public ResourceData(string name, string display, string des, string gr, string eType, string reqs, string nonReqs, bool vis, int cur, int autoA, float craft, 
         string created, string coms, string createComs, string im, string snd, string ach, int most)
     {
         itemName = name;
         displayName = display;
-        discription = dis;
+        description = des;
         groups = gr;
+        gameElementType = eType;
         consumableRequirements = reqs;
         nonConsumableRequirements = nonReqs;
         visible = vis;
@@ -46,7 +47,7 @@ public class ResourceData
     {
         itemName = data.itemName;
         displayName = data.displayName;
-        discription = data.discription;
+        description = data.description;
         groups = data.groups;
         gameElementType = data.gameElementType;
         consumableRequirements = data.consumableRequirements;
@@ -101,7 +102,9 @@ public class ResourceData
 
     public string DigitizeForSerialization()
     {
-        return $"{itemName},{displayName},{discription},{groups},{consumableRequirements},{nonConsumableRequirements},{visible},{currentAmount},{autoAmount}," +
-            $"{craftTime},{itemsToGain},{commandsOnPressed},{commandsOnCreated},{imageName},{soundName},{achievement};";
+        //string name, string display, string dis, string gr, string eType, string reqs, string nonReqs, bool vis, int cur, int autoA, float craft,
+        //string created, string coms, string createComs, string im, string snd, string ach, int mos
+        return $"{itemName},{displayName},{description},{groups},{gameElementType},{consumableRequirements},{nonConsumableRequirements},{visible},{currentAmount},{autoAmount}," +
+            $"{craftTime},{itemsToGain},{commandsOnPressed},{commandsOnCreated},{imageName},{soundName},{achievement},{atMostAmount};";
     }
 }

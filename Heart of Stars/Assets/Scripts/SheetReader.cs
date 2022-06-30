@@ -53,41 +53,51 @@ public class SheetReader
         request.ValueRenderOption = valueRenderOption;
         ///request.DateTimeRenderOption = dateTimeRenderOption;
 
-        // To execute asynchronously in an async method, replace `request.Execute()` as shown:
-        Data.ValueRange response = request.Execute();
-        // Data.ValueRange response = await request.ExecuteAsync();
-
-        // TODO: Change code below to process the `response` object:
-        // Capturing the data sheet
-        string s = JsonConvert.SerializeObject(response);
-        // Splitting all the parts into what is most important
-        string[] removeJunkArray = s.Split(':');
-        // #5 in this array actually contains all the data
-        // Also trimming the first two characters off
-        s = removeJunkArray[4];
-        // Trimming the last 9 characters off
-        s = s.Remove(s.Length - 9, 9);
-        //This is splitting the table into the rows
-        removeJunkArray = s.Split("]");
-
-        //The actual values//
-        //Creating the grid by which the sheet is layed out.
-        List<string[]> ar = new List<string[]>();
-
-        foreach(string i in removeJunkArray)
+        try
         {
-            s = i.Remove(0, 2);
-            //Debug.Log($"Each item's array: {s}");
-            string[] newArray = s.Split(",");
-            string[] actualArray = new string[newArray.Length];
-            for (int j = 0; j < newArray.Length; j++)
+            // To execute asynchronously in an async method, replace `request.Execute()` as shown:
+            Data.ValueRange response = request.Execute();
+            // Data.ValueRange response = await request.ExecuteAsync();
+
+            // TODO: Change code below to process the `response` object:
+            // Capturing the data sheet
+            string s = JsonConvert.SerializeObject(response);
+            Debug.Log($"File: {s}");
+            // Splitting all the parts into what is most important
+            string[] removeJunkArray = s.Split(':');
+            // #5 in this array actually contains all the data
+            // Also trimming the first two characters off
+            s = removeJunkArray[4];
+            // Trimming the last 9 characters off
+            s = s.Remove(s.Length - 9, 9);
+            //This is splitting the table into the rows
+            removeJunkArray = s.Split("]");
+
+            //The actual values//
+            //Creating the grid by which the sheet is layed out.
+            List<string[]> ar = new List<string[]>();
+
+            foreach (string i in removeJunkArray)
             {
-                s = newArray[j].Trim('"');
-                actualArray[j] = s;
+                s = i.Remove(0, 2);
+                //Debug.Log($"Each item's array: {s}");
+                string[] newArray = s.Split(",");
+                string[] actualArray = new string[newArray.Length];
+                for (int j = 0; j < newArray.Length; j++)
+                {
+                    s = newArray[j].Trim('"');
+                    actualArray[j] = s;
+                }
+                ar.Add(actualArray);
             }
-            ar.Add(actualArray);
+
+            return ar;
+        }
+        catch(Exception e)//System.Net.WebException e)
+        {
+            Debug.Log(e.Message + ", The game is offline and needs to build from memory.");
         }
 
-        return ar;
+        return null;
     }
 }

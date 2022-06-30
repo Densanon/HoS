@@ -45,7 +45,7 @@ public class ResourceInfoPanel : MonoBehaviour
     {
         myResource = data.myResource;
         myTitle_text.text = data.myResource.displayName;
-        myDetails_text.text = data.myResource.discription;
+        myDetails_text.text = data.myResource.description;
         amountOwned_text.text = $"Amount Owned: {data.myResource.currentAmount}";
 
         myResourceNeeds = data.GetImediateDependencyNames();
@@ -77,7 +77,7 @@ public class ResourceInfoPanel : MonoBehaviour
     {
         myResource = data;
         myTitle_text.text = data.displayName;
-        myDetails_text.text = data.discription;
+        myDetails_text.text = data.description;
         amountOwned_text.text = $"Amount Owned: {data.currentAmount}";
 
         myResourceNeeds = main.ReturnDependencies(data);

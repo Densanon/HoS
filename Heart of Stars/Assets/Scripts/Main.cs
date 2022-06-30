@@ -89,15 +89,23 @@ public class Main : MonoBehaviour
 
     void Awake()
     {
-        SaveSystem.SeriouslyDeleteAllSaveFiles();
+        //SaveSystem.SeriouslyDeleteAllSaveFiles();
         
         SheetData = SheetReader.GetSheetData();
-        ResourceLibrary = new ResourceData[SheetData.Count];
-        NameReferenceIndex = new string[SheetData.Count];
-        QuedAmounts = new int[SheetData.Count];
         resourcePanelInfoPieces = new List<GameObject>();
 
-        LoadGameStats();
+        if(SheetData != null)
+        {
+            ResourceLibrary = new ResourceData[SheetData.Count];
+            NameReferenceIndex = new string[SheetData.Count];
+            QuedAmounts = new int[SheetData.Count];
+
+            LoadAndBuildGameStats();
+        }
+        else
+        {
+            LoadDataFromSave();
+        }
 
         DontDestroyOnLoad(this.gameObject);
     }
@@ -122,9 +130,14 @@ public class Main : MonoBehaviour
             SaveSystem.SeriouslyDeleteAllSaveFiles();
         }
 
+        if (Input.GetKeyDown(KeyCode.Alpha2))
+        {
+            ForceBuildDataFromSheet();
+        }
+
         if (Input.GetKeyDown(KeyCode.Escape))
         {
-            if (debugPanel.active)
+            if (debugPanel.activeSelf)
             {
                 debugPanel.SetActive(false);
             }
@@ -185,11 +198,11 @@ public class Main : MonoBehaviour
 
     private void OnApplicationQuit()
     {
-        //SaveStats();
-        //SaveSystem.SaveFile();
+        SaveStats();
+        SaveSystem.SaveFile();
     }
 
-    void LoadGameStats()
+    void LoadAndBuildGameStats()
     {
         LoadedData = new List<string[]>();
         itemNames = new List<string>();
@@ -210,8 +223,6 @@ public class Main : MonoBehaviour
             }
         }
 
-        
-
         List<ResourceData> temp = new List<ResourceData>();
 
         for (int j = 0; j < SheetData.Count; j++)
@@ -230,7 +241,7 @@ public class Main : MonoBehaviour
             }
 
             //Create new data for non-existing info on drive
-            //name, disp, dis, gr, eType, req, nonReq, vis, cur, autA, timer, created,
+            //name, desc, dis, gr, eType, req, nonReq, vis, cur, autA, timer, created,
             //coms, createComs, im, snd, ach, most
             ResourceLibrary[j] = new ResourceData(SheetData[j][0], SheetData[j][8], 
                 SheetData[j][9], SheetData[j][10], SheetData[j][1], SheetData[j][2], 
@@ -264,6 +275,76 @@ public class Main : MonoBehaviour
         CreateResourcePanelInfo("all", "");
 
         SaveStats();
+        SaveSystem.SaveFile();
+        LoadedData.Clear();
+    }
+
+    void LoadDataFromSave()
+    {
+        LoadedData = new List<string[]>();
+        itemNames = new List<string>();
+
+        string s = SaveSystem.LoadFile();
+        if (s != null)
+        {
+            string[] ar = s.Split(';');
+            foreach (string str in ar)
+            {
+                string[] final = str.Split(',');
+                LoadedData.Add(final);
+            }
+
+            for (int i = 0; i < LoadedData.Count; i++)
+            {
+                itemNames.Add(LoadedData[i][0]);
+            }
+        }
+
+        ResourceLibrary = new ResourceData[LoadedData.Count];
+        NameReferenceIndex = new string[LoadedData.Count];
+        QuedAmounts = new int[LoadedData.Count];
+
+        for (int j = 0; j < LoadedData.Count; j++)
+        {
+            ResourceLibrary[j] = new ResourceData(LoadedData[j][0], LoadedData[j][1], LoadedData[j][2], LoadedData[j][3], LoadedData[j][4], LoadedData[j][5], LoadedData[j][6],
+                    (LoadedData[j][7] == "True") ? true : false, int.Parse(LoadedData[j][8]), int.Parse(LoadedData[j][9]), float.Parse(LoadedData[j][10]), LoadedData[j][11], LoadedData[j][12],
+                    LoadedData[j][13], LoadedData[j][14], LoadedData[j][15], LoadedData[j][16], int.Parse(LoadedData[j][17]));
+
+            NameReferenceIndex[j] = ResourceLibrary[j].displayName;
+            StartCoroutine(UpdateQue(ResourceLibrary[j]));
+        }
+    }
+
+    public void ForceBuildDataFromSheet()
+    {
+        for (int j = 0; j < SheetData.Count; j++)
+        {
+            Debug.Log($"Sheetdata at [1]: {SheetData[j][1]}");
+            ResourceLibrary[j] = new ResourceData(SheetData[j][0], SheetData[j][8],
+                SheetData[j][9], SheetData[j][10], SheetData[j][1], SheetData[j][2],
+                SheetData[j][3], true, 0, 0, float.Parse(SheetData[j][4]), SheetData[j][5],
+                SheetData[j][6], SheetData[j][7], SheetData[j][11], SheetData[j][12],
+                SheetData[j][13], 0);
+
+            if (SheetData[j][3] == "nothing=0" && SheetData[j][4] == "nothing")
+            {
+                ResourceLibrary[j].AdjustVisibility(true);
+            }
+
+            if (ResourceLibrary[j].groups == "tool")
+            {
+                string[] ra = SheetData[j][7].Split(" ");
+                string[] k = ra[1].Split("=");
+                ResourceLibrary[j].SetAtMost(int.Parse(k[1]));
+            }
+
+            NameReferenceIndex[j] = ResourceLibrary[j].displayName;
+        }
+
+        CreateResourcePanelInfo("all", "");
+
+        SaveStats();
+        SaveSystem.SaveFile();
         LoadedData.Clear();
     }
 
@@ -414,9 +495,17 @@ public class Main : MonoBehaviour
 
     public void SaveStats()
     {
-        foreach(ResourceData data in ResourceLibrary)
+        for(int i = 0; i < ResourceLibrary.Length; i++)
         {
-            SaveSystem.SaveResource(data);
+            if (i != (ResourceLibrary.Length - 1))
+            {
+                SaveSystem.SaveResource(ResourceLibrary[i], false);
+            }
+            else
+            {
+                SaveSystem.SaveResource(ResourceLibrary[i], true);
+
+            }
         }
     }
 
