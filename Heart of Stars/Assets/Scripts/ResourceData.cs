@@ -19,9 +19,10 @@ public class ResourceData
     public string soundName { get; private set; }
     public string achievement { get; private set; }
     public int atMostAmount { get; private set; }
+    public string buildables { get; private set; }
 
     public ResourceData(string name, string display, string des, string gr, string eType, string reqs, string nonReqs, bool vis, int cur, int autoA, float craft, 
-        string created, string coms, string createComs, string im, string snd, string ach, int most)
+        string created, string coms, string createComs, string im, string snd, string ach, int most, string build)
     {
         itemName = name;
         displayName = display;
@@ -41,6 +42,7 @@ public class ResourceData
         soundName = snd;
         achievement = ach;
         atMostAmount = most;
+        buildables = build;
     }
 
     public ResourceData(ResourceData data)
@@ -63,6 +65,7 @@ public class ResourceData
         soundName = data.soundName;
         achievement = data.achievement;
         atMostAmount = data.atMostAmount;
+        buildables = data.buildables;
     }
 
     public void SetAtMost(int most)
@@ -100,11 +103,16 @@ public class ResourceData
         visible = vis;
     }
 
+    public void SetBuildblesString(string build)
+    {
+        buildables = build;
+    }
+
     public string DigitizeForSerialization()
     {
         //string name, string display, string dis, string gr, string eType, string reqs, string nonReqs, bool vis, int cur, int autoA, float craft,
-        //string created, string coms, string createComs, string im, string snd, string ach, int mos
+        //string created, string coms, string createComs, string im, string snd, string ach, int mos, string build
         return $"{itemName},{displayName},{description},{groups},{gameElementType},{consumableRequirements},{nonConsumableRequirements},{visible},{currentAmount},{autoAmount}," +
-            $"{craftTime},{itemsToGain},{commandsOnPressed},{commandsOnCreated},{imageName},{soundName},{achievement},{atMostAmount};";
+            $"{craftTime},{itemsToGain},{commandsOnPressed},{commandsOnCreated},{imageName},{soundName},{achievement},{atMostAmount},{buildables};";
     }
 }

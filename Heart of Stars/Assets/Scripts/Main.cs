@@ -89,7 +89,7 @@ public class Main : MonoBehaviour
 
     void Awake()
     {
-        //SaveSystem.SeriouslyDeleteAllSaveFiles();
+        SaveSystem.SeriouslyDeleteAllSaveFiles();
         
         SheetData = SheetReader.GetSheetData();
         resourcePanelInfoPieces = new List<GameObject>();
@@ -112,7 +112,10 @@ public class Main : MonoBehaviour
 
     private void Start()
     {
+        //Get Daily message from online
         //StartCoroutine(PushMessage("Welcome!", "Thank you for starting the game and participating in all the fun!"));
+        OnSendMessage?.Invoke("Welcome!", "Thank you for starting the game and participating in all the fun!");
+
     }
 
     private void Update()
@@ -233,7 +236,7 @@ public class Main : MonoBehaviour
             if (itemNames.Contains(SheetData[j][0])) {
                 ResourceLibrary[j] = new ResourceData(LoadedData[j][0], LoadedData[j][1], LoadedData[j][2], LoadedData[j][3], LoadedData[j][4], LoadedData[j][5], LoadedData[j][6],
                     (LoadedData[j][7] == "True") ? true : false, int.Parse(LoadedData[j][8]), int.Parse(LoadedData[j][9]), float.Parse(LoadedData[j][10]), LoadedData[j][11], LoadedData[j][12],
-                    LoadedData[j][13], LoadedData[j][14], LoadedData[j][15], LoadedData[j][16], int.Parse(LoadedData[j][17]));
+                    LoadedData[j][13], LoadedData[j][14], LoadedData[j][15], LoadedData[j][16], int.Parse(LoadedData[j][17]), LoadedData[j][18]);
 
                 NameReferenceIndex[j] = ResourceLibrary[j].displayName;
                 StartCoroutine(UpdateQue(ResourceLibrary[j]));
@@ -247,7 +250,7 @@ public class Main : MonoBehaviour
                 SheetData[j][9], SheetData[j][10], SheetData[j][1], SheetData[j][2], 
                 SheetData[j][3], true, 0, 0, float.Parse(SheetData[j][4]), SheetData[j][5], 
                 SheetData[j][6], SheetData[j][7], SheetData[j][11], SheetData[j][12], 
-                SheetData[j][13], 0);
+                SheetData[j][13], 0, "");
 
             //If it is a basic resource we need it to start visible
             if(SheetData[j][3] == "nothing=0" && SheetData[j][4] == "nothing")
@@ -271,6 +274,8 @@ public class Main : MonoBehaviour
 
             //Debug.Log($"There wasn't {ResourceLibrary[j].itemName}, so I made a new one.");
         }
+
+        CreateAllBuildableStrings();
 
         CreateResourcePanelInfo("all", "");
 
@@ -308,7 +313,7 @@ public class Main : MonoBehaviour
         {
             ResourceLibrary[j] = new ResourceData(LoadedData[j][0], LoadedData[j][1], LoadedData[j][2], LoadedData[j][3], LoadedData[j][4], LoadedData[j][5], LoadedData[j][6],
                     (LoadedData[j][7] == "True") ? true : false, int.Parse(LoadedData[j][8]), int.Parse(LoadedData[j][9]), float.Parse(LoadedData[j][10]), LoadedData[j][11], LoadedData[j][12],
-                    LoadedData[j][13], LoadedData[j][14], LoadedData[j][15], LoadedData[j][16], int.Parse(LoadedData[j][17]));
+                    LoadedData[j][13], LoadedData[j][14], LoadedData[j][15], LoadedData[j][16], int.Parse(LoadedData[j][17]), LoadedData[j][18]);
 
             NameReferenceIndex[j] = ResourceLibrary[j].displayName;
             StartCoroutine(UpdateQue(ResourceLibrary[j]));
@@ -324,7 +329,7 @@ public class Main : MonoBehaviour
                 SheetData[j][9], SheetData[j][10], SheetData[j][1], SheetData[j][2],
                 SheetData[j][3], true, 0, 0, float.Parse(SheetData[j][4]), SheetData[j][5],
                 SheetData[j][6], SheetData[j][7], SheetData[j][11], SheetData[j][12],
-                SheetData[j][13], 0);
+                SheetData[j][13], 0, "");
 
             if (SheetData[j][3] == "nothing=0" && SheetData[j][4] == "nothing")
             {
@@ -341,11 +346,32 @@ public class Main : MonoBehaviour
             NameReferenceIndex[j] = ResourceLibrary[j].displayName;
         }
 
+        CreateAllBuildableStrings();
+
         CreateResourcePanelInfo("all", "");
 
         SaveStats();
         SaveSystem.SaveFile();
         LoadedData.Clear();
+    }
+
+    void CreateAllBuildableStrings()
+    {
+        for (int k = 0; k < ResourceLibrary.Length; k++)
+        {
+            ResourceData[] res = ReturnMyBuildables(ResourceLibrary[k]);
+            for (int i = 0; i < res.Length; i++)
+            {
+                if (i != res.Length - 1)
+                {
+                    ResourceLibrary[k].SetBuildblesString(ResourceLibrary[k].buildables + res[i].itemName + "-");
+                }
+                else
+                {
+                    ResourceLibrary[k].SetBuildblesString(ResourceLibrary[k].buildables + res[i].itemName);
+                }
+            }
+        }
     }
 
     public void CreateResourcePanelInfo(string group, string type)
@@ -528,6 +554,49 @@ public class Main : MonoBehaviour
 
         Debug.LogError($"ReturnData: Could not find itemName : {itemName}");
         return null;
+    }
+
+    public ResourceData[] ReturnMyBuildables(ResourceData data)
+    {
+        Debug.Log($"ReturnMyBuildables: {data.itemName}");
+        List<ResourceData> temp = new List<ResourceData>();
+        foreach(ResourceData rd in ResourceLibrary)
+        {
+            Debug.Log($"Checking Con: {rd.consumableRequirements}");
+            if(rd.consumableRequirements != "nothing=0")
+            {
+                if(CheckStringForResource(data.itemName, rd.consumableRequirements))
+                {
+                    temp.Add(rd);
+                }
+              
+            }
+            Debug.Log($"Checking nonCon: {rd.nonConsumableRequirements}");
+            if (rd.nonConsumableRequirements != "nothing")
+            {
+                if (CheckStringForResource(data.itemName, rd.nonConsumableRequirements))
+                {
+                    temp.Add(rd);
+                }
+            }
+        }
+
+        return temp.ToArray();
+    }
+
+    bool CheckStringForResource(string itemName, string dependencyListString)
+    {
+        string[] checkResource = dependencyListString.Split("-");
+        foreach(string s in checkResource)
+        {
+            string[] stAr = s.Split("=");
+            if(stAr[0] == itemName)
+            {
+                Debug.Log($"CheckingStringForResource: found Resource: {stAr[0]}");
+                return true;
+            }
+        }
+        return false;
     }
 
     public ResourceData[] ReturnDependencies(ResourceData data)
