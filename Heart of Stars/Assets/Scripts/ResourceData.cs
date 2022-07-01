@@ -68,6 +68,17 @@ public class ResourceData
         buildables = data.buildables;
     }
 
+    public void SetDisplayName(string name)
+    {
+        displayName = name;
+
+    }
+
+    public void SetDescription(string des)
+    {
+        description = des;
+    }
+
     public void SetAtMost(int most)
     {
         atMostAmount = most;
@@ -81,6 +92,11 @@ public class ResourceData
     public void AdjustCurrentAmount(int amount)
     {
         currentAmount += amount;
+    }
+
+    public void SetAutoAmount(int amount)
+    {
+        autoAmount = amount;
     }
 
     public void AdjustAutoAmount(int amount)
@@ -103,9 +119,60 @@ public class ResourceData
         visible = vis;
     }
 
-    public void SetBuildblesString(string build)
+    public void SetBuildablesString(string build)
     {
         buildables = build;
+    }
+
+    public void SetGroups(string group)
+    {
+        groups = group;
+    }
+
+    public void SetGameElementType(string type)
+    {
+        gameElementType = type;
+
+    }
+
+    public void SetConsumableRequirements(string reqs)
+    {
+        consumableRequirements = reqs;
+    }
+
+    public void SetNonConsumableRequirements(string reqs)
+    {
+        nonConsumableRequirements = reqs;
+    }
+
+    public void SetItemsToGain(string items)
+    {
+        itemsToGain = items;
+    }
+
+    public void SetCommandsOnPressed(string coms)
+    {
+        commandsOnPressed = coms;
+    }
+
+    public void SetCommandsOnCreated(string coms)
+    {
+        commandsOnCreated = coms;
+    }
+
+    public void SetImageName(string name)
+    {
+        imageName = name;
+    }
+
+    public void SetSoundName(string name)
+    {
+        soundName = name;
+    }
+
+    public void SetAchievementName(string name)
+    {
+        achievement = name;
     }
 
     public string DigitizeForSerialization()

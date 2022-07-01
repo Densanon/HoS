@@ -26,6 +26,7 @@ public class Main : MonoBehaviour
 
     int created = 0;
     public string searchField = "";
+    bool resetAllBuildables = false;
 
     #region Debug Values
     [SerializeField]
@@ -87,9 +88,10 @@ public class Main : MonoBehaviour
     }
     #endregion
 
+    #region Unity Methods
     void Awake()
     {
-        SaveSystem.SeriouslyDeleteAllSaveFiles();
+        //SaveSystem.SeriouslyDeleteAllSaveFiles();
         
         SheetData = SheetReader.GetSheetData();
         resourcePanelInfoPieces = new List<GameObject>();
@@ -150,7 +152,9 @@ public class Main : MonoBehaviour
             }
         }
     }
+    #endregion
 
+    #region Qeue
     public void StartQueUpdate(ResourceData data)
     {
         Debug.Log($"I have been told to start the que for {data.displayName}");
@@ -198,128 +202,9 @@ public class Main : MonoBehaviour
 
         StartQueUpdate(data);
     }
+    #endregion
 
-    private void OnApplicationQuit()
-    {
-        SaveStats();
-        SaveSystem.SaveFile();
-    }
-
-    void LoadAndBuildGameStats()
-    {
-        LoadedData = new List<string[]>();
-        itemNames = new List<string>();
-
-        string s = SaveSystem.LoadFile();
-        if(s != null)
-        {
-            string[] ar = s.Split(';');
-            foreach(string str in ar)
-            {
-                string[] final = str.Split(',');
-                LoadedData.Add(final);
-            }
-
-            for (int i = 0; i < LoadedData.Count; i++)
-            {
-                itemNames.Add(LoadedData[i][0]);
-            }
-        }
-
-        List<ResourceData> temp = new List<ResourceData>();
-
-        for (int j = 0; j < SheetData.Count; j++)
-        {
-            
-
-            //Load data from previous data on drive
-            if (itemNames.Contains(SheetData[j][0])) {
-                ResourceLibrary[j] = new ResourceData(LoadedData[j][0], LoadedData[j][1], LoadedData[j][2], LoadedData[j][3], LoadedData[j][4], LoadedData[j][5], LoadedData[j][6],
-                    (LoadedData[j][7] == "True") ? true : false, int.Parse(LoadedData[j][8]), int.Parse(LoadedData[j][9]), float.Parse(LoadedData[j][10]), LoadedData[j][11], LoadedData[j][12],
-                    LoadedData[j][13], LoadedData[j][14], LoadedData[j][15], LoadedData[j][16], int.Parse(LoadedData[j][17]), LoadedData[j][18]);
-
-                NameReferenceIndex[j] = ResourceLibrary[j].displayName;
-                StartCoroutine(UpdateQue(ResourceLibrary[j]));
-                continue;
-            }
-
-            //Create new data for non-existing info on drive
-            //name, desc, dis, gr, eType, req, nonReq, vis, cur, autA, timer, created,
-            //coms, createComs, im, snd, ach, most
-            ResourceLibrary[j] = new ResourceData(SheetData[j][0], SheetData[j][8], 
-                SheetData[j][9], SheetData[j][10], SheetData[j][1], SheetData[j][2], 
-                SheetData[j][3], true, 0, 0, float.Parse(SheetData[j][4]), SheetData[j][5], 
-                SheetData[j][6], SheetData[j][7], SheetData[j][11], SheetData[j][12], 
-                SheetData[j][13], 0, "");
-
-            //If it is a basic resource we need it to start visible
-            if(SheetData[j][3] == "nothing=0" && SheetData[j][4] == "nothing")
-            {
-                ResourceLibrary[j].AdjustVisibility(true);
-
-                //Debug.Log($"{ResourceLibrary[j].itemName} is a basic resource.");
-            }
-            //If it is a tool, we need to set it's max amount to 1, or whatever the given max amount will be
-            if(ResourceLibrary[j].groups == "tool")
-            {
-                //Debug.Log($"Found that {ResourceLibrary[j].displayName} is a tool.");
-                string[] ra = SheetData[j][7].Split(" ");
-                string[] k = ra[1].Split("=");
-                ResourceLibrary[j].SetAtMost(int.Parse(k[1]));
-                //Debug.Log($"Found that {ResourceLibrary[j].displayName} is is now set to {k[1]}.");
-            }
-
-            NameReferenceIndex[j] = ResourceLibrary[j].displayName;
-            StartCoroutine(UpdateQue(ResourceLibrary[j]));
-
-            //Debug.Log($"There wasn't {ResourceLibrary[j].itemName}, so I made a new one.");
-        }
-
-        CreateAllBuildableStrings();
-
-        CreateResourcePanelInfo("all", "");
-
-        SaveStats();
-        SaveSystem.SaveFile();
-        LoadedData.Clear();
-    }
-
-    void LoadDataFromSave()
-    {
-        LoadedData = new List<string[]>();
-        itemNames = new List<string>();
-
-        string s = SaveSystem.LoadFile();
-        if (s != null)
-        {
-            string[] ar = s.Split(';');
-            foreach (string str in ar)
-            {
-                string[] final = str.Split(',');
-                LoadedData.Add(final);
-            }
-
-            for (int i = 0; i < LoadedData.Count; i++)
-            {
-                itemNames.Add(LoadedData[i][0]);
-            }
-        }
-
-        ResourceLibrary = new ResourceData[LoadedData.Count];
-        NameReferenceIndex = new string[LoadedData.Count];
-        QuedAmounts = new int[LoadedData.Count];
-
-        for (int j = 0; j < LoadedData.Count; j++)
-        {
-            ResourceLibrary[j] = new ResourceData(LoadedData[j][0], LoadedData[j][1], LoadedData[j][2], LoadedData[j][3], LoadedData[j][4], LoadedData[j][5], LoadedData[j][6],
-                    (LoadedData[j][7] == "True") ? true : false, int.Parse(LoadedData[j][8]), int.Parse(LoadedData[j][9]), float.Parse(LoadedData[j][10]), LoadedData[j][11], LoadedData[j][12],
-                    LoadedData[j][13], LoadedData[j][14], LoadedData[j][15], LoadedData[j][16], int.Parse(LoadedData[j][17]), LoadedData[j][18]);
-
-            NameReferenceIndex[j] = ResourceLibrary[j].displayName;
-            StartCoroutine(UpdateQue(ResourceLibrary[j]));
-        }
-    }
-
+    #region Data Calls
     public void ForceBuildDataFromSheet()
     {
         for (int j = 0; j < SheetData.Count; j++)
@@ -359,21 +244,204 @@ public class Main : MonoBehaviour
     {
         for (int k = 0; k < ResourceLibrary.Length; k++)
         {
-            ResourceData[] res = ReturnMyBuildables(ResourceLibrary[k]);
-            for (int i = 0; i < res.Length; i++)
+            if (resetAllBuildables)
             {
-                if (i != res.Length - 1)
+                ResourceLibrary[k].SetBuildablesString("");
+            }
+
+            if(ResourceLibrary[k].buildables == "")
+            {
+                Debug.Log($"{ResourceLibrary[k].itemName} needs to create a string for any buildables.");
+                ResourceData[] res = ReturnMyBuildables(ResourceLibrary[k]);
+                for (int i = 0; i < res.Length; i++)
                 {
-                    ResourceLibrary[k].SetBuildblesString(ResourceLibrary[k].buildables + res[i].itemName + "-");
+                    if (i != res.Length - 1)
+                    {
+                        ResourceLibrary[k].SetBuildablesString(ResourceLibrary[k].buildables + res[i].itemName + "-");
+                    }
+                    else
+                    {
+                        ResourceLibrary[k].SetBuildablesString(ResourceLibrary[k].buildables + res[i].itemName);
+                    }
                 }
-                else
+            }
+
+            resetAllBuildables = false;
+        }
+    }
+
+    void CompareIndividualResourceValues(ResourceData data)
+    {
+        foreach(string[] ar in SheetData)
+        {
+            if (ar[0] == data.itemName)
+            {
+                if(data.displayName != ar[8])
                 {
-                    ResourceLibrary[k].SetBuildblesString(ResourceLibrary[k].buildables + res[i].itemName);
+                    Debug.Log($"{data.itemName} is getting an updated display name.");
+                    data.SetDisplayName(ar[8]);
+                }
+                if(data.description != ar[9])
+                {
+                    Debug.Log($"{data.itemName} is getting an updated description.");
+                    data.SetDescription(ar[9]);
+                }
+                if(data.groups != ar[10])
+                {
+                    Debug.Log($"{data.itemName} is getting an updated groups.");
+                    data.SetGroups(ar[10]);
+                }
+                if(data.gameElementType != ar[1])
+                {
+                    Debug.Log($"{data.itemName} is getting an updated game element type.");
+                    data.SetGameElementType(ar[1]);
+                }
+                if(data.consumableRequirements != ar[2])
+                {
+                    Debug.Log($"{data.itemName} is getting an updated consumable list.");
+                    data.SetConsumableRequirements(ar[2]);
+                    resetAllBuildables = true;
+                }
+                if(data.nonConsumableRequirements != ar[3])
+                {
+                    Debug.Log($"{data.itemName} is getting an updated non-consumable list.");
+                    data.SetNonConsumableRequirements(ar[3]);
+                    resetAllBuildables = true;
+                }
+                if(data.craftTime != float.Parse(ar[4]))
+                {
+                    Debug.Log($"{data.itemName} is getting an updated craft time.");
+                    data.SetCraftTimer(float.Parse(ar[4]));
+                }
+                if (data.itemsToGain != ar[5])
+                {
+                    Debug.Log($"{data.itemName} is getting an updated items to gain list.");
+                    data.SetItemsToGain(ar[5]);
+                }
+                if(data.commandsOnPressed != ar[6])
+                {
+                    Debug.Log($"{data.itemName} is getting an updated commands on pressed list.");
+                    data.SetCommandsOnPressed(ar[6]);
+                }
+                if (data.commandsOnCreated != ar[7])
+                {
+                    Debug.Log($"{data.itemName} is getting an updated commands on created list.");
+                    data.SetCommandsOnCreated(ar[7]);
+                }
+                if (data.imageName != ar[11])
+                {
+                    Debug.Log($"{data.itemName} is getting an updated image name.");
+                    data.SetImageName(ar[11]);
+                }
+                if (data.soundName != ar[12])
+                {
+                    Debug.Log($"{data.itemName} is getting an updated sound name.");
+                    data.SetSoundName(ar[12]);
+                }
+                if (data.achievement != ar[13])
+                {
+                    Debug.Log($"{data.itemName} is getting an updated acheivement string.");
+                    data.SetAchievementName(ar[13]);
                 }
             }
         }
     }
 
+    public ResourceData ReturnData(string itemName)
+    {
+        foreach(ResourceData data in ResourceLibrary)
+        {
+            if(data.itemName == itemName)
+            {
+                return data;
+            }
+        }
+
+        Debug.LogError($"ReturnData: Could not find itemName : {itemName}");
+        return null;
+    }
+
+    public ResourceData[] ReturnMyBuildables(ResourceData data)
+    {
+        List<ResourceData> temp = new List<ResourceData>();
+        foreach(ResourceData rd in ResourceLibrary)
+        {
+            if(rd.consumableRequirements != "nothing=0")
+            {
+                if(CheckStringForResource(data.itemName, rd.consumableRequirements))
+                {
+                    temp.Add(rd);
+                }
+              
+            }
+            if (rd.nonConsumableRequirements != "nothing")
+            {
+                if (CheckStringForResource(data.itemName, rd.nonConsumableRequirements))
+                {
+                    temp.Add(rd);
+                }
+            }
+        }
+
+        return temp.ToArray();
+    }
+
+    bool CheckStringForResource(string itemName, string dependencyListString)
+    {
+        string[] checkResource = dependencyListString.Split("-");
+        foreach(string s in checkResource)
+        {
+            string[] stAr = s.Split("=");
+            if(stAr[0] == itemName)
+            {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    public ResourceData[] ReturnDependencies(ResourceData data)
+    {
+        List<ResourceData> deps = new List<ResourceData>();
+        string[] ar = data.consumableRequirements.Split("-");
+        if(ar[0] != "nothing=0")
+        {
+            foreach(string s in ar)
+            {
+                string[] tAr = s.Split('=');
+                ResourceData TD = ReturnData(tAr[0]);
+                if (!deps.Contains(TD))
+                {
+                    deps.Add(TD);
+                }
+            }
+        }
+
+        return deps.ToArray();
+    }
+
+    public int[] ReturnDependencyAmounts(ResourceData data)
+    {
+        List<int> deps = new List<int>();
+        string[] ar = data.consumableRequirements.Split("-");
+        if (ar[0] != "nothing=0")
+        {
+            foreach (string s in ar)
+            {
+                string[] tAr = s.Split('=');
+                int i = int.Parse(tAr[1]);
+                if (!deps.Contains(i))
+                {
+                    deps.Add(i);
+                }
+            }
+        }
+
+        return deps.ToArray();
+    }
+    #endregion
+
+    #region Resource Panel
     public void CreateResourcePanelInfo(string group, string type)
     {
         RemovePreviousPanelInformation();
@@ -518,10 +586,12 @@ public class Main : MonoBehaviour
 
         resourcePanelInfoPieces.Clear();
     }
+    #endregion
 
+    #region Save Load
     public void SaveStats()
     {
-        for(int i = 0; i < ResourceLibrary.Length; i++)
+        for (int i = 0; i < ResourceLibrary.Length; i++)
         {
             if (i != (ResourceLibrary.Length - 1))
             {
@@ -535,110 +605,136 @@ public class Main : MonoBehaviour
         }
     }
 
+    void LoadAndBuildGameStats()
+    {
+        LoadedData = new List<string[]>();
+        itemNames = new List<string>();
+
+        string s = SaveSystem.LoadFile();
+        if(s != null)
+        {
+            string[] ar = s.Split(';');
+            foreach(string str in ar)
+            {
+                string[] final = str.Split(',');
+                LoadedData.Add(final);
+            }
+
+            for (int i = 0; i < LoadedData.Count; i++)
+            {
+                itemNames.Add(LoadedData[i][0]);
+            }
+        }
+
+        List<ResourceData> temp = new List<ResourceData>();
+
+        for (int j = 0; j < SheetData.Count; j++)
+        {
+            
+
+            //Load data from previous data on drive
+            if (itemNames.Contains(SheetData[j][0]))
+            {
+                ResourceLibrary[j] = new ResourceData(LoadedData[j][0], LoadedData[j][1], LoadedData[j][2], LoadedData[j][3], LoadedData[j][4], LoadedData[j][5], LoadedData[j][6],
+                (LoadedData[j][7] == "True") ? true : false, int.Parse(LoadedData[j][8]), int.Parse(LoadedData[j][9]), float.Parse(LoadedData[j][10]), LoadedData[j][11], LoadedData[j][12],
+                LoadedData[j][13], LoadedData[j][14], LoadedData[j][15], LoadedData[j][16], int.Parse(LoadedData[j][17]), LoadedData[j][18]);
+
+                try
+                {
+                    if(SheetData[j][14] == "TRUE")
+                        CompareIndividualResourceValues(ResourceLibrary[j]);
+                }
+                catch (IndexOutOfRangeException e){}
+                
+                NameReferenceIndex[j] = ResourceLibrary[j].displayName;
+                StartCoroutine(UpdateQue(ResourceLibrary[j]));
+                continue;
+            }
+        
+            //Create new data for non-existing info on drive
+            //name, desc, dis, gr, eType, req, nonReq, vis, cur, autA, timer, created,
+            //coms, createComs, im, snd, ach, most
+            ResourceLibrary[j] = new ResourceData(SheetData[j][0], SheetData[j][8], 
+                SheetData[j][9], SheetData[j][10], SheetData[j][1], SheetData[j][2], 
+                SheetData[j][3], true, 0, 0, float.Parse(SheetData[j][4]), SheetData[j][5], 
+                SheetData[j][6], SheetData[j][7], SheetData[j][11], SheetData[j][12], 
+                SheetData[j][13], 0, "");
+
+            //If it is a basic resource we need it to start visible
+            if(SheetData[j][3] == "nothing=0" && SheetData[j][4] == "nothing")
+            {
+                ResourceLibrary[j].AdjustVisibility(true);
+
+                //Debug.Log($"{ResourceLibrary[j].itemName} is a basic resource.");
+            }
+            //If it is a tool, we need to set it's max amount to 1, or whatever the given max amount will be
+            if(ResourceLibrary[j].groups == "tool")
+            {
+                //Debug.Log($"Found that {ResourceLibrary[j].displayName} is a tool.");
+                string[] ra = SheetData[j][7].Split(" ");
+                string[] k = ra[1].Split("=");
+                ResourceLibrary[j].SetAtMost(int.Parse(k[1]));
+                //Debug.Log($"Found that {ResourceLibrary[j].displayName} is is now set to {k[1]}.");
+            }
+
+            NameReferenceIndex[j] = ResourceLibrary[j].displayName;
+            StartCoroutine(UpdateQue(ResourceLibrary[j]));
+
+            //Debug.Log($"There wasn't {ResourceLibrary[j].itemName}, so I made a new one.");
+        }
+
+        CreateAllBuildableStrings();
+
+        CreateResourcePanelInfo("all", "");
+
+        SaveStats();
+        SaveSystem.SaveFile();
+        LoadedData.Clear();
+    }
+
+    void LoadDataFromSave()
+    {
+        LoadedData = new List<string[]>();
+        itemNames = new List<string>();
+
+        string s = SaveSystem.LoadFile();
+        if (s != null)
+        {
+            string[] ar = s.Split(';');
+            foreach (string str in ar)
+            {
+                string[] final = str.Split(',');
+                LoadedData.Add(final);
+            }
+
+            for (int i = 0; i < LoadedData.Count; i++)
+            {
+                itemNames.Add(LoadedData[i][0]);
+            }
+        }
+
+        ResourceLibrary = new ResourceData[LoadedData.Count];
+        NameReferenceIndex = new string[LoadedData.Count];
+        QuedAmounts = new int[LoadedData.Count];
+
+        for (int j = 0; j < LoadedData.Count; j++)
+        {
+            ResourceLibrary[j] = new ResourceData(LoadedData[j][0], LoadedData[j][1], LoadedData[j][2], LoadedData[j][3], LoadedData[j][4], LoadedData[j][5], LoadedData[j][6],
+                    (LoadedData[j][7] == "True") ? true : false, int.Parse(LoadedData[j][8]), int.Parse(LoadedData[j][9]), float.Parse(LoadedData[j][10]), LoadedData[j][11], LoadedData[j][12],
+                    LoadedData[j][13], LoadedData[j][14], LoadedData[j][15], LoadedData[j][16], int.Parse(LoadedData[j][17]), LoadedData[j][18]);
+
+            NameReferenceIndex[j] = ResourceLibrary[j].displayName;
+            StartCoroutine(UpdateQue(ResourceLibrary[j]));
+        }
+    }
+
     public void DeleteSaveFileData()
     {
         SaveSystem.SeriouslyDeleteAllSaveFiles();
     }
+    #endregion
 
-    public ResourceData ReturnData(string itemName)
-    {
-        //Debug.Log($"In Main:ReturnData:Looking for {itemName}");
-        foreach(ResourceData data in ResourceLibrary)
-        {
-            if(data.itemName == itemName)
-            {
-                //Debug.Log($"Found a data type with name {data.itemName}");
-                return data;
-            }
-        }
-
-        Debug.LogError($"ReturnData: Could not find itemName : {itemName}");
-        return null;
-    }
-
-    public ResourceData[] ReturnMyBuildables(ResourceData data)
-    {
-        Debug.Log($"ReturnMyBuildables: {data.itemName}");
-        List<ResourceData> temp = new List<ResourceData>();
-        foreach(ResourceData rd in ResourceLibrary)
-        {
-            Debug.Log($"Checking Con: {rd.consumableRequirements}");
-            if(rd.consumableRequirements != "nothing=0")
-            {
-                if(CheckStringForResource(data.itemName, rd.consumableRequirements))
-                {
-                    temp.Add(rd);
-                }
-              
-            }
-            Debug.Log($"Checking nonCon: {rd.nonConsumableRequirements}");
-            if (rd.nonConsumableRequirements != "nothing")
-            {
-                if (CheckStringForResource(data.itemName, rd.nonConsumableRequirements))
-                {
-                    temp.Add(rd);
-                }
-            }
-        }
-
-        return temp.ToArray();
-    }
-
-    bool CheckStringForResource(string itemName, string dependencyListString)
-    {
-        string[] checkResource = dependencyListString.Split("-");
-        foreach(string s in checkResource)
-        {
-            string[] stAr = s.Split("=");
-            if(stAr[0] == itemName)
-            {
-                Debug.Log($"CheckingStringForResource: found Resource: {stAr[0]}");
-                return true;
-            }
-        }
-        return false;
-    }
-
-    public ResourceData[] ReturnDependencies(ResourceData data)
-    {
-        List<ResourceData> deps = new List<ResourceData>();
-        string[] ar = data.consumableRequirements.Split("-");
-        if(ar[0] != "nothing=0")
-        {
-            foreach(string s in ar)
-            {
-                string[] tAr = s.Split('=');
-                ResourceData TD = ReturnData(tAr[0]);
-                if (!deps.Contains(TD))
-                {
-                    deps.Add(TD);
-                }
-            }
-        }
-
-        return deps.ToArray();
-    }
-
-    public int[] ReturnDependencyAmounts(ResourceData data)
-    {
-        List<int> deps = new List<int>();
-        string[] ar = data.consumableRequirements.Split("-");
-        if (ar[0] != "nothing=0")
-        {
-            foreach (string s in ar)
-            {
-                string[] tAr = s.Split('=');
-                int i = int.Parse(tAr[1]);
-                if (!deps.Contains(i))
-                {
-                    deps.Add(i);
-                }
-            }
-        }
-
-        return deps.ToArray();
-    }
-
+    #region Misc
     void ReceiveDropForExtraction(string drop)
     {
         string[] items = drop.Split("-");
@@ -656,4 +752,11 @@ public class Main : MonoBehaviour
         Debug.Log("Pushing message");
         OnSendMessage?.Invoke(type, message);
     }
+
+    private void OnApplicationQuit()
+    {
+        SaveStats();
+        SaveSystem.SaveFile();
+    }
+    #endregion
 }
