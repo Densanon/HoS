@@ -26,10 +26,15 @@ public static class SaveSystem
         }
     }
 
-    public static void SaveFile()
+    public static void SaveAddress(string address)
+    {
+        FileData = address;
+    }
+
+    public static void SaveFile(string file)
     {
         BinaryFormatter formatter = new BinaryFormatter();
-        string path = Application.persistentDataPath + "/resource_shalom";
+        string path = Application.persistentDataPath + file;
         FileStream stream = new FileStream(path, FileMode.Create);
 
         formatter.Serialize(stream, FileData);
@@ -41,11 +46,11 @@ public static class SaveSystem
     }
 
 
-    public static string LoadFile()
+    public static string LoadFile(string file)
     {
         WipeString();
 
-        string path = Application.persistentDataPath + "/resource_shalom";
+        string path = Application.persistentDataPath + file;
         if (File.Exists(path))
         {
             //Debug.Log("Found a file, and should be grabbing it.");

@@ -8,11 +8,23 @@ public class Main : MonoBehaviour
 {
     public static Action<string, string> OnSendMessage = delegate { };
 
+    public enum UniverseDepth {Universe, SuperCluster, Galaxy, Nebula, GlobularCluster, StarCluster, Constellation, SolarSystem, PlanetMoon, Planet}
+    UniverseDepth currentDepth = UniverseDepth.Universe;
+
+    [SerializeField]
+    GameObject[] depthPrefabs;
+    [SerializeField]
+    Transform universeTransform;
+    GameObject[] depthLocations;
+    bool fromMemoryOfLocation = false;
+
     List<string[]> SheetData;
     List<string[]> LoadedData;
     List<string> itemNames;
     [SerializeField]
     ResourceData[] ResourceLibrary;
+
+    public string universeAdress;
 
     string[] NameReferenceIndex;
     int[] QuedAmounts;
@@ -91,6 +103,8 @@ public class Main : MonoBehaviour
     #region Unity Methods
     void Awake()
     {
+        UnityEngine.Random.InitState(42);
+
         //SaveSystem.SeriouslyDeleteAllSaveFiles();
         
         SheetData = SheetReader.GetSheetData();
@@ -110,14 +124,16 @@ public class Main : MonoBehaviour
         }
 
         DontDestroyOnLoad(this.gameObject);
+
+        Depthinteraction.SpaceInteractionHover += CheckForSpaceObject;
     }
 
     private void Start()
     {
         //Get Daily message from online
-        //StartCoroutine(PushMessage("Welcome!", "Thank you for starting the game and participating in all the fun!"));
-        OnSendMessage?.Invoke("Welcome!", "Thank you for starting the game and participating in all the fun!");
+        //OnSendMessage?.Invoke("Welcome!", "Thank you for starting the game and participating in all the fun!");
 
+        GenerateUniverseLocation(UniverseDepth.Universe, 42);
     }
 
     private void Update()
@@ -235,8 +251,8 @@ public class Main : MonoBehaviour
 
         CreateResourcePanelInfo("all", "");
 
-        SaveStats();
-        SaveSystem.SaveFile();
+        SaveResourceLibrary();
+        SaveSystem.SaveFile("/resource_shalom");
         LoadedData.Clear();
     }
 
@@ -589,7 +605,7 @@ public class Main : MonoBehaviour
     #endregion
 
     #region Save Load
-    public void SaveStats()
+    public void SaveResourceLibrary()
     {
         for (int i = 0; i < ResourceLibrary.Length; i++)
         {
@@ -605,12 +621,19 @@ public class Main : MonoBehaviour
         }
     }
 
+    public void SaveUniverseLocation()
+    {
+        SaveSystem.WipeString();
+        SaveSystem.SaveAddress(universeAdress);
+        SaveSystem.SaveFile("/address_nissi");
+    }
+
     void LoadAndBuildGameStats()
     {
         LoadedData = new List<string[]>();
         itemNames = new List<string>();
 
-        string s = SaveSystem.LoadFile();
+        string s = SaveSystem.LoadFile("/resource_shalom");
         if(s != null)
         {
             string[] ar = s.Split(';');
@@ -687,9 +710,16 @@ public class Main : MonoBehaviour
 
         CreateResourcePanelInfo("all", "");
 
-        SaveStats();
-        SaveSystem.SaveFile();
+        SaveResourceLibrary();
+        SaveSystem.SaveFile("/resource_shalom");
         LoadedData.Clear();
+
+        s = SaveSystem.LoadFile("/address_nissi");
+        if(s != null)
+        {
+            universeAdress = s;
+            fromMemoryOfLocation = true;
+        }
     }
 
     void LoadDataFromSave()
@@ -697,7 +727,7 @@ public class Main : MonoBehaviour
         LoadedData = new List<string[]>();
         itemNames = new List<string>();
 
-        string s = SaveSystem.LoadFile();
+        string s = SaveSystem.LoadFile("/resource_shalom");
         if (s != null)
         {
             string[] ar = s.Split(';');
@@ -726,11 +756,238 @@ public class Main : MonoBehaviour
             NameReferenceIndex[j] = ResourceLibrary[j].displayName;
             StartCoroutine(UpdateQue(ResourceLibrary[j]));
         }
+
+        s = SaveSystem.LoadFile("/address_nissi");
+        if (s != null)
+        {
+            universeAdress = s;
+            fromMemoryOfLocation = true;
+        }
     }
 
     public void DeleteSaveFileData()
     {
         SaveSystem.SeriouslyDeleteAllSaveFiles();
+    }
+    #endregion
+
+    #region Map
+    public void GenerateUniverseLocation(UniverseDepth depth, int index)
+    {
+        UniverseDepth dp = depth;
+
+        if(depthLocations != null)
+            WipeUniversePieces();
+
+
+        List<GameObject> objs = new List<GameObject>();
+
+        if (!fromMemoryOfLocation)
+        {
+            if(depth == UniverseDepth.Universe)
+            {
+                universeAdress = $"{index}";
+            }
+            else
+            {
+                universeAdress += $",{index}";
+                UnityEngine.Random.InitState(universeAdress.GetHashCode());
+            }
+        }
+        else
+        {
+            Debug.Log($"UniverseAddress being set up again: {universeAdress}");
+
+            UnityEngine.Random.InitState(universeAdress.GetHashCode());
+
+            string[] ar = universeAdress.Split(",");
+            SetLocationDepthByInt(ar.Length);
+            dp = currentDepth;
+            fromMemoryOfLocation = false;
+        }
+        //Debug.Log($"UniverseAddress: {universeAdress}");
+        //Debug.Log($"HashCode: {universeAdress.GetHashCode()}");
+
+        switch (dp)
+        {
+            case UniverseDepth.Universe:
+                Debug.Log("Should be building SuperCluster Level.");
+                if (depthPrefabs[0] != null)//builds SuperClusters
+                {
+                    for(int i = 0; i < 10; i++)
+                    {
+                        GameObject obj = Instantiate(depthPrefabs[0], new Vector3(UnityEngine.Random.Range(-8.3f, 8.3f), UnityEngine.Random.Range(-4.4f, 4.4f), 0f), Quaternion.identity);
+                        objs.Add(obj);
+                    }
+                }
+                break;
+            case UniverseDepth.SuperCluster://builds Galaxies
+                Debug.Log("Should be building Galaxy Level.");
+                if (depthPrefabs[1] != null)
+                {
+                    for (int i = 0; i < 10; i++)
+                    {
+                        GameObject obj = Instantiate(depthPrefabs[1], new Vector3(UnityEngine.Random.Range(-8.3f, 8.3f), UnityEngine.Random.Range(-4.4f, 4.4f), 0f), Quaternion.identity);
+                        objs.Add(obj);
+                    }
+                }
+                break;
+            case UniverseDepth.Galaxy://builds Nebulas etc.
+                Debug.Log("We haven't made Nebulas yet.");
+                break;
+            case UniverseDepth.Nebula:
+                
+                break;
+            case UniverseDepth.GlobularCluster:
+                
+                break;
+            case UniverseDepth.StarCluster:
+                
+                break;
+            case UniverseDepth.Constellation:
+                
+                break;
+            case UniverseDepth.SolarSystem:
+                
+                break;
+            case UniverseDepth.PlanetMoon:
+                
+                break;
+        }
+
+        depthLocations = new GameObject[objs.Count];
+        for(int j = 0; j < objs.Count; j++)
+        {
+            depthLocations[j] = objs[j];
+        }
+    }
+
+    void WipeUniversePieces()
+    {
+        int j = depthLocations.Length;
+        for(int i = 0; i < j; i++)
+        {
+            Destroy(depthLocations[i]);
+        }
+    }
+
+    void CheckForSpaceObject(GameObject obj)
+    {
+        for(int i = 0; i < depthLocations.Length; i++)
+        {
+            if(ReferenceEquals(obj,depthLocations[i]))
+            {
+                SwitchUniverseLocationDepth();
+                GenerateUniverseLocation(currentDepth, i);
+                break;
+            }
+        }
+    }
+
+    void SwitchUniverseLocationDepth()
+    {
+        switch (currentDepth)
+        {
+            case UniverseDepth.Universe:
+                currentDepth = UniverseDepth.SuperCluster;
+                break;
+            case UniverseDepth.SuperCluster:
+                currentDepth = UniverseDepth.Galaxy;
+                break;
+            case UniverseDepth.Galaxy:
+                currentDepth = UniverseDepth.Nebula;
+                break;
+            case UniverseDepth.Nebula:
+                currentDepth = UniverseDepth.GlobularCluster;
+                break;
+            case UniverseDepth.GlobularCluster:
+                currentDepth = UniverseDepth.StarCluster;
+                break;
+            case UniverseDepth.StarCluster:
+                currentDepth = UniverseDepth.Constellation;
+                break;
+            case UniverseDepth.Constellation:
+                currentDepth = UniverseDepth.SolarSystem;
+                break;
+            case UniverseDepth.SolarSystem:
+                currentDepth = UniverseDepth.PlanetMoon;
+                break;
+            case UniverseDepth.PlanetMoon:
+                //This should create a planetary experience
+                break;
+        }
+    }
+
+    void SetLocationDepthByInt(int depth)
+    {
+        switch (depth)
+        {
+            case 1:
+                UnityEngine.Random.InitState(42);
+                currentDepth = UniverseDepth.Universe;
+                break;
+            case 2:
+                currentDepth = UniverseDepth.SuperCluster;
+                break;
+            case 3:
+                currentDepth = UniverseDepth.Galaxy;
+                break;
+            case 4:
+                currentDepth = UniverseDepth.Nebula;
+                break;
+            case 5:
+                currentDepth = UniverseDepth.GlobularCluster;
+                break;
+            case 6:
+                currentDepth = UniverseDepth.StarCluster;
+                break;
+            case 7:
+                currentDepth = UniverseDepth.Constellation;
+                break;
+            case 8:
+                currentDepth = UniverseDepth.SolarSystem;
+                break;
+            case 9:
+                currentDepth = UniverseDepth.PlanetMoon;
+                break;
+            case 10:
+                currentDepth = UniverseDepth.Planet;
+                break;
+        }
+    }
+
+    public void GoBackAStep()
+    {
+        Debug.Log("I have been called to go back a step.");
+        string[] ar = universeAdress.Split(",");
+        int index = 42;
+        if(ar.Length != 1)
+        {
+
+            SetLocationDepthByInt(ar.Length - 1);
+            universeAdress = "";
+            for(int i = 0; i < ar.Length-1; i++)
+            {
+                if(i != 0)
+                {
+                    universeAdress += ar[i];
+                }
+                else
+                {
+                    universeAdress += "," + ar[i];
+                    if(i == ar.Length - 1)
+                    {
+                        index = int.Parse(ar[i]);
+                    }
+                }
+            }
+        }
+
+        if(index == 42)
+        {
+            SetLocationDepthByInt(1);
+        }
+        GenerateUniverseLocation(currentDepth, index);
     }
     #endregion
 
@@ -755,8 +1012,9 @@ public class Main : MonoBehaviour
 
     private void OnApplicationQuit()
     {
-        SaveStats();
-        SaveSystem.SaveFile();
+        SaveResourceLibrary();
+        SaveSystem.SaveFile("/resource_shalom");
+        SaveUniverseLocation();
     }
     #endregion
 }
