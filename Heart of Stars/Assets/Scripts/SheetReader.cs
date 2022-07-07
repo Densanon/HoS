@@ -24,7 +24,7 @@ public class SheetReader
     public static List<string[]> GetSheetData()
     {
         string fullJsonPath = Application.dataPath + jsonPath;
-        Stream jsonCreds = (Stream)File.Open(fullJsonPath, FileMode.Open);
+        Stream jsonCreds = File.Open(fullJsonPath, FileMode.Open);
         ServiceAccountCredential credential = ServiceAccountCredential.FromServiceAccountData(jsonCreds);
 
 

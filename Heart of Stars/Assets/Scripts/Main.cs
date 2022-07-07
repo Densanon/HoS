@@ -26,12 +26,16 @@ public class Main : MonoBehaviour
 
     [SerializeField]
     GameObject tilePrefab;
+    [SerializeField]
+    HexTileInfo[] tileInfoList;
 
     List<string[]> SheetData;
     List<string[]> LoadedData;
     List<string> itemNames;
     [SerializeField]
     ResourceData[] ResourceLibrary;
+    ResourceData[] LocationResources;
+    List<string> LocationAddresses;
 
     public string universeAdress;
 
@@ -119,18 +123,25 @@ public class Main : MonoBehaviour
         SheetData = SheetReader.GetSheetData();
         resourcePanelInfoPieces = new List<GameObject>();
 
+        //This will build the template we will use for planets
         if(SheetData != null)
         {
-            ResourceLibrary = new ResourceData[SheetData.Count];
-            NameReferenceIndex = new string[SheetData.Count];
-            QuedAmounts = new int[SheetData.Count];
-
-            LoadAndBuildGameStats();
+            BuildGenericResourceInformation();
         }
         else
         {
-            LoadDataFromSave();
+            BuildGenericResourceInformationFromMemory();
         }
+
+        string s = SaveSystem.LoadFile("/address_nissi");
+        if (s != null)
+        {
+            universeAdress = s;
+            fromMemoryOfLocation = true;
+        }
+        
+
+        LoadWhereWeHaveBeen();
 
         DontDestroyOnLoad(this.gameObject);
 
@@ -621,32 +632,98 @@ public class Main : MonoBehaviour
             if (i != (ResourceLibrary.Length - 1))
             {
                 SaveSystem.SaveResource(ResourceLibrary[i], false);
+                Debug.Log("Finished saving the last resource to the library.");
             }
             else
             {
                 SaveSystem.SaveResource(ResourceLibrary[i], true);
-
             }
         }
+    }
+
+    public void SaveLocationAddressBook()
+    {
+        SaveSystem.WipeString();
+        string s = "";
+        for(int i = 0; i < LocationAddresses.Count; i++)
+        {
+            if(i == LocationAddresses.Count-1)
+            {
+                s += LocationAddresses[i];
+                continue;
+            }
+            s += LocationAddresses[i] + ";";
+        }
+        SaveSystem.SaveLocationList(s);
     }
 
     public void SaveUniverseLocation()
     {
         SaveSystem.WipeString();
-        SaveSystem.SaveAddress(universeAdress);
-        SaveSystem.SaveFile("/address_nissi");
+        SaveSystem.SaveCurrentAddress(universeAdress);
     }
 
-    void LoadAndBuildGameStats()
+    void SaveLocationData()
     {
+        SaveSystem.WipeString();
+
+        if(tileInfoList != null)
+        {
+            for(int i = 0; i < tileInfoList.Length; i++)
+            {
+                if(i == tileInfoList.Length - 1)
+                {
+                    SaveSystem.SaveTile(tileInfoList[i], true);
+                    continue;
+                }
+                SaveSystem.SaveTile(tileInfoList[i], false);
+            }
+
+            for(int j = 0; j < ResourceLibrary.Length; j++)
+            {
+                if (j == ResourceLibrary.Length - 1)
+                {
+                    SaveSystem.SaveResource(ResourceLibrary[j], true);
+                    continue;
+                }
+                SaveSystem.SaveResource(ResourceLibrary[j], false);
+            }
+
+            SaveSystem.SaveLocationData();
+            SaveSystem.SaveFile("/" + universeAdress);
+        }
+
+        SaveSystem.SaveAddressForLocation(universeAdress);
+    }
+
+    void LoadWhereWeHaveBeen()
+    {
+        LocationAddresses = new List<string>();
+        string s = SaveSystem.LoadFile("/Locations_Jireh");
+        if(s != null)
+        {
+            string[] ar = s.Split(";");
+            foreach(string st in ar)
+            {
+                LocationAddresses.Add(st);
+            }
+        }
+    }
+
+    void BuildGenericResourceInformation()
+    {
+        ResourceLibrary = new ResourceData[SheetData.Count];
+        LocationResources = new ResourceData[SheetData.Count];
+        NameReferenceIndex = new string[SheetData.Count];
+        QuedAmounts = new int[SheetData.Count];
         LoadedData = new List<string[]>();
         itemNames = new List<string>();
 
         string s = SaveSystem.LoadFile("/resource_shalom");
-        if(s != null)
+        if (s != null)
         {
-            string[] ar = s.Split(';');
-            foreach(string str in ar)
+            string[] ar = s.Split(";");
+            foreach (string str in ar)
             {
                 string[] final = str.Split(',');
                 LoadedData.Add(final);
@@ -662,8 +739,6 @@ public class Main : MonoBehaviour
 
         for (int j = 0; j < SheetData.Count; j++)
         {
-            
-
             //Load data from previous data on drive
             if (itemNames.Contains(SheetData[j][0]))
             {
@@ -673,73 +748,58 @@ public class Main : MonoBehaviour
 
                 try
                 {
-                    if(SheetData[j][14] == "TRUE")
+                    if (SheetData[j][14] == "TRUE")
                         CompareIndividualResourceValues(ResourceLibrary[j]);
                 }
-                catch (IndexOutOfRangeException e){}
-                
+                catch (IndexOutOfRangeException e) { }
+
                 NameReferenceIndex[j] = ResourceLibrary[j].displayName;
                 StartCoroutine(UpdateQue(ResourceLibrary[j]));
                 continue;
             }
-        
+
             //Create new data for non-existing info on drive
             //name, desc, dis, gr, eType, req, nonReq, vis, cur, autA, timer, created,
             //coms, createComs, im, snd, ach, most
-            ResourceLibrary[j] = new ResourceData(SheetData[j][0], SheetData[j][8], 
-                SheetData[j][9], SheetData[j][10], SheetData[j][1], SheetData[j][2], 
-                SheetData[j][3], true, 0, 0, float.Parse(SheetData[j][4]), SheetData[j][5], 
-                SheetData[j][6], SheetData[j][7], SheetData[j][11], SheetData[j][12], 
+            ResourceLibrary[j] = new ResourceData(SheetData[j][0], SheetData[j][8],
+                SheetData[j][9], SheetData[j][10], SheetData[j][1], SheetData[j][2],
+                SheetData[j][3], false, 0, 0, float.Parse(SheetData[j][4]), SheetData[j][5],
+                SheetData[j][6], SheetData[j][7], SheetData[j][11], SheetData[j][12],
                 SheetData[j][13], 0, "");
 
             //If it is a basic resource we need it to start visible
-            if(SheetData[j][3] == "nothing=0" && SheetData[j][4] == "nothing")
+            if (SheetData[j][3] == "nothing=0" && SheetData[j][4] == "nothing")
             {
                 ResourceLibrary[j].AdjustVisibility(true);
-
-                //Debug.Log($"{ResourceLibrary[j].itemName} is a basic resource.");
             }
             //If it is a tool, we need to set it's max amount to 1, or whatever the given max amount will be
-            if(ResourceLibrary[j].groups == "tool")
+            if (ResourceLibrary[j].groups == "tool")
             {
-                //Debug.Log($"Found that {ResourceLibrary[j].displayName} is a tool.");
                 string[] ra = SheetData[j][7].Split(" ");
                 string[] k = ra[1].Split("=");
                 ResourceLibrary[j].SetAtMost(int.Parse(k[1]));
-                //Debug.Log($"Found that {ResourceLibrary[j].displayName} is is now set to {k[1]}.");
             }
 
             NameReferenceIndex[j] = ResourceLibrary[j].displayName;
             StartCoroutine(UpdateQue(ResourceLibrary[j]));
-
-            //Debug.Log($"There wasn't {ResourceLibrary[j].itemName}, so I made a new one.");
         }
 
         CreateAllBuildableStrings();
 
-        CreateResourcePanelInfo("all", "");
-
         SaveResourceLibrary();
-        SaveSystem.SaveFile("/resource_shalom");
+        SaveSystem.SaveResourceLibrary();
         LoadedData.Clear();
-
-        s = SaveSystem.LoadFile("/address_nissi");
-        if(s != null)
-        {
-            universeAdress = s;
-            fromMemoryOfLocation = true;
-        }
     }
 
-    void LoadDataFromSave()
+    void BuildGenericResourceInformationFromMemory()
     {
         LoadedData = new List<string[]>();
         itemNames = new List<string>();
 
         string s = SaveSystem.LoadFile("/resource_shalom");
-        if (s != null)
+        string[] ar = s.Split(";");
+        if (ar != null)
         {
-            string[] ar = s.Split(';');
             foreach (string str in ar)
             {
                 string[] final = str.Split(',');
@@ -752,25 +812,165 @@ public class Main : MonoBehaviour
             }
         }
 
+        List<ResourceData> temp = new List<ResourceData>();
         ResourceLibrary = new ResourceData[LoadedData.Count];
+        LocationResources = new ResourceData[LoadedData.Count];
         NameReferenceIndex = new string[LoadedData.Count];
         QuedAmounts = new int[LoadedData.Count];
 
         for (int j = 0; j < LoadedData.Count; j++)
         {
             ResourceLibrary[j] = new ResourceData(LoadedData[j][0], LoadedData[j][1], LoadedData[j][2], LoadedData[j][3], LoadedData[j][4], LoadedData[j][5], LoadedData[j][6],
-                    (LoadedData[j][7] == "True") ? true : false, int.Parse(LoadedData[j][8]), int.Parse(LoadedData[j][9]), float.Parse(LoadedData[j][10]), LoadedData[j][11], LoadedData[j][12],
-                    LoadedData[j][13], LoadedData[j][14], LoadedData[j][15], LoadedData[j][16], int.Parse(LoadedData[j][17]), LoadedData[j][18]);
+            (LoadedData[j][7] == "True") ? true : false, int.Parse(LoadedData[j][8]), int.Parse(LoadedData[j][9]), float.Parse(LoadedData[j][10]), LoadedData[j][11], LoadedData[j][12],
+            LoadedData[j][13], LoadedData[j][14], LoadedData[j][15], LoadedData[j][16], int.Parse(LoadedData[j][17]), LoadedData[j][18]);
 
             NameReferenceIndex[j] = ResourceLibrary[j].displayName;
             StartCoroutine(UpdateQue(ResourceLibrary[j]));
         }
 
-        s = SaveSystem.LoadFile("/address_nissi");
-        if (s != null)
+        CreateAllBuildableStrings();
+        LoadedData.Clear();
+    }
+
+    void LoadAndBuildGameStats(string[] resources)
+    {
+        LoadedData = new List<string[]>();
+        itemNames = new List<string>();
+
+        if(resources != null)
         {
-            universeAdress = s;
-            fromMemoryOfLocation = true;
+            foreach(string str in resources)
+            {
+                string[] final = str.Split(',');
+                LoadedData.Add(final);
+            }
+
+            for (int i = 0; i < LoadedData.Count; i++)
+            {
+                itemNames.Add(LoadedData[i][0]);
+            }
+        }
+        else
+        {
+            string s = SaveSystem.LoadFile("/resource_shalom");
+            if (s != null)
+            {
+                string[] ar = s.Split(';');
+                foreach (string str in ar)
+                {
+                    string[] final = str.Split(',');
+                    LoadedData.Add(final);
+                }
+
+                for (int i = 0; i < LoadedData.Count; i++)
+                {
+                    itemNames.Add(LoadedData[i][0]);
+                }
+            }
+        }
+
+        List<ResourceData> temp = new List<ResourceData>();
+
+        for (int j = 0; j < SheetData.Count; j++)
+        {
+            //Load data from previous data on drive
+            if (itemNames.Contains(SheetData[j][0]))
+            {
+                LocationResources[j] = new ResourceData(LoadedData[j][0], LoadedData[j][1], LoadedData[j][2], LoadedData[j][3], LoadedData[j][4], LoadedData[j][5], LoadedData[j][6],
+                (LoadedData[j][7] == "True") ? true : false, int.Parse(LoadedData[j][8]), int.Parse(LoadedData[j][9]), float.Parse(LoadedData[j][10]), LoadedData[j][11], LoadedData[j][12],
+                LoadedData[j][13], LoadedData[j][14], LoadedData[j][15], LoadedData[j][16], int.Parse(LoadedData[j][17]), LoadedData[j][18]);
+
+                try
+                {
+                    if(SheetData[j][14] == "TRUE")
+                        CompareIndividualResourceValues(LocationResources[j]);
+                }
+                catch (IndexOutOfRangeException e){}
+                
+                StartCoroutine(UpdateQue(LocationResources[j]));
+                continue;
+            }
+        }
+
+        CreateAllBuildableStrings();
+
+        CreateResourcePanelInfo("all", "");
+
+        SaveResourceLibrary();
+        SaveSystem.SaveFile("/" + universeAdress);
+        LoadedData.Clear();
+    }
+
+    void LoadDataFromSave(string[] resource)
+    {
+        LoadedData = new List<string[]>();
+        itemNames = new List<string>();
+
+        if(resource != null) //Checking whether the location had any data at first
+        {
+            foreach (string str in resource)
+            {
+                string[] final = str.Split(',');
+                LoadedData.Add(final);
+            }
+
+            for (int i = 0; i < LoadedData.Count; i++)
+            {
+                itemNames.Add(LoadedData[i][0]);
+            }
+        }
+        else //If not then we need to grab the universal resource list
+        {
+            string s = SaveSystem.LoadFile("/resource_shalom"); 
+            if (s != null)
+            {
+                string[] ar = s.Split(';');
+                foreach (string str in ar)
+                {
+                    string[] final = str.Split(',');
+                    LoadedData.Add(final);
+                }
+
+                for (int i = 0; i < LoadedData.Count; i++)
+                {
+                    itemNames.Add(LoadedData[i][0]);
+                }
+            }
+        }
+        
+
+        ResourceLibrary = new ResourceData[LoadedData.Count];
+        LocationResources = new ResourceData[LoadedData.Count];
+
+        for (int j = 0; j < LoadedData.Count; j++)
+        {
+            LocationResources[j] = new ResourceData(LoadedData[j][0], LoadedData[j][1], LoadedData[j][2], LoadedData[j][3], LoadedData[j][4], LoadedData[j][5], LoadedData[j][6],
+                    (LoadedData[j][7] == "True") ? true : false, int.Parse(LoadedData[j][8]), int.Parse(LoadedData[j][9]), float.Parse(LoadedData[j][10]), LoadedData[j][11], LoadedData[j][12],
+                    LoadedData[j][13], LoadedData[j][14], LoadedData[j][15], LoadedData[j][16], int.Parse(LoadedData[j][17]), LoadedData[j][18]);
+
+            StartCoroutine(UpdateQue(LocationResources[j]));
+        }
+    }
+
+    void LoadLevel()
+    {
+        string s = SaveSystem.LoadFile("/" + universeAdress);
+        if(s != null)
+        {
+            string[] ar = s.Split("|");
+            string[] tiles = ar[0].Split(";");
+            for(int i = 0; i < tiles.Length; i++)//This only does tile visual state for now
+            {
+                tileInfoList[i].SetTileState(tiles[i]);
+            }
+            string[] resources = ar[1].Split(";");
+
+            if(SheetData != null)//This grabs all the resource data for this particular planet
+            {
+                LoadAndBuildGameStats(resources);
+                return;
+            }
+            LoadDataFromSave(resources);
         }
     }
 
@@ -790,6 +990,7 @@ public class Main : MonoBehaviour
 
 
         List<GameObject> objs = new List<GameObject>();
+        List<HexTileInfo> temp = new List<HexTileInfo>();
 
         if (!fromMemoryOfLocation)
         {
@@ -1098,35 +1299,57 @@ public class Main : MonoBehaviour
                     }
                 }
                 OnWorldMap?.Invoke(true);
+                created = 0;
                 break;
             case UniverseDepth.Planet:
                 Debug.Log("This is the actual planet touchdown interaction.");
+                if(!LocationAddresses.Contains(universeAdress)) LocationAddresses.Add(universeAdress);
                 OnWorldMap?.Invoke(false);
-                //Looks like behive, 17 rungs for 103 tiles
                 float zOffSet = 0f;
                 int zLast = 0;
+                int zRow = 0;
                 for(int x = 0; x < 19; x++)
                 {
                     if(x < 9)
                     {
+                        zRow = 1;
                         for (int y = zLast+1; y > 0; y--)
                         {
                             GameObject obj = Instantiate(tilePrefab, new Vector3(x*0.78f, 0f, (y * -1f)+zOffSet), Quaternion.identity, universeTransform);
                             objs.Add(obj);
+                            HexTileInfo tf = obj.GetComponent<HexTileInfo>();
+                            tf.SetUpTileLocation(x, zRow);
+                            temp.Add(tf);
+                            zRow++;
                         }
                         zOffSet += 0.5f;
                         zLast++;
                     }else if(x > 8)
                     {
+                        zRow = 1;
                         for (int y = zLast+1; y > 0 ; y--)
                         {
                             GameObject obj = Instantiate(tilePrefab, new Vector3(x*0.78f, 0f, (y * -1f) + zOffSet), Quaternion.identity, universeTransform);
                             objs.Add(obj);
+                            HexTileInfo tf = obj.GetComponent<HexTileInfo>();
+                            tf.SetUpTileLocation(x, zRow);
+                            temp.Add(tf);
+                            zRow++;
                         }
                         zOffSet -= 0.5f;
                         zLast--;
                     }
+
                 }
+                tileInfoList = new HexTileInfo[temp.Count];
+                for (int i = 0; i < tileInfoList.Length; i++)
+                {
+                    tileInfoList[i] = temp[i];
+                }
+                    
+
+                LoadLevel();
+                SaveLocationData();
                 break;
             case UniverseDepth.Moon:
                 Debug.Log("This is the actual moon touchdown interaction.");
@@ -1146,7 +1369,17 @@ public class Main : MonoBehaviour
             return;
         }
 
+        if (tileInfoList == null)
+        {
+            tileInfoList = new HexTileInfo[temp.Count];
+            for(int i = 0; i < tileInfoList.Length; i++)
+            {
+                tileInfoList[i] = temp[i];
+            }
+        }
+
         areaText.text = $"{universeAdress} : {currentDepth} : NamedOrNot";
+        depthLocations[UnityEngine.Random.Range(0, depthLocations.Length)].GetComponent<HexTileInfo>().StartingPoint();
     }
 
     void WipeUniversePieces()
@@ -1331,9 +1564,9 @@ public class Main : MonoBehaviour
 
     private void OnApplicationQuit()
     {
-        SaveResourceLibrary();
-        SaveSystem.SaveFile("/resource_shalom");
         SaveUniverseLocation();
+        SaveLocationAddressBook();
+        SaveLocationData();
     }
     #endregion
 }

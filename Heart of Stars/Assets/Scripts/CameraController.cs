@@ -8,7 +8,6 @@ public class CameraController : MonoBehaviour
     Camera c_Camera;
     Transform t_Camera;
     bool b_InMap = false;
-    bool b_scrolling = false;
 
     float scrollRate = 0.25f;
 
@@ -23,11 +22,13 @@ public class CameraController : MonoBehaviour
     private void OnEnable()
     {
         Main.OnWorldMap += AdjustCameraSettings;
+        HexTileInfo.OnStartingTile += FindStartingPosition;
     }
 
     private void OnDisable()
     {
         Main.OnWorldMap -= AdjustCameraSettings;
+        HexTileInfo.OnStartingTile -= FindStartingPosition;
     }
 
     private void AdjustCameraSettings(bool overWorld)
@@ -36,15 +37,23 @@ public class CameraController : MonoBehaviour
         {
             t_Camera.rotation = Quaternion.identity;
             t_Camera.position = new Vector3(0f, 0f, -.5f);
+            c_Camera.orthographicSize = 5;
             b_InMap = false;
             return;
         }
 
         t_Camera.Rotate(45f, 0f, 0f);
-        t_Camera.position = new Vector3(0f, 10f, -10f);
+        c_Camera.orthographicSize = 1.5f;
         b_InMap = true;
     }
 
+    private void FindStartingPosition(Transform tran)
+    {
+        Vector3 pos = tran.position;
+        pos.y += 10;
+        pos.z -= 10;
+        t_Camera.position = pos;
+    }
 
     void LateUpdate()
     {
