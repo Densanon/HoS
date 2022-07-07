@@ -7,16 +7,25 @@ using TMPro;
 public class Main : MonoBehaviour
 {
     public static Action<string, string> OnSendMessage = delegate { };
+    public static Action<bool> OnWorldMap = delegate { };
 
-    public enum UniverseDepth {Universe, SuperCluster, Galaxy, Nebula, GlobularCluster, StarCluster, Constellation, SolarSystem, PlanetMoon, Planet}
+    public enum UniverseDepth {Universe, SuperCluster, Galaxy, Nebula, GlobularCluster, StarCluster, Constellation, SolarSystem, PlanetMoon, Planet, Moon}
     UniverseDepth currentDepth = UniverseDepth.Universe;
+
+    [SerializeField]
+    TMP_Text areaText;
 
     [SerializeField]
     GameObject[] depthPrefabs;
     [SerializeField]
     Transform universeTransform;
+    [SerializeField]
     GameObject[] depthLocations;
     bool fromMemoryOfLocation = false;
+    bool planetOrMoon = false;
+
+    [SerializeField]
+    GameObject tilePrefab;
 
     List<string[]> SheetData;
     List<string[]> LoadedData;
@@ -808,6 +817,8 @@ public class Main : MonoBehaviour
         //Debug.Log($"UniverseAddress: {universeAdress}");
         //Debug.Log($"HashCode: {universeAdress.GetHashCode()}");
 
+        int amount = NormalizeRandom(-4, 17);
+
         switch (dp)
         {
             case UniverseDepth.Universe:
@@ -816,7 +827,28 @@ public class Main : MonoBehaviour
                 {
                     for(int i = 0; i < 10; i++)
                     {
-                        GameObject obj = Instantiate(depthPrefabs[0], new Vector3(UnityEngine.Random.Range(-8.3f, 8.3f), UnityEngine.Random.Range(-4.4f, 4.4f), 0f), Quaternion.identity);
+                        GameObject obj = Instantiate(depthPrefabs[0], new Vector3(UnityEngine.Random.Range(-8.3f, 8.3f), UnityEngine.Random.Range(-4.4f, 4.4f), 0f), Quaternion.identity, universeTransform);
+                        foreach(GameObject ob in objs)
+                        {
+                            if((obj.transform.position.x > ob.transform.position.x-1.5f && obj.transform.position.x < ob.transform.position.x + 1.5f)&&
+                                (obj.transform.position.y > ob.transform.position.y - 1.5f && obj.transform.position.y < ob.transform.position.y + 1.5f))
+                            {
+                                bool makeThrough = false;
+                                while (!makeThrough)
+                                {
+                                    makeThrough = true;
+                                    foreach (GameObject j in objs)
+                                    {
+                                        while ((obj.transform.position.x > j.transform.position.x - 1.5f && obj.transform.position.x < j.transform.position.x + 1.5f) &&
+                                            (obj.transform.position.y > j.transform.position.y - 1.5f && obj.transform.position.y < j.transform.position.y + 1.5f))
+                                        {
+                                            obj.transform.localPosition = new Vector3(UnityEngine.Random.Range(-8.3f, 8.3f), UnityEngine.Random.Range(-4.4f, 4.4f), 0f);
+                                            makeThrough = false;
+                                        }
+                                    }
+                                }
+                            }
+                        }
                         objs.Add(obj);
                     }
                 }
@@ -825,33 +857,280 @@ public class Main : MonoBehaviour
                 Debug.Log("Should be building Galaxy Level.");
                 if (depthPrefabs[1] != null)
                 {
-                    for (int i = 0; i < 10; i++)
+                    for (int i = 0; i < amount; i++)
                     {
                         GameObject obj = Instantiate(depthPrefabs[1], new Vector3(UnityEngine.Random.Range(-8.3f, 8.3f), UnityEngine.Random.Range(-4.4f, 4.4f), 0f), Quaternion.identity);
+                        foreach (GameObject ob in objs)
+                        {
+                            if ((obj.transform.position.x > ob.transform.position.x - 1.5f && obj.transform.position.x < ob.transform.position.x + 1.5f) &&
+                                (obj.transform.position.y > ob.transform.position.y - 1.5f && obj.transform.position.y < ob.transform.position.y + 1.5f))
+                            {
+                                bool makeThrough = false;
+                                while (!makeThrough)
+                                {
+                                    makeThrough = true;
+                                    foreach (GameObject j in objs)
+                                    {
+                                        while ((obj.transform.position.x > j.transform.position.x - 1.5f && obj.transform.position.x < j.transform.position.x + 1.5f) &&
+                                            (obj.transform.position.y > j.transform.position.y - 1.5f && obj.transform.position.y < j.transform.position.y + 1.5f))
+                                        {
+                                            obj.transform.localPosition = new Vector3(UnityEngine.Random.Range(-8.3f, 8.3f), UnityEngine.Random.Range(-4.4f, 4.4f), 0f);
+                                            makeThrough = false;
+                                        }
+                                    }
+                                }
+                            }
+                        }
                         objs.Add(obj);
                     }
                 }
                 break;
             case UniverseDepth.Galaxy://builds Nebulas etc.
-                Debug.Log("We haven't made Nebulas yet.");
+                Debug.Log("Should be building Nebulas Level.");
+                if (depthPrefabs[2] != null)
+                {
+                    for (int i = 0; i < amount; i++)
+                    {
+                        GameObject obj = Instantiate(depthPrefabs[2], new Vector3(UnityEngine.Random.Range(-8.3f, 8.3f), UnityEngine.Random.Range(-4.4f, 4.4f), 0f), Quaternion.identity);
+                        foreach (GameObject ob in objs)
+                        {
+                            if ((obj.transform.position.x > ob.transform.position.x - 1.5f && obj.transform.position.x < ob.transform.position.x + 1.5f) &&
+                                (obj.transform.position.y > ob.transform.position.y - 1.5f && obj.transform.position.y < ob.transform.position.y + 1.5f))
+                            {
+                                bool makeThrough = false;
+                                while (!makeThrough)
+                                {
+                                    makeThrough = true;
+                                    foreach (GameObject j in objs)
+                                    {
+                                        while ((obj.transform.position.x > j.transform.position.x - 1.5f && obj.transform.position.x < j.transform.position.x + 1.5f) &&
+                                            (obj.transform.position.y > j.transform.position.y - 1.5f && obj.transform.position.y < j.transform.position.y + 1.5f))
+                                        {
+                                            obj.transform.localPosition = new Vector3(UnityEngine.Random.Range(-8.3f, 8.3f), UnityEngine.Random.Range(-4.4f, 4.4f), 0f);
+                                            makeThrough = false;
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                        objs.Add(obj);
+                    }
+                }
                 break;
             case UniverseDepth.Nebula:
-                
+                Debug.Log("Should be building GlobularCluster Level.");
+                if (depthPrefabs[3] != null)
+                {
+                    for (int i = 0; i < amount; i++)
+                    {
+                        GameObject obj = Instantiate(depthPrefabs[3], new Vector3(UnityEngine.Random.Range(-8.3f, 8.3f), UnityEngine.Random.Range(-4.4f, 4.4f), 0f), Quaternion.identity);
+                        foreach (GameObject ob in objs)
+                        {
+                            if ((obj.transform.position.x > ob.transform.position.x - 1.5f && obj.transform.position.x < ob.transform.position.x + 1.5f) &&
+                                (obj.transform.position.y > ob.transform.position.y - 1.5f && obj.transform.position.y < ob.transform.position.y + 1.5f))
+                            {
+                                bool makeThrough = false;
+                                while (!makeThrough)
+                                {
+                                    makeThrough = true;
+                                    foreach (GameObject j in objs)
+                                    {
+                                        while ((obj.transform.position.x > j.transform.position.x - 1.5f && obj.transform.position.x < j.transform.position.x + 1.5f) &&
+                                            (obj.transform.position.y > j.transform.position.y - 1.5f && obj.transform.position.y < j.transform.position.y + 1.5f))
+                                        {
+                                            obj.transform.localPosition = new Vector3(UnityEngine.Random.Range(-8.3f, 8.3f), UnityEngine.Random.Range(-4.4f, 4.4f), 0f);
+                                            makeThrough = false;
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                        objs.Add(obj);
+                    }
+                }
                 break;
             case UniverseDepth.GlobularCluster:
-                
+                Debug.Log("Should be building StarCluster Level.");
+                if (depthPrefabs[4] != null)
+                {
+                    for (int i = 0; i < amount; i++)
+                    {
+                        GameObject obj = Instantiate(depthPrefabs[4], new Vector3(UnityEngine.Random.Range(-8.3f, 8.3f), UnityEngine.Random.Range(-4.4f, 4.4f), 0f), Quaternion.identity);
+                        foreach (GameObject ob in objs)
+                        {
+                            if ((obj.transform.position.x > ob.transform.position.x - 1.5f && obj.transform.position.x < ob.transform.position.x + 1.5f) &&
+                                (obj.transform.position.y > ob.transform.position.y - 1.5f && obj.transform.position.y < ob.transform.position.y + 1.5f))
+                            {
+                                bool makeThrough = false;
+                                while (!makeThrough)
+                                {
+                                    makeThrough = true;
+                                    foreach (GameObject j in objs)
+                                    {
+                                        while ((obj.transform.position.x > j.transform.position.x - 1.5f && obj.transform.position.x < j.transform.position.x + 1.5f) &&
+                                            (obj.transform.position.y > j.transform.position.y - 1.5f && obj.transform.position.y < j.transform.position.y + 1.5f))
+                                        {
+                                            obj.transform.localPosition = new Vector3(UnityEngine.Random.Range(-8.3f, 8.3f), UnityEngine.Random.Range(-4.4f, 4.4f), 0f);
+                                            makeThrough = false;
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                        objs.Add(obj);
+                    }
+                }
                 break;
             case UniverseDepth.StarCluster:
-                
+                Debug.Log("Should be building Constellation Level.");
+                if (depthPrefabs[5] != null)
+                {
+                    for (int i = 0; i < amount; i++)
+                    {
+                        GameObject obj = Instantiate(depthPrefabs[5], new Vector3(UnityEngine.Random.Range(-8.3f, 8.3f), UnityEngine.Random.Range(-4.4f, 4.4f), 0f), Quaternion.identity);
+                        foreach (GameObject ob in objs)
+                        {
+                            if ((obj.transform.position.x > ob.transform.position.x - 1.5f && obj.transform.position.x < ob.transform.position.x + 1.5f) &&
+                                (obj.transform.position.y > ob.transform.position.y - 1.5f && obj.transform.position.y < ob.transform.position.y + 1.5f))
+                            {
+                                bool makeThrough = false;
+                                while (!makeThrough)
+                                {
+                                    makeThrough = true;
+                                    foreach (GameObject j in objs)
+                                    {
+                                        while ((obj.transform.position.x > j.transform.position.x - 1.5f && obj.transform.position.x < j.transform.position.x + 1.5f) &&
+                                            (obj.transform.position.y > j.transform.position.y - 1.5f && obj.transform.position.y < j.transform.position.y + 1.5f))
+                                        {
+                                            obj.transform.localPosition = new Vector3(UnityEngine.Random.Range(-8.3f, 8.3f), UnityEngine.Random.Range(-4.4f, 4.4f), 0f);
+                                            makeThrough = false;
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                        objs.Add(obj);
+                    }
+                }
                 break;
             case UniverseDepth.Constellation:
-                
+                Debug.Log("Should be building SolarSystem Level.");
+                amount = NormalizeRandom(-14, 16);
+                if (depthPrefabs[6] != null)
+                {
+                    for (int i = 0; i < amount; i++)
+                    {
+                        GameObject obj = Instantiate(depthPrefabs[6], new Vector3(UnityEngine.Random.Range(-8.3f, 8.3f), UnityEngine.Random.Range(-4.4f, 4.4f), 0f), Quaternion.identity);
+                        foreach (GameObject ob in objs)
+                        {
+                            if ((obj.transform.position.x > ob.transform.position.x - 1.5f && obj.transform.position.x < ob.transform.position.x + 1.5f) &&
+                                (obj.transform.position.y > ob.transform.position.y - 1.5f && obj.transform.position.y < ob.transform.position.y + 1.5f))
+                            {
+                                bool makeThrough = false;
+                                while (!makeThrough)
+                                {
+                                    makeThrough = true;
+                                    foreach (GameObject j in objs)
+                                    {
+                                        while ((obj.transform.position.x > j.transform.position.x - 1.5f && obj.transform.position.x < j.transform.position.x + 1.5f) &&
+                                            (obj.transform.position.y > j.transform.position.y - 1.5f && obj.transform.position.y < j.transform.position.y + 1.5f))
+                                        {
+                                            obj.transform.localPosition = new Vector3(UnityEngine.Random.Range(-8.3f, 8.3f), UnityEngine.Random.Range(-4.4f, 4.4f), 0f);
+                                            makeThrough = false;
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                        objs.Add(obj);
+                    }
+                }
                 break;
             case UniverseDepth.SolarSystem:
-                
+                Debug.Log("Should be building PlanetMoon Level.");
+                amount = NormalizeRandom(-14, 16);
+                if (depthPrefabs[7] != null)
+                {
+                    for (int i = 0; i < amount; i++)
+                    {
+                        GameObject obj = Instantiate(depthPrefabs[7], new Vector3(UnityEngine.Random.Range(-8.3f, 8.3f), UnityEngine.Random.Range(-4.4f, 4.4f), 0f), Quaternion.identity);
+                        foreach (GameObject ob in objs)
+                        {
+                            if ((obj.transform.position.x > ob.transform.position.x - 1.5f && obj.transform.position.x < ob.transform.position.x + 1.5f) &&
+                                (obj.transform.position.y > ob.transform.position.y - 1.5f && obj.transform.position.y < ob.transform.position.y + 1.5f))
+                            {
+                                bool makeThrough = false;
+                                while (!makeThrough)
+                                {
+                                    makeThrough = true;
+                                    foreach (GameObject j in objs)
+                                    {
+                                        while ((obj.transform.position.x > j.transform.position.x - 1.5f && obj.transform.position.x < j.transform.position.x + 1.5f) &&
+                                            (obj.transform.position.y > j.transform.position.y - 1.5f && obj.transform.position.y < j.transform.position.y + 1.5f))
+                                        {
+                                            obj.transform.localPosition = new Vector3(UnityEngine.Random.Range(-8.3f, 8.3f), UnityEngine.Random.Range(-4.4f, 4.4f), 0f);
+                                            makeThrough = false;
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                        objs.Add(obj);
+                    }
+                }
                 break;
             case UniverseDepth.PlanetMoon:
-                
+                Debug.Log("Should be building Planets Level.");
+                amount = NormalizeRandom(-14, 16);
+                if(depthPrefabs[9] != null)
+                {
+                    GameObject obj = Instantiate(depthPrefabs[9], new Vector3(0f, 0f, 0f), Quaternion.identity,universeTransform);
+                    obj.GetComponentInChildren<MeshCollider>().transform.localScale = new Vector3(8f, 8f, 8f);
+                    objs.Add(obj);
+                }
+                if (depthPrefabs[8] != null)
+                {
+                    for (int i = 0; i < amount; i++)
+                    {
+                        GameObject obj = Instantiate(depthPrefabs[8], new Vector3(4f, 0f, 0f), Quaternion.identity, objs[0].transform);
+                        objs.Add(obj);
+                        objs[0].transform.Rotate(0f, 0f, 360f / amount);
+                    }
+                }
+                OnWorldMap?.Invoke(true);
+                break;
+            case UniverseDepth.Planet:
+                Debug.Log("This is the actual planet touchdown interaction.");
+                OnWorldMap?.Invoke(false);
+                //Looks like behive, 17 rungs for 103 tiles
+                float zOffSet = 0f;
+                int zLast = 0;
+                for(int x = 0; x < 19; x++)
+                {
+                    if(x < 9)
+                    {
+                        for (int y = zLast+1; y > 0; y--)
+                        {
+                            GameObject obj = Instantiate(tilePrefab, new Vector3(x*0.78f, 0f, (y * -1f)+zOffSet), Quaternion.identity, universeTransform);
+                            objs.Add(obj);
+                        }
+                        zOffSet += 0.5f;
+                        zLast++;
+                    }else if(x > 8)
+                    {
+                        for (int y = zLast+1; y > 0 ; y--)
+                        {
+                            GameObject obj = Instantiate(tilePrefab, new Vector3(x*0.78f, 0f, (y * -1f) + zOffSet), Quaternion.identity, universeTransform);
+                            objs.Add(obj);
+                        }
+                        zOffSet -= 0.5f;
+                        zLast--;
+                    }
+                }
+                break;
+            case UniverseDepth.Moon:
+                Debug.Log("This is the actual moon touchdown interaction.");
+                OnWorldMap?.Invoke(false);
                 break;
         }
 
@@ -860,6 +1139,14 @@ public class Main : MonoBehaviour
         {
             depthLocations[j] = objs[j];
         }
+
+        if(currentDepth != UniverseDepth.Planet)
+        {
+            areaText.text = $"{universeAdress} : {currentDepth}";
+            return;
+        }
+
+        areaText.text = $"{universeAdress} : {currentDepth} : NamedOrNot";
     }
 
     void WipeUniversePieces()
@@ -877,14 +1164,22 @@ public class Main : MonoBehaviour
         {
             if(ReferenceEquals(obj,depthLocations[i]))
             {
-                SwitchUniverseLocationDepth();
+                if(i == 0 && currentDepth == UniverseDepth.PlanetMoon)
+                {
+                    Debug.Log("We touched a planet.");
+                    planetOrMoon = true;
+                }else if(currentDepth == UniverseDepth.PlanetMoon && i != 0)
+                {
+                    planetOrMoon = false;
+                }
+                DeeperIntoUniverseLocationDepth();
                 GenerateUniverseLocation(currentDepth, i);
                 break;
             }
         }
     }
 
-    void SwitchUniverseLocationDepth()
+    void DeeperIntoUniverseLocationDepth()
     {
         switch (currentDepth)
         {
@@ -913,9 +1208,10 @@ public class Main : MonoBehaviour
                 currentDepth = UniverseDepth.PlanetMoon;
                 break;
             case UniverseDepth.PlanetMoon:
-                //This should create a planetary experience
+                currentDepth = planetOrMoon == true ? UniverseDepth.Planet : UniverseDepth.Moon;
                 break;
         }
+        areaText.text = $"{universeAdress} : {currentDepth}";
     }
 
     void SetLocationDepthByInt(int depth)
@@ -951,34 +1247,36 @@ public class Main : MonoBehaviour
                 currentDepth = UniverseDepth.PlanetMoon;
                 break;
             case 10:
-                currentDepth = UniverseDepth.Planet;
+                string[] ar = universeAdress.Split(",");
+                currentDepth = int.Parse(ar[ar.Length - 1]) != 0 ? UniverseDepth.Moon : UniverseDepth.Planet;
                 break;
         }
     }
 
     public void GoBackAStep()
     {
-        Debug.Log("I have been called to go back a step.");
         string[] ar = universeAdress.Split(",");
         int index = 42;
         if(ar.Length != 1)
         {
-
-            SetLocationDepthByInt(ar.Length - 1);
+            SetLocationDepthByInt(ar.Length-1);
             universeAdress = "";
             for(int i = 0; i < ar.Length-1; i++)
             {
                 if(i != 0)
                 {
-                    universeAdress += ar[i];
-                }
-                else
-                {
-                    universeAdress += "," + ar[i];
-                    if(i == ar.Length - 1)
+                    if (i == ar.Length - 2)
                     {
                         index = int.Parse(ar[i]);
                     }
+                    else
+                    {
+                        universeAdress += "," + ar[i];
+                    }
+                }
+                else
+                {
+                    universeAdress += ar[i];
                 }
             }
         }
@@ -988,6 +1286,27 @@ public class Main : MonoBehaviour
             SetLocationDepthByInt(1);
         }
         GenerateUniverseLocation(currentDepth, index);
+    }
+
+    public void ToTheTop()
+    {
+        SetLocationDepthByInt(1);
+        GenerateUniverseLocation(currentDepth, 42);
+    }
+
+    int NormalizeRandom(int minValue, int maxValue)
+    {
+        //-4&17 = 12 average
+        //-14&16 = 8 average
+
+        float mean = (minValue + maxValue) / 2;
+        float sigma = (maxValue - mean) ;
+        int ret = Mathf.RoundToInt(UnityEngine.Random.value * sigma + mean);
+        if(ret > maxValue -1)
+        {
+            ret = maxValue -1;
+        }
+        return ret;
     }
     #endregion
 
