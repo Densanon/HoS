@@ -53,6 +53,11 @@ public static class SaveSystem
         }
     }
 
+    public static void SaveCameraSettings(string camStats)
+    {
+        FileData = camStats;
+    }
+
     public static void SaveAddressForLocation(string address)
     {
         Address = address;

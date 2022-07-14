@@ -1822,6 +1822,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: b018385a7a6badc4292967ec6e2581a6, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  b_AtUniverse: 0
 --- !u!1 &760186820
 GameObject:
   m_ObjectHideFlags: 0
@@ -3211,6 +3212,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   areaText: {fileID: 1035021492}
+  startingPoints: 5
+  frequencySet: 1.5
   depthPrefabs:
   - {fileID: 4139849635087196150, guid: c464993674b3ef949937c1b9d6269bb8, type: 3}
   - {fileID: 4139849635087196150, guid: 7f7b4a583fe120248a8426c132d87e82, type: 3}
@@ -3224,7 +3227,10 @@ MonoBehaviour:
   - {fileID: 4139849635087196150, guid: e62f35b2c8debaf47a64c20f46bda1d0, type: 3}
   universeTransform: {fileID: 334962582}
   depthLocations: []
-  tilePrefab: {fileID: 4744813338005404904, guid: 790721e2f4e2719499c5b222984d7b22, type: 3}
+  planetPrefab: {fileID: 3809490648343622420, guid: c73b5af675d78ce48a306a403a442e94, type: 3}
+  planetContainer: []
+  activeBrain: {fileID: 0}
+  tileInfoList: []
   ResourceLibrary: []
   universeAdress: 
   ResourePanelPrefab: {fileID: 2604220087197297246, guid: e46a0c07b04ffe449bb46c34bf3b8bdc, type: 3}

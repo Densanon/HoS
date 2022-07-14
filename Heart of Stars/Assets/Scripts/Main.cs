@@ -8,12 +8,17 @@ public class Main : MonoBehaviour
 {
     public static Action<string, string> OnSendMessage = delegate { };
     public static Action<bool> OnWorldMap = delegate { };
+    public static Action<GameObject> OnGoingToHigherLevel = delegate { };
+    public static Action<string> SendCameraState = delegate { };
 
     public enum UniverseDepth {Universe, SuperCluster, Galaxy, Nebula, GlobularCluster, StarCluster, Constellation, SolarSystem, PlanetMoon, Planet, Moon}
     UniverseDepth currentDepth = UniverseDepth.Universe;
 
     [SerializeField]
     TMP_Text areaText;
+
+    public int startingPoints;
+    public float frequencySet;
 
     [SerializeField]
     GameObject[] depthPrefabs;
@@ -23,9 +28,15 @@ public class Main : MonoBehaviour
     GameObject[] depthLocations;
     bool fromMemoryOfLocation = false;
     bool planetOrMoon = false;
-
+    bool b_zoomContinued = false;
+    int i_objectIndex = 0;
     [SerializeField]
-    GameObject tilePrefab;
+    GameObject planetPrefab;
+    [SerializeField]
+    List<LocationManager> planetContainer;
+    [SerializeField]
+    LocationManager activeBrain;
+
     [SerializeField]
     HexTileInfo[] tileInfoList;
 
@@ -139,13 +150,22 @@ public class Main : MonoBehaviour
             universeAdress = s;
             fromMemoryOfLocation = true;
         }
-        
 
         LoadWhereWeHaveBeen();
 
         DontDestroyOnLoad(this.gameObject);
 
         Depthinteraction.SpaceInteractionHover += CheckForSpaceObject;
+        CameraController.OnCameraZoomContinue += SwitchZoomContinue;
+        CameraController.OnNeedZoomInfo += GoBackAStep;
+        CameraController.SaveCameraState += SaveCamState;
+        LocationManager.OnSaveMyLocationInfo += SaveLocationData;
+
+    }
+
+    private void SwitchZoomContinue()
+    {
+        b_zoomContinued = true;
     }
 
     private void Start()
@@ -154,6 +174,8 @@ public class Main : MonoBehaviour
         //OnSendMessage?.Invoke("Welcome!", "Thank you for starting the game and participating in all the fun!");
 
         GenerateUniverseLocation(UniverseDepth.Universe, 42);
+
+        LoadCamState();
     }
 
     private void Update()
@@ -625,6 +647,17 @@ public class Main : MonoBehaviour
     #endregion
 
     #region Save Load
+    void SaveCamState(string state)
+    {
+        SaveSystem.SaveCameraSettings(state);
+        SaveSystem.SaveFile("/camera_rohi");
+    }
+
+    void LoadCamState()
+    {
+        SendCameraState?.Invoke(SaveSystem.LoadFile("/camera_rohi"));
+    }
+
     public void SaveResourceLibrary()
     {
         for (int i = 0; i < ResourceLibrary.Length; i++)
@@ -632,11 +665,11 @@ public class Main : MonoBehaviour
             if (i != (ResourceLibrary.Length - 1))
             {
                 SaveSystem.SaveResource(ResourceLibrary[i], false);
-                Debug.Log("Finished saving the last resource to the library.");
             }
             else
             {
                 SaveSystem.SaveResource(ResourceLibrary[i], true);
+                Debug.Log("Finished saving the last resource to the library.");
             }
         }
     }
@@ -663,37 +696,35 @@ public class Main : MonoBehaviour
         SaveSystem.SaveCurrentAddress(universeAdress);
     }
 
-    void SaveLocationData()
+    public void SaveLocationData(HexTileInfo[] tiles, string address, ResourceData[] resources)
     {
         SaveSystem.WipeString();
 
-        if(tileInfoList != null)
+        if(tiles != null)
         {
-            for(int i = 0; i < tileInfoList.Length; i++)
+            for(int i = 0; i < tiles.Length; i++)
             {
-                if(i == tileInfoList.Length - 1)
+                if(i == tiles.Length - 1)
                 {
-                    SaveSystem.SaveTile(tileInfoList[i], true);
+                    SaveSystem.SaveTile(tiles[i], true);
                     continue;
                 }
-                SaveSystem.SaveTile(tileInfoList[i], false);
+                SaveSystem.SaveTile(tiles[i], false);
             }
 
-            for(int j = 0; j < ResourceLibrary.Length; j++)
+            for(int j = 0; j < resources.Length; j++)
             {
-                if (j == ResourceLibrary.Length - 1)
+                if (j == resources.Length - 1)
                 {
-                    SaveSystem.SaveResource(ResourceLibrary[j], true);
+                    SaveSystem.SaveResource(resources[j], true);
                     continue;
                 }
-                SaveSystem.SaveResource(ResourceLibrary[j], false);
+                SaveSystem.SaveResource(resources[j], false);
             }
 
             SaveSystem.SaveLocationData();
-            SaveSystem.SaveFile("/" + universeAdress);
+            SaveSystem.SaveFile("/" + address);
         }
-
-        SaveSystem.SaveAddressForLocation(universeAdress);
     }
 
     void LoadWhereWeHaveBeen()
@@ -887,18 +918,12 @@ public class Main : MonoBehaviour
                 }
                 catch (IndexOutOfRangeException e){}
                 
-                StartCoroutine(UpdateQue(LocationResources[j]));
+                //StartCoroutine(UpdateQue(LocationResources[j]));
                 continue;
             }
         }
 
         CreateAllBuildableStrings();
-
-        CreateResourcePanelInfo("all", "");
-
-        SaveResourceLibrary();
-        SaveSystem.SaveFile("/" + universeAdress);
-        LoadedData.Clear();
     }
 
     void LoadDataFromSave(string[] resource)
@@ -938,8 +963,6 @@ public class Main : MonoBehaviour
             }
         }
         
-
-        ResourceLibrary = new ResourceData[LoadedData.Count];
         LocationResources = new ResourceData[LoadedData.Count];
 
         for (int j = 0; j < LoadedData.Count; j++)
@@ -947,31 +970,32 @@ public class Main : MonoBehaviour
             LocationResources[j] = new ResourceData(LoadedData[j][0], LoadedData[j][1], LoadedData[j][2], LoadedData[j][3], LoadedData[j][4], LoadedData[j][5], LoadedData[j][6],
                     (LoadedData[j][7] == "True") ? true : false, int.Parse(LoadedData[j][8]), int.Parse(LoadedData[j][9]), float.Parse(LoadedData[j][10]), LoadedData[j][11], LoadedData[j][12],
                     LoadedData[j][13], LoadedData[j][14], LoadedData[j][15], LoadedData[j][16], int.Parse(LoadedData[j][17]), LoadedData[j][18]);
-
-            StartCoroutine(UpdateQue(LocationResources[j]));
         }
     }
 
-    void LoadLevel()
+    string[] TryLoadLevel()
     {
         string s = SaveSystem.LoadFile("/" + universeAdress);
         if(s != null)
         {
             string[] ar = s.Split("|");
-            string[] tiles = ar[0].Split(";");
-            for(int i = 0; i < tiles.Length; i++)//This only does tile visual state for now
-            {
-                tileInfoList[i].SetTileState(tiles[i]);
-            }
             string[] resources = ar[1].Split(";");
 
             if(SheetData != null)//This grabs all the resource data for this particular planet
             {
                 LoadAndBuildGameStats(resources);
-                return;
+                return ar[0].Split(";");
             }
             LoadDataFromSave(resources);
+            return ar[0].Split(";");
         }
+
+        if (SheetData != null)//This grabs all the resource data for this particular planet
+        {
+            LoadAndBuildGameStats(null);
+        }
+        LoadDataFromSave(null);
+        return null;
     }
 
     public void DeleteSaveFileData()
@@ -1053,6 +1077,7 @@ public class Main : MonoBehaviour
                         objs.Add(obj);
                     }
                 }
+                Camera.main.transform.GetComponent<CameraController>().b_AtUniverse = true;
                 break;
             case UniverseDepth.SuperCluster://builds Galaxies
                 Debug.Log("Should be building Galaxy Level.");
@@ -1303,9 +1328,44 @@ public class Main : MonoBehaviour
                 break;
             case UniverseDepth.Planet:
                 Debug.Log("This is the actual planet touchdown interaction.");
-                if(!LocationAddresses.Contains(universeAdress)) LocationAddresses.Add(universeAdress);
                 OnWorldMap?.Invoke(false);
-                float zOffSet = 0f;
+                if (!LocationAddresses.Contains(universeAdress))
+                {
+                    Debug.Log("This is a new location.");
+                    LocationAddresses.Add(universeAdress);
+                }
+                if(planetContainer == null)
+                {
+                    Debug.Log("There wasn't a location brain container.");
+                    planetContainer = new List<LocationManager>();
+                }
+                bool found = false;
+                foreach(LocationManager brain in planetContainer)
+                {
+                    if(brain.s_MyAddress == universeAdress)
+                    {
+                        activeBrain = brain;
+                        found = true;
+                        Debug.Log("I found a brain that we have used already this play.");
+                        activeBrain.TurnOnVisibility();
+                        break;
+                    }
+                }
+                if (!found)
+                {
+                    Debug.Log("Making a new brain for play.");
+                    GameObject obj = Instantiate(planetPrefab, universeTransform);
+                    LocationManager Ego = obj.GetComponent<LocationManager>();
+                    planetContainer.Add(Ego);
+                    activeBrain = Ego;
+                    Debug.Log("Going to activate the brain.");
+                    activeBrain.ReceiveOrders(TryLoadLevel(), universeAdress, LocationResources);
+                    Debug.Log("Brain should have been activated.");
+                }
+
+
+                #region Diamond Map
+                /*float zOffSet = 0f;
                 int zLast = 0;
                 int zRow = 0;
                 for(int x = 0; x < 19; x++)
@@ -1345,11 +1405,8 @@ public class Main : MonoBehaviour
                 for (int i = 0; i < tileInfoList.Length; i++)
                 {
                     tileInfoList[i] = temp[i];
-                }
-                    
-
-                LoadLevel();
-                SaveLocationData();
+                }*/
+                #endregion
                 break;
             case UniverseDepth.Moon:
                 Debug.Log("This is the actual moon touchdown interaction.");
@@ -1369,17 +1426,7 @@ public class Main : MonoBehaviour
             return;
         }
 
-        if (tileInfoList == null)
-        {
-            tileInfoList = new HexTileInfo[temp.Count];
-            for(int i = 0; i < tileInfoList.Length; i++)
-            {
-                tileInfoList[i] = temp[i];
-            }
-        }
-
         areaText.text = $"{universeAdress} : {currentDepth} : NamedOrNot";
-        depthLocations[UnityEngine.Random.Range(0, depthLocations.Length)].GetComponent<HexTileInfo>().StartingPoint();
     }
 
     void WipeUniversePieces()
@@ -1393,24 +1440,35 @@ public class Main : MonoBehaviour
 
     void CheckForSpaceObject(GameObject obj)
     {
+        areaText.text = "";
         for(int i = 0; i < depthLocations.Length; i++)
         {
             if(ReferenceEquals(obj,depthLocations[i]))
             {
                 if(i == 0 && currentDepth == UniverseDepth.PlanetMoon)
                 {
-                    Debug.Log("We touched a planet.");
                     planetOrMoon = true;
                 }else if(currentDepth == UniverseDepth.PlanetMoon && i != 0)
                 {
                     planetOrMoon = false;
                 }
-                DeeperIntoUniverseLocationDepth();
-                GenerateUniverseLocation(currentDepth, i);
+                StartCoroutine(ZoomWait(i));
                 break;
             }
         }
     }
+
+    IEnumerator ZoomWait(int index)
+    {
+        Debug.Log("Waiting on Zoom");
+        yield return new WaitUntil(() => b_zoomContinued);
+        Debug.Log("Wait complete");
+        b_zoomContinued = false;
+        DeeperIntoUniverseLocationDepth();
+        GenerateUniverseLocation(currentDepth, index);
+    }
+
+
 
     void DeeperIntoUniverseLocationDepth()
     {
@@ -1519,6 +1577,7 @@ public class Main : MonoBehaviour
             SetLocationDepthByInt(1);
         }
         GenerateUniverseLocation(currentDepth, index);
+            OnGoingToHigherLevel?.Invoke(depthLocations[int.Parse(ar[ar.Length - 1])]);
     }
 
     public void ToTheTop()
@@ -1566,7 +1625,6 @@ public class Main : MonoBehaviour
     {
         SaveUniverseLocation();
         SaveLocationAddressBook();
-        SaveLocationData();
     }
     #endregion
 }
