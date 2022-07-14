@@ -25,6 +25,7 @@ public class CameraController : MonoBehaviour
     float f_ZoomedIn = 1.5f;
     float f_NormalizeZoom = 5f;
     float f_InterpolatedTime = 0f;
+    float UpperBounds = 10f;
     bool b_zoom = true;
     bool b_Normalize = false;
     bool b_ZoomIn = false;
@@ -98,9 +99,19 @@ public class CameraController : MonoBehaviour
                 t_Camera.position = pos; 
             }
 
-            if(Input.mouseScrollDelta.y != 0)
+            float f = Input.mouseScrollDelta.y;
+            if(f != 0)
             {
-                c_Camera.orthographicSize += Input.mouseScrollDelta.y * -1 * 0.25f;
+                float val = f * -1 * 0.25f;
+                float size = c_Camera.orthographicSize;
+                if (size + val < UpperBounds && size + val > f_ZoomedIn)
+                {
+                    c_Camera.orthographicSize += val;
+                }
+                if(size < f_ZoomedIn)
+                {
+                    c_Camera.orthographicSize = f_ZoomedIn;
+                }
             }
         }
     }

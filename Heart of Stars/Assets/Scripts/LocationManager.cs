@@ -14,10 +14,102 @@ public class LocationManager : MonoBehaviour
     public GameObject tilePrefab;
     public HexTileInfo[] tileInfoList;
     public ResourceData[] myResources;
+    Vector2[] TileLocations;
 
     private void Awake()
     {
         Main.OnWorldMap += TurnOffVisibility;
+    }
+
+    private Vector2[] FindNeighbors(Vector2 location)
+    {
+        int count = 0;
+
+        List<Vector2> neg = new List<Vector2>();
+
+        foreach(Vector2 vec in TileLocations)
+        {
+            if (count == 6) return neg.ToArray();
+            Vector2 v = location;
+            v.y += 1;
+            if(vec == v) //same column +row
+            {
+                neg.Add(vec);
+                count++;
+                continue;
+            }
+            v.y -= 2;
+            if (vec == v) //same column -row
+            {
+                neg.Add(vec);
+                count++;
+                continue;
+            }
+            v = location;
+            if(location.x % 2 == 1)
+            {
+                v.x -= 1;
+                if (vec == v) //-column same row
+                {
+                    neg.Add(vec);
+                    count++;
+                    continue;
+                }
+                v.y += 1;
+                if (vec == v) //-column +row
+                {
+                    neg.Add(vec);
+                    count++;
+                    continue;
+                }
+                v.x += 2;
+                if (vec == v) //+column +row
+                {
+                    neg.Add(vec);
+                    count++;
+                    continue;
+                }
+                v.y -= 1;
+                if (vec == v) //+column same row
+                {
+                    neg.Add(vec);
+                    count++;
+                    continue;
+                }
+                continue;
+            }
+
+            v.x -= 1;
+            if (vec == v) //-column same row
+            {
+                neg.Add(vec);
+                count++;
+                continue;
+            }
+            v.y -= 1;
+            if (vec == v) //-column -row
+            {
+                neg.Add(vec);
+                count++;
+                continue;
+            }
+            v.x += 2;
+            if (vec == v) //+column -row
+            {
+                neg.Add(vec);
+                count++;
+                continue;
+            }
+            v.y += 1;
+            if (vec == v) //+column same row
+            {
+                neg.Add(vec);
+                count++;
+                continue;
+            }
+        }
+
+        return neg.ToArray();
     }
 
     private void OnDestroy()
@@ -50,8 +142,8 @@ public class LocationManager : MonoBehaviour
         {
             for(int i = 0; i < hextiles.Length; i++)
             {
-                string[] ar = hextiles[i].Split(",");
-                tileInfoList[i].SetTileState(ar[0], int.Parse(ar[1]));
+                string[] ar = hextiles[i].Split(":");
+                tileInfoList[i].SetTileState(ar[0], int.Parse(ar[1]), ar[2]);
             }
             return;
         }
@@ -65,18 +157,20 @@ public class LocationManager : MonoBehaviour
     {
         List<HexTileInfo> temp = new List<HexTileInfo>();
         List<GameObject> objs = new List<GameObject>();
+        List<Vector2> locs = new List<Vector2>();
 
         for (int x = 0; x < 10; x++)
         {
             bool odd = (x % 2 == 1) ? true : false;
             for (int y = 0; y < 10; y++)
             {
-                GameObject obj = Instantiate(tilePrefab, new Vector3(x * 0.78f, 0f, (odd) ? y + 0.5f : y), Quaternion.identity, transform);
+                GameObject obj = Instantiate(tilePrefab, new Vector3(x * 0.75f, 0f, (odd) ? y*.87f + .43f : y*.87f), Quaternion.identity, transform);
                 objs.Add(obj);
                 HexTileInfo tf = obj.GetComponent<HexTileInfo>();
                 tf.SetUpTileLocation(x, y);
                 tf.frequency = frequencySet;
                 temp.Add(tf);
+                locs.Add(tf.myPositionInTheArray);
             }
         }
 
@@ -91,14 +185,18 @@ public class LocationManager : MonoBehaviour
         {
             tileInfoList[i] = temp[i];
         }
+
+        TileLocations = new Vector2[locs.Count];
+        for(int k = 0; k < TileLocations.Length; k++)
+        {
+            TileLocations[k] = locs[k];
+        }
     }
 
     public void OrganizePieces()
     {
-        Debug.Log("Building new level.");
         for (int p = 0; p < startingPoints; p++)
         {
-            Debug.Log("Doing a pick.");
             float l = 100f;
             float q = (float)p / (float)startingPoints * l;
             //Debug.Log($"Current low: {q}");
@@ -109,25 +207,17 @@ public class LocationManager : MonoBehaviour
             tileInfoList[k].TurnLand();
         }
 
-        foreach (HexTileInfo h in tileInfoList)
-        {
-            if (h.i_tileType == 0)
-            {
-                h.DeactivateSelf();
-            }
-        }
-
-        ////////////////////////////////////////////////////something is wrong with the code and keeps freezing unity
-        ////Builds the 100 pieces fine
-        ///I haven't gotten the pieces to break up
-
         HexTileInfo info = g_MyPlanetPieces[UnityEngine.Random.Range(0, g_MyPlanetPieces.Length)].GetComponent<HexTileInfo>();
         /*while (info.i_tileType != 1)
         {
             info = g_MyPlanetPieces[UnityEngine.Random.Range(0, g_MyPlanetPieces.Length)].GetComponent<HexTileInfo>();
         }*/
-        if (info.i_tileType == 1)
-            info.StartingPoint();
+        if (info.i_tileType == 1) info.StartingPoint();
+
+        foreach(HexTileInfo hex in tileInfoList)
+        {
+            hex.SetNeighbors(FindNeighbors(hex.myPositionInTheArray));
+        }
     }
 
     void WipeBoard()
