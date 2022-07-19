@@ -9,15 +9,15 @@ public class CameraController : MonoBehaviour
     public static Action OnNeedZoomInfo = delegate { };
     public static Action<string> SaveCameraState = delegate { };
 
-    Camera c_Camera;
-    Transform t_Camera;
-    bool b_InMap = false;
-    public bool b_AtUniverse = false;
+    Camera myCamera;
+    Transform myTransform;
+    bool inMap = false;
+    public bool atUniverse = false;
 
-    Transform t_target;
-    Vector3 v_NormalPos;
-    Vector3 v_startPos;
-    Vector3 v_endPos;
+    Transform targetTransform;
+    Vector3 cameraNormalPosition;
+    Vector3 cameraStartingZoomPosition;
+    Vector3 cameraEndingZoomPosition;
     float f_journeyLength;
     float f_startTime;
     float f_speed = 1f;
@@ -37,9 +37,9 @@ public class CameraController : MonoBehaviour
 
     private void Awake()
     {
-        c_Camera = Camera.main;
-        t_Camera = c_Camera.transform;
-        v_NormalPos = t_Camera.position;
+        myCamera = Camera.main;
+        myTransform = myCamera.transform;
+        cameraNormalPosition = myTransform.position;
     }
 
     private void OnEnable()
@@ -62,12 +62,12 @@ public class CameraController : MonoBehaviour
 
     private void Update()
     {
-        if (!b_InMap)
+        if (!inMap)
         {
             CheckZoomIn();
             CheckZoomOut();
             CheckNormalize();
-            if(!b_AtUniverse && Input.mouseScrollDelta.y < 0f && b_zoom && !b_zooming)
+            if(!atUniverse && Input.mouseScrollDelta.y < 0f && b_zoom && !b_zooming)
             {
                 b_zoom = false;
                 b_ZoomIn = false;
@@ -78,7 +78,7 @@ public class CameraController : MonoBehaviour
 
     void LateUpdate()
     {
-        if (b_InMap)
+        if (inMap)
         {
             if (Input.GetMouseButtonDown(2))
             {
@@ -93,24 +93,24 @@ public class CameraController : MonoBehaviour
 
             if (b_canMoveOnMap)
             {
-                Vector3 pos = t_Camera.position;
+                Vector3 pos = myTransform.position;
                 pos.z += Input.GetAxis("Mouse Y") * scrollRate * -1;
                 pos.x += Input.GetAxis("Mouse X") * scrollRate * -1;
-                t_Camera.position = pos; 
+                myTransform.position = pos; 
             }
 
             float f = Input.mouseScrollDelta.y;
             if(f != 0)
             {
                 float val = f * -1 * 0.25f;
-                float size = c_Camera.orthographicSize;
+                float size = myCamera.orthographicSize;
                 if (size + val < UpperBounds && size + val > f_ZoomedIn)
                 {
-                    c_Camera.orthographicSize += val;
+                    myCamera.orthographicSize += val;
                 }
                 if(size < f_ZoomedIn)
                 {
-                    c_Camera.orthographicSize = f_ZoomedIn;
+                    myCamera.orthographicSize = f_ZoomedIn;
                 }
             }
         }
@@ -118,22 +118,22 @@ public class CameraController : MonoBehaviour
 
     void CheckZoomIn()
     {
-        if (t_target != null && b_zoom && b_zooming)
+        if (targetTransform != null && b_zoom && b_zooming)
         {
             // Set our position as a fraction of the distance between the markers.
-            t_Camera.position = Vector3.Lerp(v_startPos, v_endPos, f_InterpolatedTime);
+            myTransform.position = Vector3.Lerp(cameraStartingZoomPosition, cameraEndingZoomPosition, f_InterpolatedTime);
 
-            c_Camera.orthographicSize = Mathf.Lerp(f_NormalizeZoom, f_ZoomedIn, f_InterpolatedTime);
+            myCamera.orthographicSize = Mathf.Lerp(f_NormalizeZoom, f_ZoomedIn, f_InterpolatedTime);
 
             f_InterpolatedTime += 0.5f * Time.deltaTime;
             if (f_InterpolatedTime > f_speed)
             {
                 f_InterpolatedTime = 0f;
-                t_Camera.position = v_endPos;
-                t_target = null;
+                myTransform.position = cameraEndingZoomPosition;
+                targetTransform = null;
                 b_Normalize = true;
                 b_ZoomIn = true;
-                b_AtUniverse = false;
+                atUniverse = false;
                 OnCameraZoomContinue?.Invoke();
             }
         }
@@ -143,7 +143,7 @@ public class CameraController : MonoBehaviour
     {
         if(!b_zoom && !b_ZoomIn)
         {
-            c_Camera.orthographicSize = Mathf.Lerp(f_NormalizeZoom, f_ZoomedOut, f_InterpolatedTime);
+            myCamera.orthographicSize = Mathf.Lerp(f_NormalizeZoom, f_ZoomedOut, f_InterpolatedTime);
 
             f_InterpolatedTime += 0.5f * Time.deltaTime;
             if (f_InterpolatedTime > 1f)
@@ -161,13 +161,13 @@ public class CameraController : MonoBehaviour
         {
             if (b_ZoomIn)
             {
-                c_Camera.orthographicSize = Mathf.Lerp(f_ZoomedOut, f_NormalizeZoom, f_InterpolatedTime);
+                myCamera.orthographicSize = Mathf.Lerp(f_ZoomedOut, f_NormalizeZoom, f_InterpolatedTime);
                 f_InterpolatedTime += 0.5f * Time.deltaTime;
-                t_Camera.position = v_NormalPos;
+                myTransform.position = cameraNormalPosition;
             }
             else
             {
-                c_Camera.orthographicSize = Mathf.Lerp(f_ZoomedIn, f_NormalizeZoom, f_InterpolatedTime);
+                myCamera.orthographicSize = Mathf.Lerp(f_ZoomedIn, f_NormalizeZoom, f_InterpolatedTime);
                 f_InterpolatedTime += 0.5f * Time.deltaTime;
 
                 // Distance moved equals elapsed time times speed..
@@ -177,16 +177,16 @@ public class CameraController : MonoBehaviour
                 //float fractionOfJourney = distCovered / f_journeyLength;
 
                 // Set our position as a fraction of the distance between the markers.
-                t_Camera.position = Vector3.Lerp(v_startPos, v_endPos, f_InterpolatedTime);
+                myTransform.position = Vector3.Lerp(cameraStartingZoomPosition, cameraEndingZoomPosition, f_InterpolatedTime);
             }
 
             if(f_InterpolatedTime > f_speed)
             {
                 b_Normalize = false;
-                t_Camera.position = v_NormalPos;
-                c_Camera.orthographicSize = 5f;
+                myTransform.position = cameraNormalPosition;
+                myCamera.orthographicSize = 5f;
                 b_zoom = true;
-                t_target = null;
+                targetTransform = null;
                 b_zooming = false;
             }
         }
@@ -194,11 +194,11 @@ public class CameraController : MonoBehaviour
 
     private void ZoomIntoSpaceobject(GameObject obj)
     {
-        t_target = obj.transform;
-        v_endPos = t_target.position;
-        v_startPos = t_Camera.position;
-        v_endPos.z = v_startPos.z;
-        f_journeyLength = Vector3.Distance(v_startPos, v_endPos);
+        targetTransform = obj.transform;
+        cameraEndingZoomPosition = targetTransform.position;
+        cameraStartingZoomPosition = myTransform.position;
+        cameraEndingZoomPosition.z = cameraStartingZoomPosition.z;
+        f_journeyLength = Vector3.Distance(cameraStartingZoomPosition, cameraEndingZoomPosition);
         f_startTime = Time.time;
         f_InterpolatedTime = 0f;
         b_zooming = true;
@@ -206,30 +206,30 @@ public class CameraController : MonoBehaviour
 
     private void ZoomFromGivenObject(GameObject obj)
     {
-        t_target = obj.transform;
-        v_startPos = t_target.position;
-        v_endPos = v_NormalPos;
-        v_startPos.z = v_endPos.z;
-        f_journeyLength = Vector3.Distance(v_startPos, v_endPos);
+        targetTransform = obj.transform;
+        cameraStartingZoomPosition = targetTransform.position;
+        cameraEndingZoomPosition = cameraNormalPosition;
+        cameraStartingZoomPosition.z = cameraEndingZoomPosition.z;
+        f_journeyLength = Vector3.Distance(cameraStartingZoomPosition, cameraEndingZoomPosition);
         f_startTime = Time.time;
         f_InterpolatedTime = 0f;
         b_Normalize = true;
     }
 
-    private void AdjustCameraSettings(bool overWorld)
+    private void AdjustCameraSettings(bool inOverWorld)
     {
-        if (overWorld)
+        if (inOverWorld)
         {
-            t_Camera.rotation = Quaternion.identity;
-            t_Camera.position = new Vector3(0f, 0f, -.5f);
-            b_InMap = false;
+            myTransform.rotation = Quaternion.identity;
+            myTransform.position = new Vector3(0f, 0f, -.5f);
+            inMap = false;
             return;
         }
 
-        t_Camera.Rotate(45f, 0f, 0f);
-        t_Camera.position = new Vector3(0f, 10f, -.5f);
-        c_Camera.orthographicSize = 1.5f;
-        b_InMap = true;
+        myTransform.Rotate(45f, 0f, 0f);
+        myTransform.position = new Vector3(0f, 10f, -.5f);
+        myCamera.orthographicSize = 1.5f;
+        inMap = true;
     }
 
     private void FindStartingPosition(Transform tran)
@@ -237,12 +237,12 @@ public class CameraController : MonoBehaviour
         Vector3 pos = tran.position;
         pos.y += 10;
         pos.z -= 10;
-        t_Camera.position = pos;
+        myTransform.position = pos;
     }
 
     string SaveCameraSettings()
     {
-        return $"{transform.position};{transform.rotation};{c_Camera.orthographicSize}";
+        return $"{transform.position};{transform.rotation};{myCamera.orthographicSize}";
     }
 
     private void LoadCamState(string state)
@@ -264,7 +264,7 @@ public class CameraController : MonoBehaviour
             str = s.Split(",");
             transform.rotation = new Quaternion(float.Parse(str[0]), float.Parse(str[1].Remove(0, 1)), float.Parse(str[2].Remove(0, 1)), float.Parse(str[3].Remove(0, 1)));
 
-            c_Camera.orthographicSize = float.Parse(ar[2]);
+            myCamera.orthographicSize = float.Parse(ar[2]);
         }
     }
 

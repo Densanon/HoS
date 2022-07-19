@@ -1077,7 +1077,7 @@ public class Main : MonoBehaviour
                         objs.Add(obj);
                     }
                 }
-                Camera.main.transform.GetComponent<CameraController>().b_AtUniverse = true;
+                Camera.main.transform.GetComponent<CameraController>().atUniverse = true;
                 break;
             case UniverseDepth.SuperCluster://builds Galaxies
                 Debug.Log("Should be building Galaxy Level.");
