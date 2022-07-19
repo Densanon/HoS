@@ -17,8 +17,8 @@ public class Main : MonoBehaviour
     [SerializeField]
     TMP_Text areaText;
 
-    public int startingPoints;
-    public float frequencySet;
+    public int landStartingPointsForSpawning;
+    public float frequencyForLandSpawning;
 
     [SerializeField]
     GameObject[] depthPrefabs;
@@ -1342,7 +1342,7 @@ public class Main : MonoBehaviour
                 bool found = false;
                 foreach(LocationManager brain in planetContainer)
                 {
-                    if(brain.s_MyAddress == universeAdress)
+                    if(brain.myAddress == universeAdress)
                     {
                         activeBrain = brain;
                         found = true;
@@ -1359,7 +1359,7 @@ public class Main : MonoBehaviour
                     planetContainer.Add(Ego);
                     activeBrain = Ego;
                     Debug.Log("Going to activate the brain.");
-                    activeBrain.ReceiveOrders(TryLoadLevel(), universeAdress, LocationResources);
+                    activeBrain.BuildPlanetData(TryLoadLevel(), universeAdress, LocationResources);
                     Debug.Log("Brain should have been activated.");
                 }
 

@@ -8,17 +8,17 @@ public class ResourceInfoPanel : MonoBehaviour
     ResourceData myResource;
 
     [SerializeField]
-    TMP_Text myTitle_text;
+    TMP_Text myTitle;
     [SerializeField]
-    TMP_Text myDetails_text;
+    TMP_Text myDetails;
     [SerializeField]
-    TMP_Text myDependencies_text;
+    TMP_Text myDependencies;
     [SerializeField]
-    TMP_Text myDependenciesNeededAmounts_text;
+    TMP_Text myDependenciesNeededAmounts;
     [SerializeField]
-    TMP_Text myDependenciesCurAmount_text;
+    TMP_Text myDependenciesCurAmount;
     [SerializeField]
-    TMP_Text amountOwned_text;
+    TMP_Text amountOwned;
 
     ResourceData[] myResourceNeeds;
 
@@ -44,18 +44,18 @@ public class ResourceInfoPanel : MonoBehaviour
     public void Assignment(Resource data, Main main)
     {
         myResource = data.myResource;
-        myTitle_text.text = data.myResource.displayName;
-        myDetails_text.text = data.myResource.description;
-        amountOwned_text.text = $"Amount Owned: {data.myResource.currentAmount}";
+        myTitle.text = data.myResource.displayName;
+        myDetails.text = data.myResource.description;
+        amountOwned.text = $"Amount Owned: {data.myResource.currentAmount}";
 
         myResourceNeeds = data.GetImediateDependencyNames();
         int[] oTemp = data.GetDependencyAmounts();
 
-        myDependencies_text.text = "";
-        myDependenciesNeededAmounts_text.text = "";
-        myDependenciesCurAmount_text.text = "";
+        myDependencies.text = "";
+        myDependenciesNeededAmounts.text = "";
+        myDependenciesCurAmount.text = "";
 
-        Debug.Log($"ResourceInfoPanel for {myResource.displayName} : {myResourceNeeds.Length}");
+        //Debug.Log($"ResourceInfoPanel for {myResource.displayName} : {myResourceNeeds.Length}");
 
         if(myResourceNeeds != null)
         {
@@ -66,9 +66,9 @@ public class ResourceInfoPanel : MonoBehaviour
                 r.panelButton = true;
                 r.AssignResource(myResourceNeeds[i], false, main);
                 r.ResetRotation();
-                myDependencies_text.text = myDependencies_text.text + myResourceNeeds[i].displayName + "\n";
-                myDependenciesNeededAmounts_text.text = myDependenciesNeededAmounts_text.text + oTemp[i].ToString() + "\n";
-                myDependenciesCurAmount_text.text = myDependenciesCurAmount_text.text + myResourceNeeds[i].currentAmount.ToString() + "\n";
+                myDependencies.text = myDependencies.text + myResourceNeeds[i].displayName + "\n";
+                myDependenciesNeededAmounts.text = myDependenciesNeededAmounts.text + oTemp[i].ToString() + "\n";
+                myDependenciesCurAmount.text = myDependenciesCurAmount.text + myResourceNeeds[i].currentAmount.ToString() + "\n";
             }
         }
     }
@@ -76,18 +76,18 @@ public class ResourceInfoPanel : MonoBehaviour
     public void Assignment(ResourceData data, Main main)
     {
         myResource = data;
-        myTitle_text.text = data.displayName;
-        myDetails_text.text = data.description;
-        amountOwned_text.text = $"Amount Owned: {data.currentAmount}";
+        myTitle.text = data.displayName;
+        myDetails.text = data.description;
+        amountOwned.text = $"Amount Owned: {data.currentAmount}";
 
         myResourceNeeds = main.ReturnDependencies(data);
         int[] oTemp = main.ReturnDependencyAmounts(data);
 
-        myDependencies_text.text = "";
-        myDependenciesNeededAmounts_text.text = "";
-        myDependenciesCurAmount_text.text = "";
+        myDependencies.text = "";
+        myDependenciesNeededAmounts.text = "";
+        myDependenciesCurAmount.text = "";
 
-        Debug.Log($"ResourceInfoPanel for {myResource.displayName} : {myResourceNeeds.Length}");
+        //Debug.Log($"ResourceInfoPanel for {myResource.displayName} : {myResourceNeeds.Length}");
 
         if (myResourceNeeds != null)
         {
@@ -99,9 +99,9 @@ public class ResourceInfoPanel : MonoBehaviour
                 r.AssignResource(data, false, main);
                 r.ResetRotation();
 
-                myDependencies_text.text = myDependencies_text.text + myResourceNeeds[i].displayName + "\n";
-                myDependenciesNeededAmounts_text.text = myDependenciesNeededAmounts_text.text + oTemp[i].ToString() + "\n";
-                myDependenciesCurAmount_text.text = myDependenciesCurAmount_text.text + myResourceNeeds[i].currentAmount.ToString() + "\n";
+                myDependencies.text = myDependencies.text + myResourceNeeds[i].displayName + "\n";
+                myDependenciesNeededAmounts.text = myDependenciesNeededAmounts.text + oTemp[i].ToString() + "\n";
+                myDependenciesCurAmount.text = myDependenciesCurAmount.text + myResourceNeeds[i].currentAmount.ToString() + "\n";
             }
         }
     }
@@ -110,11 +110,11 @@ public class ResourceInfoPanel : MonoBehaviour
     {
         if(source == myResource)
         {
-            amountOwned_text.text = $"Amount Owned: {myResource.currentAmount}";
-            myDependenciesCurAmount_text.text = "";
+            amountOwned.text = $"Amount Owned: {myResource.currentAmount}";
+            myDependenciesCurAmount.text = "";
             for (int i = 0; i < myResourceNeeds.Length; i++)
             {
-                myDependenciesCurAmount_text.text = myDependenciesCurAmount_text.text + myResourceNeeds[i].currentAmount.ToString() + "\n";
+                myDependenciesCurAmount.text = myDependenciesCurAmount.text + myResourceNeeds[i].currentAmount.ToString() + "\n";
             }
         }
     }

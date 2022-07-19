@@ -11,11 +11,11 @@ public class ResourceDisplayInfo : MonoBehaviour
     [SerializeField]
     TMP_Text displayText;
     [SerializeField]
-    TMP_Text curText;
+    TMP_Text currentText;
     [SerializeField]
-    TMP_Text autoAText;
+    TMP_Text autoAmountText;
     [SerializeField]
-    TMP_Text autoTText;
+    TMP_Text autoTimeText;
 
     private void OnEnable()
     {
@@ -42,9 +42,9 @@ public class ResourceDisplayInfo : MonoBehaviour
         if(source == myResource)
         {
             //Debug.Log($"Resource Display: {myResource.displayName} received an update for my info.");
-            curText.text = myResource.currentAmount.ToString();
-            autoAText.text = myResource.autoAmount.ToString();
-            autoTText.text = myResource.craftTime.ToString();
+            currentText.text = myResource.currentAmount.ToString();
+            autoAmountText.text = myResource.autoAmount.ToString();
+            autoTimeText.text = myResource.craftTime.ToString();
         }
     }
 }

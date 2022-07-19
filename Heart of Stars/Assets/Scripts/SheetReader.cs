@@ -51,36 +51,27 @@ public class SheetReader
 
         SpreadsheetsResource.ValuesResource.GetRequest request = sheetsService.Spreadsheets.Values.Get(spreadsheetId, range);
         request.ValueRenderOption = valueRenderOption;
-        ///request.DateTimeRenderOption = dateTimeRenderOption;
 
         try
         {
-            // To execute asynchronously in an async method, replace `request.Execute()` as shown:
             Data.ValueRange response = request.Execute();
-            // Data.ValueRange response = await request.ExecuteAsync();
+            
+            string s = JsonConvert.SerializeObject(response); // Capturing the data sheet
+            //Debug.Log($"File: {s}"); //used to see what the data looks like when coming in
 
-            // TODO: Change code below to process the `response` object:
-            // Capturing the data sheet
-            string s = JsonConvert.SerializeObject(response);
-            Debug.Log($"File: {s}");
-            // Splitting all the parts into what is most important
-            string[] removeJunkArray = s.Split(':');
-            // #5 in this array actually contains all the data
-            // Also trimming the first two characters off
-            s = removeJunkArray[4];
-            // Trimming the last 9 characters off
-            s = s.Remove(s.Length - 9, 9);
-            //This is splitting the table into the rows
-            removeJunkArray = s.Split("]");
+            string[] removeJunkArray = s.Split(':'); // Splitting all the parts into what is most important
 
-            //The actual values//
-            //Creating the grid by which the sheet is layed out.
-            List<string[]> ar = new List<string[]>();
+            s = removeJunkArray[4]; // #5 in this array actually contains all the data ,Also trimming the first two characters off
 
-            foreach (string i in removeJunkArray)
+            s = s.Remove(s.Length - 9, 9); // Trimming the last 9 characters off
+
+            removeJunkArray = s.Split("]"); //This is splitting the table into the rows
+
+            List<string[]> ar = new List<string[]>(); 
+
+            foreach (string i in removeJunkArray) //Creating the grid by which the sheet is layed out.
             {
                 s = i.Remove(0, 2);
-                //Debug.Log($"Each item's array: {s}");
                 string[] newArray = s.Split(",");
                 string[] actualArray = new string[newArray.Length];
                 for (int j = 0; j < newArray.Length; j++)

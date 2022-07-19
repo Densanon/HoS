@@ -10,7 +10,7 @@ public class Depthinteraction : MonoBehaviour
     [SerializeField]
     GameObject UIElements;
 
-    bool b_interactable = false;
+    bool isInteractable = false;
 
     private void OnEnable()
     {
@@ -31,29 +31,29 @@ public class Depthinteraction : MonoBehaviour
 
     void TurnOnInteractable()
     {
-        b_interactable = true;
+        isInteractable = true;
     }
 
     void TurnOffInteractables()
     {
-        b_interactable = false;
+        isInteractable = false;
     }
 
     private void OnMouseEnter()
     {
-        if(b_interactable)
+        if(isInteractable)
             UIElements.SetActive(true);
     }
 
     private void OnMouseExit()
     {
-        if(b_interactable)
+        if(isInteractable)
             UIElements.SetActive(false);
     }
 
     private void OnMouseDown()
     {
-        if (b_interactable)
+        if (isInteractable)
         {
             SpaceInteractionHover?.Invoke(transform.parent.gameObject);
             OnDeactivate?.Invoke();
