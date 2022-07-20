@@ -29,23 +29,35 @@ public class Resource : MonoBehaviour
 
     public GameObject pivot;
     public GameObject buttonPrefab;
-    public GameObject alphaButton;
+    public GameObject originalResourceButton;
     bool doneWithDependencyCheck = false;
-    public bool Alpha = false;
+    public bool isOriginalResource = false;
     public bool panelButton = false;
 
-    public void AssignResource(ResourceData source, bool alpha, Main theMain)
+    public void SetUpResource(ResourceData source, bool alpha, Main theMain)
     {
-        Alpha = alpha;
+        isOriginalResource = alpha;
         myResource = source;
         main = theMain;
         myNamedResource = myResource.itemName;
-        if(Alpha != true)
-        {
-            if(myText != null)
-            myText.text = myResource.displayName;
-        }
 
+        SetUpDependencyLists(source);
+
+        if (isOriginalResource != true) // setting non-alpha information
+        {
+            if (myText != null) myText.text = myResource.displayName;
+
+            if (transform.GetComponent<HoverAble>() != null)
+            {
+                HoverAble h = transform.GetComponent<HoverAble>();
+                h.Assignment(this, main);
+                if (panelButton)  h.panelButton = true;
+            }
+        }
+    }
+
+    private void SetUpDependencyLists(ResourceData source)
+    {
         myImediateDependence = new List<ResourceData>();
 
         List<string> tempNames = new List<string>();
@@ -56,7 +68,7 @@ public class Resource : MonoBehaviour
         string[] str = source.consumableRequirements.Split("-");
         if (source.consumableRequirements != "nothing=0")
         {
-            foreach(string s in str)
+            foreach (string s in str)
             {
                 string[] tAr = s.Split('=');
                 temp.Add(main.ReturnData(tAr[0]));
@@ -68,22 +80,18 @@ public class Resource : MonoBehaviour
 
         //check for nonconsumable dependencies
         str = source.nonConsumableRequirements.Split("-");
-        if(source.nonConsumableRequirements != "nothing")
+        if (source.nonConsumableRequirements != "nothing")
         {
-            if(str[0] != "nothing")
+            foreach (string s in str)
             {
-                foreach (string s in str)
-                {
-                    string[] tAr = s.Split('=');
-                    temp.Add(main.ReturnData(tAr[0]));
-                    tempIndices.Add(1);
-                    tempNames.Add(tAr[0]);
-                }
+                string[] tAr = s.Split('=');
+                temp.Add(main.ReturnData(tAr[0]));
+                tempIndices.Add(int.Parse(tAr[1]));
+                tempNames.Add(tAr[0]);
             }
         }
 
-
-        for(int i = 0; i < temp.Count; i++)
+        for (int i = 0; i < temp.Count; i++)
         {
             myImediateDependence.Add(temp[i]);
         }
@@ -93,18 +101,9 @@ public class Resource : MonoBehaviour
         myNamedimediateDependencies = tempNames.ToArray();
 
 
-        if (Alpha)
+        if (isOriginalResource)
         {
             GetAllDependencies(temp);
-        }
-
-        if(Alpha != true && transform.GetComponent<HoverAble>() != null)
-        {
-            HoverAble h = transform.GetComponent<HoverAble>();
-            h.Assignment(this, main);
-            if(panelButton)
-                h.panelButton = true;
-
         }
     }
 
@@ -183,11 +182,11 @@ public class Resource : MonoBehaviour
     {
         List<Resource> deps = new List<Resource>();
 
-        if (Alpha)
+        if (isOriginalResource)
         {
-            Resource res = alphaButton.GetComponent<Resource>();
+            Resource res = originalResourceButton.GetComponent<Resource>();
 
-            res.AssignResource(myResource, false, main);
+            res.SetUpResource(myResource, false, main);
             deps.Add(res);
         }
 
@@ -195,17 +194,18 @@ public class Resource : MonoBehaviour
         {
             GameObject Obj = Instantiate(buttonPrefab, new Vector3(pivot.transform.position.x, pivot.transform.position.y + 100f, pivot.transform.position.z), Quaternion.identity, pivot.transform);
             Resource source = Obj.GetComponent<Resource>();
-            source.AssignResource(allMyDependence[i], false, main);
+            source.SetUpResource(allMyDependence[i], false, main);
             deps.Add(source);
             if (i != 0)
             {
-                pivot.transform.Rotate(0f, 0f, -45f);
-                foreach(Resource r in deps)
-                {
-                    r.ResetRotation();
-                }
+                pivot.transform.Rotate(0f, 0f, -45f);  
+                continue;
             }
 
+            foreach (Resource r in deps)
+            {
+                r.ResetRotation();
+            }
         }
     }
 

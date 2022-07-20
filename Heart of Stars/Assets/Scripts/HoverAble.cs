@@ -7,9 +7,9 @@ public class HoverAble : MonoBehaviour
 {
     public static Action<ResourceData> OnHoverUpdate = delegate { };
 
-    bool Hovering = false;
-    bool panelActive = false;
-    bool panelStall = false;
+    bool isHovering = false;
+    bool panelIsActive = false;
+    bool panelIsStalled = false;
 
     public bool panelButton = false;
 
@@ -32,32 +32,25 @@ public class HoverAble : MonoBehaviour
 
     private void Update()
     {
-        if(Hovering && Input.GetKeyDown(KeyCode.Space) && panelActive && !panelStall)
-        {
-            panelStall = true;
-        }
+        if(isHovering && Input.GetKeyDown(KeyCode.Space) && panelIsActive &&
+            !panelIsStalled) panelIsStalled = true;
     }
 
     public void HidePanel()
     {
-        panelStall = false;
-        panelActive = false;
-        if (myPanel != null)
-            myPanel.SetActive(false);
+        panelIsStalled = false;
+        panelIsActive = false;
+        if (myPanel != null) myPanel.SetActive(false);
     }
 
     public void MouseEnter()
     {
-        //Debug.Log($"Hovering over {myResource.myResource.displayName}");
-        Hovering = true;
-        if (!panelActive)
+        isHovering = true;
+        if (!panelIsActive)
         {
-            panelActive = true;
+            panelIsActive = true;
             myPanel.SetActive(true);
-            if (!panelButton)
-            {
-                transform.SetSiblingIndex(transform.parent.childCount-1);
-            }
+            if (!panelButton) transform.SetSiblingIndex(transform.parent.childCount-1);
 
             OnHoverUpdate?.Invoke(myResource);
         }
@@ -65,10 +58,8 @@ public class HoverAble : MonoBehaviour
 
     public void MouseExit()
     {
-        Hovering = false;
-        if (!panelStall)
-        {
-            HidePanel();
-        }
+        isHovering = false;
+        if (!panelIsStalled) HidePanel();
+
     }
 }

@@ -184,31 +184,14 @@ public class Main : MonoBehaviour
         {
             created++;
             GameObject obj = Instantiate(BuildableResourceButtonPrefab, Canvas.transform);
-            obj.GetComponent<Resource>().AssignResource(ResourceLibrary[UnityEngine.Random.Range(0, ResourceLibrary.Length - 1)], true, this);
-            //obj.GetComponent<RectTransform>().SetPositionAndRotation(new Vector3(-10f, 0f, 0f), Quaternion.identity);
+            obj.GetComponent<Resource>().SetUpResource(ResourceLibrary[UnityEngine.Random.Range(0, ResourceLibrary.Length - 1)], true, this);
         }
 
-        if (Input.GetKeyDown(KeyCode.Alpha1))
-        {
-            SaveSystem.SeriouslyDeleteAllSaveFiles();
-        }
+        if (Input.GetKeyDown(KeyCode.Alpha1)) SaveSystem.SeriouslyDeleteAllSaveFiles();
 
-        if (Input.GetKeyDown(KeyCode.Alpha2))
-        {
-            ForceBuildDataFromSheet();
-        }
+        if (Input.GetKeyDown(KeyCode.Alpha2)) ForceBuildDataFromSheet();
 
-        if (Input.GetKeyDown(KeyCode.Escape))
-        {
-            if (debugPanel.activeSelf)
-            {
-                debugPanel.SetActive(false);
-            }
-            else
-            {
-                debugPanel.SetActive(true);
-            }
-        }
+        if (Input.GetKeyDown(KeyCode.Escape)) debugPanel.SetActive(!debugPanel.activeSelf);
     }
     #endregion
 

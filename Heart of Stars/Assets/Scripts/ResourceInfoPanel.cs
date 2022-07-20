@@ -64,7 +64,7 @@ public class ResourceInfoPanel : MonoBehaviour
                 GameObject obj = Instantiate(buttonPrefab, buttonContainer);
                 Resource r = obj.GetComponent<Resource>();
                 r.panelButton = true;
-                r.AssignResource(myResourceNeeds[i], false, main);
+                r.SetUpResource(myResourceNeeds[i], false, main);
                 r.ResetRotation();
                 myDependencies.text = myDependencies.text + myResourceNeeds[i].displayName + "\n";
                 myDependenciesNeededAmounts.text = myDependenciesNeededAmounts.text + oTemp[i].ToString() + "\n";
@@ -96,7 +96,7 @@ public class ResourceInfoPanel : MonoBehaviour
                 GameObject obj = Instantiate(buttonPrefab, buttonContainer);
                 Resource r = obj.GetComponent<Resource>();
                 r.panelButton = true;
-                r.AssignResource(data, false, main);
+                r.SetUpResource(data, false, main);
                 r.ResetRotation();
 
                 myDependencies.text = myDependencies.text + myResourceNeeds[i].displayName + "\n";
