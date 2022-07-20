@@ -118,7 +118,8 @@ public class Main : MonoBehaviour
     }
     public void SubmitDebugSetVisible()
     {
-    
+        dat.AdjustVisibility("true" == debugField.ToLower());
+        Debug.Log($"Visible: {dat.visible} ");
     }
     public void ToTheTop()
     {
@@ -506,13 +507,10 @@ public class Main : MonoBehaviour
     }
     public void SubmitSearchForPanelInformation()
     {
-        Debug.Log($"Searching for: {searchInputField}");
         foreach(string s in ResourceNameReferenceIndex) //check by displayName
         {
-            Debug.Log($"Searching through ResourceNames: {s}");
             if(s.ToLower() == searchInputField.ToLower())
             {
-                Debug.Log($"Found a suitor: {s}");
                 CreateResourcePanelInfo(searchInputField);
                 return;
             }
@@ -634,11 +632,8 @@ public class Main : MonoBehaviour
             CreateResourceForLibraryAtIndex(j);
 
             //If it is a basic resource we need it to start visible
-            if (SheetData[j][3] == "nothing=0" && SheetData[j][4] == "nothing")
-            {
-                ResourceLibrary[j].AdjustVisibility(true);
-                Debug.Log($"{ResourceLibrary[j].displayName} is a basic resource and is visible.");
-            }
+            if (SheetData[j][2] == "nothing=0" && SheetData[j][3] == "nothing") ResourceLibrary[j].AdjustVisibility(true);
+
             //If it is a tool, we need to set it's max amount to whatever the given max amount will be
             if (ResourceLibrary[j].groups == "tool")
             {
@@ -806,7 +801,7 @@ public class Main : MonoBehaviour
         SaveLocationAddressBook();
     }
     #endregion
-
+    
     #region Map
     public void GenerateUniverseLocation(UniverseDepth depth, int index)
     {

@@ -44,12 +44,6 @@ public class LocationManager : MonoBehaviour
         myResources = new ResourceData[resources.Length];
         Array.Copy(resources, myResources, resources.Length);
 
-        foreach(ResourceData dt in myResources)
-        {
-            if(dt.visible)
-                Debug.Log(dt.itemName);
-        }
-
         BuildTileBase();
 
         if (hextiles != null)
