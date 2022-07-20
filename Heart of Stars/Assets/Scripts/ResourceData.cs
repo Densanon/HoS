@@ -71,7 +71,6 @@ public class ResourceData
     public void SetDisplayName(string name)
     {
         displayName = name;
-
     }
 
     public void SetDescription(string des)

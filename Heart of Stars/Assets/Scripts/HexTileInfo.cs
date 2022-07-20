@@ -205,6 +205,7 @@ public class HexTileInfo : MonoBehaviour
             st = st.Remove(st.Length - 1);
             s = (first) ? s + st : s + "'" + st;
             first = false;
+
         }
 
         return $"{myState}:{myTileType}:{s};";

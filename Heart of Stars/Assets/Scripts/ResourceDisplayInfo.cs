@@ -41,7 +41,6 @@ public class ResourceDisplayInfo : MonoBehaviour
     {
         if(source == myResource)
         {
-            //Debug.Log($"Resource Display: {myResource.displayName} received an update for my info.");
             currentText.text = myResource.currentAmount.ToString();
             autoAmountText.text = myResource.autoAmount.ToString();
             autoTimeText.text = myResource.craftTime.ToString();

@@ -144,23 +144,14 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 2b998954e26df9142bd747a83f9d745d, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  Textures:
+  tileTextures:
   - {fileID: 2800000, guid: c6c75993386dfa74bbb6218dae7135bb, type: 3}
-  - {fileID: 2800000, guid: 74bdabba7770e0e4091454a98b30ec37, type: 3}
-  - {fileID: 2800000, guid: f33ce8911c63cc04a91022a0412b4f27, type: 3}
-  - {fileID: 2800000, guid: 9ccf129f52e5875489e729b574a867ff, type: 3}
   - {fileID: 2800000, guid: 15f2a9b033c382041bd7bdd80bae54e5, type: 3}
+  - {fileID: 2800000, guid: f33ce8911c63cc04a91022a0412b4f27, type: 3}
+  - {fileID: 2800000, guid: 74bdabba7770e0e4091454a98b30ec37, type: 3}
   - {fileID: 2800000, guid: 0ddd85f014e802646a7d364e6d6c9ba0, type: 3}
   - {fileID: 2800000, guid: a6edfbc1f6903f94da947b83d1606052, type: 3}
-  - {fileID: 2800000, guid: e6f6663680e60a44085e37790206ed37, type: 3}
-  - {fileID: 2800000, guid: 4687f246ae32fc1479f8184d24cf2373, type: 3}
-  - {fileID: 2800000, guid: 7c9dfe8bc2e46fe4e99ab94ef913d622, type: 3}
   - {fileID: 2800000, guid: 3436bcbbe02cda54d8329f2a387ed52b, type: 3}
-  - {fileID: 2800000, guid: 225c2ad5249d94e489780690fda4c640, type: 3}
-  - {fileID: 2800000, guid: 29fcc3fe8ed411d4f9261602c7d32e90, type: 3}
-  - {fileID: 2800000, guid: 6af70214677ac0240898e5950b3044e5, type: 3}
-  - {fileID: 2800000, guid: 325433b911384c44898272280e2df4f5, type: 3}
-  - {fileID: 2800000, guid: ac654428d7a8912478e3d2e60ff1281e, type: 3}
   - {fileID: 2800000, guid: e42f1b856431a1b4aa5dae15a21c13a8, type: 3}
   - {fileID: 2800000, guid: 55072de82cbb5814090bad7dbaf63dbf, type: 3}
   - {fileID: 2800000, guid: 8247f9587d4a90246895056bf7e75eb9, type: 3}
@@ -170,12 +161,22 @@ MonoBehaviour:
   - {fileID: 2800000, guid: e7dade38620a6b24da69cebeb2025ed8, type: 3}
   - {fileID: 2800000, guid: 5201c7ba48e99574bb369796db7d1b74, type: 3}
   - {fileID: 2800000, guid: db9a8b5816e044b439890a0e2dc39b42, type: 3}
+  - {fileID: 2800000, guid: 225c2ad5249d94e489780690fda4c640, type: 3}
+  - {fileID: 2800000, guid: 6af70214677ac0240898e5950b3044e5, type: 3}
+  - {fileID: 2800000, guid: 29fcc3fe8ed411d4f9261602c7d32e90, type: 3}
+  - {fileID: 2800000, guid: e6f6663680e60a44085e37790206ed37, type: 3}
+  - {fileID: 2800000, guid: 9ccf129f52e5875489e729b574a867ff, type: 3}
+  - {fileID: 2800000, guid: 4687f246ae32fc1479f8184d24cf2373, type: 3}
+  - {fileID: 2800000, guid: 7c9dfe8bc2e46fe4e99ab94ef913d622, type: 3}
+  - {fileID: 2800000, guid: 325433b911384c44898272280e2df4f5, type: 3}
+  - {fileID: 2800000, guid: ac654428d7a8912478e3d2e60ff1281e, type: 3}
   myRenderers:
   - {fileID: 4744813338121559871}
   - {fileID: 919019366830629412}
+  myNeighbors: []
   myPositionInTheArray: {x: 0, y: 0}
-  frequency: 1.5
-  i_tileType: 0
+  frequencyOfLandDistribution: 0
+  myTileType: 0
 --- !u!1 &4744813338121559864
 GameObject:
   m_ObjectHideFlags: 0

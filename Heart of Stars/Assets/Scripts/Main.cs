@@ -12,7 +12,7 @@ public class Main : MonoBehaviour
     public static Action<string> SendCameraState = delegate { };
 
     public enum UniverseDepth {Universe, SuperCluster, Galaxy, Nebula, GlobularCluster, StarCluster, Constellation, SolarSystem, PlanetMoon, Planet, Moon}
-    UniverseDepth currentDepth = UniverseDepth.Universe;
+    static UniverseDepth currentDepth = UniverseDepth.Universe;
 
     [SerializeField]
     TMP_Text areaText;
@@ -27,9 +27,9 @@ public class Main : MonoBehaviour
     [SerializeField]
     GameObject[] depthLocations;
     bool fromMemoryOfLocation = false;
-    bool planetOrMoon = false;
-    bool b_zoomContinued = false;
-    int i_objectIndex = 0;
+    bool isPlanet = false;
+    bool canZoomContinue = false;
+    int objectIndex = 0;
     [SerializeField]
     GameObject planetPrefab;
     [SerializeField]
@@ -50,20 +50,22 @@ public class Main : MonoBehaviour
 
     public string universeAdress;
 
-    string[] NameReferenceIndex;
-    int[] QuedAmounts;
+    string[] ResourceNameReferenceIndex;
+    int[] QuedResourceAmount;
 
     public GameObject ResourePanelPrefab;
-    public Transform ResourcePanel;
+    public Transform ResourcePanelTransform;
     public List<GameObject> resourcePanelInfoPieces;
 
     public GameObject BuildableResourceButtonPrefab;
     public GameObject Canvas;
 
-    int created = 0;
-    public string searchField = "";
-    bool resetAllBuildables = false;
+    int buttonsCreated = 0;
+    public string searchInputField = "";
+    bool needResetAllBuildables = false;
 
+    WeightedRandomBag<ResourceData> dropTypes = new WeightedRandomBag<ResourceData>();
+    
     #region Debug Values
     [SerializeField]
     GameObject debugPanel;
@@ -81,15 +83,12 @@ public class Main : MonoBehaviour
     [SerializeField]
     TMP_Text ResourceT;
     #endregion
-
-    WeightedRandomBag<ResourceData> dropTypes = new WeightedRandomBag<ResourceData>();
-
+    
     #region Debugging
     public void UpdateDebugField(string s)
     {
         debugField = s;
     }
-
     public void UpdateCurrentDebugFields()
     {
         ResourceName.text = dat.displayName;
@@ -97,30 +96,72 @@ public class Main : MonoBehaviour
         ResourceAut.text = dat.autoAmount.ToString();
         ResourceT.text = dat.craftTime.ToString();
     }
-
     public void SubmitDebugField()
     {
-        dat = ReturnData(debugField);
+        dat = FindResourceFromString(debugField);
         UpdateCurrentDebugFields();
     }
-
-   
     public void SubmitDebugIncrease()
     {
         dat.AdjustCurrentAmount(int.Parse(debugField));
         UpdateCurrentDebugFields();
     }
-
     public void SubmitDebugDecrease()
     {
         dat.AdjustCurrentAmount(int.Parse(debugField));
         UpdateCurrentDebugFields();
     }
-
     public void SubmitDebugSetCurrent()
     {
         dat.SetCurrentAmount(int.Parse(debugField));
         UpdateCurrentDebugFields();
+    }
+    public void SubmitDebugSetVisible()
+    {
+    
+    }
+    public void ToTheTop()
+    {
+        SetLocationDepthByInt(1);
+        GenerateUniverseLocation(currentDepth, 42);
+    }
+    public void DeleteAllSaveData()
+    {
+        SaveSystem.SeriouslyDeleteAllSaveFiles();
+    }
+    public void ForceBuildDataFromSheet() // used this to reforce everything to be built from the data sheet
+    {
+        for (int j = 0; j < SheetData.Count; j++)
+        {
+            Debug.Log($"Sheetdata at [1]: {SheetData[j][1]}");
+            ResourceLibrary[j] = new ResourceData(SheetData[j][0], SheetData[j][8],
+                SheetData[j][9], SheetData[j][10], SheetData[j][1], SheetData[j][2],
+                SheetData[j][3], false, 0, 0, float.Parse(SheetData[j][4]), SheetData[j][5],
+                SheetData[j][6], SheetData[j][7], SheetData[j][11], SheetData[j][12],
+                SheetData[j][13], 0, "");
+
+            if (SheetData[j][3] == "nothing=0" && SheetData[j][4] == "nothing")
+            {
+                ResourceLibrary[j].AdjustVisibility(true);
+            }
+
+            if (ResourceLibrary[j].groups == "tool")
+            {
+                string[] ra = SheetData[j][7].Split(" ");
+                string[] k = ra[1].Split("=");
+                ResourceLibrary[j].SetAtMost(int.Parse(k[1]));
+            }
+
+            ResourceNameReferenceIndex[j] = ResourceLibrary[j].displayName;
+        }
+
+        CreateOrResetAllBuildableStrings();
+
+        CreateResourcePanelInfo("all", "");
+
+        SaveResourceLibrary();
+        SaveSystem.SaveFile("/resource_shalom");
+        LoadedData.Clear();
     }
     #endregion
 
@@ -128,8 +169,6 @@ public class Main : MonoBehaviour
     void Awake()
     {
         UnityEngine.Random.InitState(42);
-
-        //SaveSystem.SeriouslyDeleteAllSaveFiles();
         
         SheetData = SheetReader.GetSheetData();
         resourcePanelInfoPieces = new List<GameObject>();
@@ -156,16 +195,14 @@ public class Main : MonoBehaviour
         DontDestroyOnLoad(this.gameObject);
 
         Depthinteraction.SpaceInteractionHover += CheckForSpaceObject;
-        CameraController.OnCameraZoomContinue += SwitchZoomContinue;
+        CameraController.OnCameraZoomContinue += SetZoomContinueTrue;
         CameraController.OnNeedZoomInfo += GoBackAStep;
         CameraController.SaveCameraState += SaveCamState;
-        LocationManager.OnSaveMyLocationInfo += SaveLocationData;
-
     }
 
-    private void SwitchZoomContinue()
+    private void SetZoomContinueTrue()
     {
-        b_zoomContinued = true;
+        canZoomContinue = true;
     }
 
     private void Start()
@@ -180,16 +217,12 @@ public class Main : MonoBehaviour
 
     private void Update()
     {
-        if (Input.GetKeyDown(KeyCode.B) && created == 0)
+        /*if (Input.GetKeyDown(KeyCode.B) && buttonsCreated == 0)
         {
-            created++;
+            buttonsCreated++;
             GameObject obj = Instantiate(BuildableResourceButtonPrefab, Canvas.transform);
             obj.GetComponent<Resource>().SetUpResource(ResourceLibrary[UnityEngine.Random.Range(0, ResourceLibrary.Length - 1)], true, this);
-        }
-
-        if (Input.GetKeyDown(KeyCode.Alpha1)) SaveSystem.SeriouslyDeleteAllSaveFiles();
-
-        if (Input.GetKeyDown(KeyCode.Alpha2)) ForceBuildDataFromSheet();
+        }*/
 
         if (Input.GetKeyDown(KeyCode.Escape)) debugPanel.SetActive(!debugPanel.activeSelf);
     }
@@ -204,17 +237,14 @@ public class Main : MonoBehaviour
 
     IEnumerator UpdateQue(ResourceData data)
     {
-        //Debug.Log($"Starting {data.displayName} Que Update, waiting for {data.craftTime}.");
         bool addedNormal = false;
         yield return new WaitForSeconds(data.craftTime);
-        //Debug.Log($"Made it through wait time on {data.displayName}.");
-        //Debug.Log($"Data visible? {data.visible}, Que > 0? {QuedAmounts[System.Array.IndexOf(NameReferenceIndex, data.displayName)]}, Auto > 0? {data.autoAmount}");
-        if (data.visible  && (QuedAmounts[System.Array.IndexOf(NameReferenceIndex, data.displayName)] > 0 || data.autoAmount > 0))
+        if (data.visible  && (QuedResourceAmount[System.Array.IndexOf(ResourceNameReferenceIndex, data.displayName)] > 0 || data.autoAmount > 0))
         {
             Debug.Log($"Starting {data.displayName} Que Update process.");
-            if (QuedAmounts[System.Array.IndexOf(NameReferenceIndex, data.displayName)] > 0)
+            if (QuedResourceAmount[System.Array.IndexOf(ResourceNameReferenceIndex, data.displayName)] > 0)
             {
-                QuedAmounts[System.Array.IndexOf(NameReferenceIndex, data.displayName)] -= 1;
+                QuedResourceAmount[System.Array.IndexOf(ResourceNameReferenceIndex, data.displayName)] -= 1;
                 addedNormal = true;
                 Debug.Log($"{data.displayName} has something in Que.");
             }
@@ -237,160 +267,83 @@ public class Main : MonoBehaviour
     public void AddToQue(ResourceData data, int amount)
     {
         Debug.Log($"I have been told to add {amount} to the {data.displayName} que");
-        Debug.Log($"{data.displayName} before addition: {QuedAmounts[System.Array.IndexOf(NameReferenceIndex, data.displayName)]}");
-        QuedAmounts[System.Array.IndexOf(NameReferenceIndex, data.displayName)] += amount;
-        Debug.Log($"{data.displayName} after addition: {QuedAmounts[System.Array.IndexOf(NameReferenceIndex, data.displayName)]}");
+        Debug.Log($"{data.displayName} before addition: {QuedResourceAmount[System.Array.IndexOf(ResourceNameReferenceIndex, data.displayName)]}");
+        QuedResourceAmount[System.Array.IndexOf(ResourceNameReferenceIndex, data.displayName)] += amount;
+        Debug.Log($"{data.displayName} after addition: {QuedResourceAmount[System.Array.IndexOf(ResourceNameReferenceIndex, data.displayName)]}");
 
         StartQueUpdate(data);
     }
     #endregion
 
     #region Data Calls
-    public void ForceBuildDataFromSheet()
-    {
-        for (int j = 0; j < SheetData.Count; j++)
-        {
-            Debug.Log($"Sheetdata at [1]: {SheetData[j][1]}");
-            ResourceLibrary[j] = new ResourceData(SheetData[j][0], SheetData[j][8],
-                SheetData[j][9], SheetData[j][10], SheetData[j][1], SheetData[j][2],
-                SheetData[j][3], true, 0, 0, float.Parse(SheetData[j][4]), SheetData[j][5],
-                SheetData[j][6], SheetData[j][7], SheetData[j][11], SheetData[j][12],
-                SheetData[j][13], 0, "");
-
-            if (SheetData[j][3] == "nothing=0" && SheetData[j][4] == "nothing")
-            {
-                ResourceLibrary[j].AdjustVisibility(true);
-            }
-
-            if (ResourceLibrary[j].groups == "tool")
-            {
-                string[] ra = SheetData[j][7].Split(" ");
-                string[] k = ra[1].Split("=");
-                ResourceLibrary[j].SetAtMost(int.Parse(k[1]));
-            }
-
-            NameReferenceIndex[j] = ResourceLibrary[j].displayName;
-        }
-
-        CreateAllBuildableStrings();
-
-        CreateResourcePanelInfo("all", "");
-
-        SaveResourceLibrary();
-        SaveSystem.SaveFile("/resource_shalom");
-        LoadedData.Clear();
-    }
-
-    void CreateAllBuildableStrings()
+    void CreateOrResetAllBuildableStrings()
     {
         for (int k = 0; k < ResourceLibrary.Length; k++)
         {
-            if (resetAllBuildables)
-            {
-                ResourceLibrary[k].SetBuildablesString("");
-            }
+            if (needResetAllBuildables) ResourceLibrary[k].SetBuildablesString("");
 
-            if(ResourceLibrary[k].buildables == "")
+            if (ResourceLibrary[k].buildables == "")
             {
-                Debug.Log($"{ResourceLibrary[k].itemName} needs to create a string for any buildables.");
-                ResourceData[] res = ReturnMyBuildables(ResourceLibrary[k]);
+                ResourceData[] res = FindBuildablesForResourceData(ResourceLibrary[k]);
                 for (int i = 0; i < res.Length; i++)
                 {
                     if (i != res.Length - 1)
                     {
                         ResourceLibrary[k].SetBuildablesString(ResourceLibrary[k].buildables + res[i].itemName + "-");
+                        continue;
                     }
-                    else
-                    {
-                        ResourceLibrary[k].SetBuildablesString(ResourceLibrary[k].buildables + res[i].itemName);
-                    }
+
+                    ResourceLibrary[k].SetBuildablesString(ResourceLibrary[k].buildables + res[i].itemName);
                 }
             }
-
-            resetAllBuildables = false;
         }
+        needResetAllBuildables = false;
     }
-
     void CompareIndividualResourceValues(ResourceData data)
     {
+        if (data == null) return;
         foreach(string[] ar in SheetData)
         {
             if (ar[0] == data.itemName)
             {
-                if(data.displayName != ar[8])
-                {
-                    Debug.Log($"{data.itemName} is getting an updated display name.");
-                    data.SetDisplayName(ar[8]);
-                }
-                if(data.description != ar[9])
-                {
-                    Debug.Log($"{data.itemName} is getting an updated description.");
-                    data.SetDescription(ar[9]);
-                }
-                if(data.groups != ar[10])
-                {
-                    Debug.Log($"{data.itemName} is getting an updated groups.");
-                    data.SetGroups(ar[10]);
-                }
-                if(data.gameElementType != ar[1])
-                {
-                    Debug.Log($"{data.itemName} is getting an updated game element type.");
-                    data.SetGameElementType(ar[1]);
-                }
+                if(data.displayName != ar[8]) data.SetDisplayName(ar[8]);
+                
+                if(data.description != ar[9]) data.SetDescription(ar[9]);
+                
+                if(data.groups != ar[10]) data.SetGroups(ar[10]);
+                
+                if(data.gameElementType != ar[1]) data.SetGameElementType(ar[1]);
+                
                 if(data.consumableRequirements != ar[2])
                 {
-                    Debug.Log($"{data.itemName} is getting an updated consumable list.");
                     data.SetConsumableRequirements(ar[2]);
-                    resetAllBuildables = true;
+                    needResetAllBuildables = true;
                 }
                 if(data.nonConsumableRequirements != ar[3])
                 {
-                    Debug.Log($"{data.itemName} is getting an updated non-consumable list.");
                     data.SetNonConsumableRequirements(ar[3]);
-                    resetAllBuildables = true;
+                    needResetAllBuildables = true;
                 }
-                if(data.craftTime != float.Parse(ar[4]))
-                {
-                    Debug.Log($"{data.itemName} is getting an updated craft time.");
-                    data.SetCraftTimer(float.Parse(ar[4]));
-                }
-                if (data.itemsToGain != ar[5])
-                {
-                    Debug.Log($"{data.itemName} is getting an updated items to gain list.");
-                    data.SetItemsToGain(ar[5]);
-                }
-                if(data.commandsOnPressed != ar[6])
-                {
-                    Debug.Log($"{data.itemName} is getting an updated commands on pressed list.");
-                    data.SetCommandsOnPressed(ar[6]);
-                }
-                if (data.commandsOnCreated != ar[7])
-                {
-                    Debug.Log($"{data.itemName} is getting an updated commands on created list.");
-                    data.SetCommandsOnCreated(ar[7]);
-                }
-                if (data.imageName != ar[11])
-                {
-                    Debug.Log($"{data.itemName} is getting an updated image name.");
-                    data.SetImageName(ar[11]);
-                }
-                if (data.soundName != ar[12])
-                {
-                    Debug.Log($"{data.itemName} is getting an updated sound name.");
-                    data.SetSoundName(ar[12]);
-                }
-                if (data.achievement != ar[13])
-                {
-                    Debug.Log($"{data.itemName} is getting an updated acheivement string.");
-                    data.SetAchievementName(ar[13]);
-                }
+                if(data.craftTime != float.Parse(ar[4])) data.SetCraftTimer(float.Parse(ar[4]));
+                
+                if (data.itemsToGain != ar[5]) data.SetItemsToGain(ar[5]);
+                
+                if(data.commandsOnPressed != ar[6]) data.SetCommandsOnPressed(ar[6]);
+                
+                if (data.commandsOnCreated != ar[7]) data.SetCommandsOnCreated(ar[7]);
+                
+                if (data.imageName != ar[11]) data.SetImageName(ar[11]);
+
+                if (data.soundName != ar[12]) data.SetSoundName(ar[12]);
+
+                if (data.achievement != ar[13]) data.SetAchievementName(ar[13]);
+                return;
             }
         }
     }
-
-    public ResourceData ReturnData(string itemName)
+    public ResourceData FindResourceFromString(string itemName)
     {
-        foreach(ResourceData data in ResourceLibrary)
+        foreach(ResourceData data in activeBrain.myResources)
         {
             if(data.itemName == itemName)
             {
@@ -398,35 +351,22 @@ public class Main : MonoBehaviour
             }
         }
 
-        Debug.LogError($"ReturnData: Could not find itemName : {itemName}");
+        Debug.LogError($"FindResourceFromString: Could not find itemName : {itemName}");
         return null;
     }
-
-    public ResourceData[] ReturnMyBuildables(ResourceData data)
+    public ResourceData[] FindBuildablesForResourceData(ResourceData data)
     {
         List<ResourceData> temp = new List<ResourceData>();
         foreach(ResourceData rd in ResourceLibrary)
         {
-            if(rd.consumableRequirements != "nothing=0")
-            {
-                if(CheckStringForResource(data.itemName, rd.consumableRequirements))
-                {
-                    temp.Add(rd);
-                }
-              
-            }
-            if (rd.nonConsumableRequirements != "nothing")
-            {
-                if (CheckStringForResource(data.itemName, rd.nonConsumableRequirements))
-                {
-                    temp.Add(rd);
-                }
-            }
+            if((rd.consumableRequirements != "nothing=0" &&
+                CheckStringForResource(data.itemName, rd.consumableRequirements)) ||
+                (rd.nonConsumableRequirements != "nothing" &&
+                CheckStringForResource(data.itemName, rd.nonConsumableRequirements))) 
+                temp.Add(rd);
         }
-
         return temp.ToArray();
     }
-
     bool CheckStringForResource(string itemName, string dependencyListString)
     {
         string[] checkResource = dependencyListString.Split("-");
@@ -440,8 +380,7 @@ public class Main : MonoBehaviour
         }
         return false;
     }
-
-    public ResourceData[] ReturnDependencies(ResourceData data)
+    public ResourceData[] FindDependenciesFromResourceData(ResourceData data)
     {
         List<ResourceData> deps = new List<ResourceData>();
         string[] ar = data.consumableRequirements.Split("-");
@@ -450,18 +389,13 @@ public class Main : MonoBehaviour
             foreach(string s in ar)
             {
                 string[] tAr = s.Split('=');
-                ResourceData TD = ReturnData(tAr[0]);
-                if (!deps.Contains(TD))
-                {
-                    deps.Add(TD);
-                }
+                ResourceData TD = FindResourceFromString(tAr[0]);
+                if (!deps.Contains(TD)) deps.Add(TD);
             }
         }
-
         return deps.ToArray();
     }
-
-    public int[] ReturnDependencyAmounts(ResourceData data)
+    public int[] FindDependencyAmountsFromResourceData(ResourceData data)
     {
         List<int> deps = new List<int>();
         string[] ar = data.consumableRequirements.Split("-");
@@ -471,156 +405,141 @@ public class Main : MonoBehaviour
             {
                 string[] tAr = s.Split('=');
                 int i = int.Parse(tAr[1]);
-                if (!deps.Contains(i))
-                {
-                    deps.Add(i);
-                }
+                if (!deps.Contains(i)) deps.Add(i);
             }
         }
-
         return deps.ToArray();
     }
     #endregion
 
     #region Resource Panel
-    public void CreateResourcePanelInfo(string group, string type)
+    public void CreateResourcePanelInfo(string group, string type) // currently only works for the ResourceLibrary
     {
         RemovePreviousPanelInformation();
 
         if (group == "all")
         {
-            foreach (ResourceData data in ResourceLibrary)
+            foreach (ResourceData data in activeBrain.myResources)
             {
-                GameObject obj = Instantiate(ResourePanelPrefab, ResourcePanel);
-                obj.GetComponent<ResourceDisplayInfo>().Initialize(data);
-                resourcePanelInfoPieces.Add(obj);
+                CreateInfoPanel(data);
             }
             return;
         }
 
         if (group == "allVisible")
         {
-            foreach (ResourceData data in ResourceLibrary)
+            foreach (ResourceData data in activeBrain.myResources)
             {
-                if (data.visible)
-                {
-                    GameObject obj = Instantiate(ResourePanelPrefab, ResourcePanel);
-                    obj.GetComponent<ResourceDisplayInfo>().Initialize(data);
-                    resourcePanelInfoPieces.Add(obj);
-                }
+                if (data.visible) CreateInfoPanel(data);
             }
             return;
         }
 
         if (type == "Groups")
         {
-
-            foreach (ResourceData data in ResourceLibrary)
+            foreach (ResourceData data in activeBrain.myResources)//checking group name
             {
                 string[] ar = data.groups.Split(" ");
                 foreach(string s in ar)
                 {
                     if (s.ToLower() == group.ToLower() && data.visible)
                     {
-                        GameObject obj = Instantiate(ResourePanelPrefab, ResourcePanel);
-                        obj.GetComponent<ResourceDisplayInfo>().Initialize(data);
-                        resourcePanelInfoPieces.Add(obj);
+                        CreateInfoPanel(data);
                     }
                 }
             }
 
             if(resourcePanelInfoPieces.Count == 0)
             {
-                foreach (ResourceData dt in ResourceLibrary)
+                foreach (ResourceData dt in activeBrain.myResources)
                 {
                     string[] ar = dt.displayName.Split(" ");
                     foreach(string s in ar)
                     {
                         if(s.ToLower() == group.ToLower() && dt.visible)
                         {
-                            GameObject obj = Instantiate(ResourePanelPrefab, ResourcePanel);
-                            obj.GetComponent<ResourceDisplayInfo>().Initialize(dt);
-                            resourcePanelInfoPieces.Add(obj);
+                            CreateInfoPanel(dt);
                             break;
                         }
                     }
                 }
             }
-
             return;
         }
 
         if (type == "Game Element")
         {
-            foreach (ResourceData data in ResourceLibrary)
+            foreach (ResourceData data in activeBrain.myResources)
             {
                 if (data.gameElementType == group)
                 {
-                    GameObject obj = Instantiate(ResourePanelPrefab, ResourcePanel);
-                    obj.GetComponent<ResourceDisplayInfo>().Initialize(data);
-                    resourcePanelInfoPieces.Add(obj);
+                    CreateInfoPanel(data);
                 }
             }
         }
     }
-
-    public void CreateResourcePanelInfo(string resourceByName)
+    private void CreateInfoPanel(ResourceData data)
+    {
+        GameObject obj = Instantiate(ResourePanelPrefab, ResourcePanelTransform);
+        obj.GetComponent<ResourceDisplayInfo>().Initialize(data);
+        resourcePanelInfoPieces.Add(obj);
+    }
+    public void CreateResourcePanelInfo(string resourceByName) 
     {
         RemovePreviousPanelInformation();
-
-        foreach(ResourceData data in ResourceLibrary)
+        Debug.Log($"Looking to create: {resourceByName}");
+        foreach(ResourceData data in activeBrain.myResources)
         {
             if(resourceByName.ToLower() == data.displayName.ToLower())
             {
                 if (data.visible)
                 {
-                    GameObject obj = Instantiate(ResourePanelPrefab, ResourcePanel);
-                    obj.GetComponent<ResourceDisplayInfo>().Initialize(data);
-                    resourcePanelInfoPieces.Add(obj);
+                    CreateInfoPanel(data);
                 }
                 return;
             }
         }
     }
-
     public void ChangeSearchField(string search)
     {
-        searchField = search;
+        searchInputField = search;
     }
-
     public void SubmitSearchForPanelInformation()
     {
-        foreach(string s in NameReferenceIndex)
+        Debug.Log($"Searching for: {searchInputField}");
+        foreach(string s in ResourceNameReferenceIndex) //check by displayName
         {
-            if(s.ToLower() == searchField.ToLower())
+            Debug.Log($"Searching through ResourceNames: {s}");
+            if(s.ToLower() == searchInputField.ToLower())
             {
-                CreateResourcePanelInfo(searchField);
+                Debug.Log($"Found a suitor: {s}");
+                CreateResourcePanelInfo(searchInputField);
                 return;
             }
         }
 
-        if(searchField.ToLower() == "crafters")
+        if(searchInputField.ToLower() == "crafters")
         {
             CreateResourcePanelInfo("crafters", "Game Element");
             return;
         }
-        if (searchField.ToLower() == "all")
+        if (searchInputField.ToLower() == "*all")
         {
             CreateResourcePanelInfo("all", "");
             return;
         }
-        if (searchField.ToLower() == "allVisible")
+        if (searchInputField.ToLower() == "all")
         {
+            Debug.Log("Should be finding all visible.");
             CreateResourcePanelInfo("allVisible", "");
             return;
         }
 
-        CreateResourcePanelInfo(searchField, "Groups");
+        CreateResourcePanelInfo(searchInputField, "Groups");
     }
-
     void RemovePreviousPanelInformation()
     {
-        foreach(Transform child in ResourcePanel)
+        foreach(Transform child in ResourcePanelTransform)
         {
             GameObject.Destroy(child.gameObject);
         }
@@ -635,12 +554,10 @@ public class Main : MonoBehaviour
         SaveSystem.SaveCameraSettings(state);
         SaveSystem.SaveFile("/camera_rohi");
     }
-
     void LoadCamState()
     {
         SendCameraState?.Invoke(SaveSystem.LoadFile("/camera_rohi"));
     }
-
     public void SaveResourceLibrary()
     {
         for (int i = 0; i < ResourceLibrary.Length; i++)
@@ -648,15 +565,12 @@ public class Main : MonoBehaviour
             if (i != (ResourceLibrary.Length - 1))
             {
                 SaveSystem.SaveResource(ResourceLibrary[i], false);
+                continue;
             }
-            else
-            {
-                SaveSystem.SaveResource(ResourceLibrary[i], true);
-                Debug.Log("Finished saving the last resource to the library.");
-            }
+            SaveSystem.SaveResource(ResourceLibrary[i], true);
+            Debug.Log("Finished saving the last resource to the library.");
         }
     }
-
     public void SaveLocationAddressBook()
     {
         SaveSystem.WipeString();
@@ -672,44 +586,11 @@ public class Main : MonoBehaviour
         }
         SaveSystem.SaveLocationList(s);
     }
-
     public void SaveUniverseLocation()
     {
         SaveSystem.WipeString();
         SaveSystem.SaveCurrentAddress(universeAdress);
     }
-
-    public void SaveLocationData(HexTileInfo[] tiles, string address, ResourceData[] resources)
-    {
-        SaveSystem.WipeString();
-
-        if(tiles != null)
-        {
-            for(int i = 0; i < tiles.Length; i++)
-            {
-                if(i == tiles.Length - 1)
-                {
-                    SaveSystem.SaveTile(tiles[i], true);
-                    continue;
-                }
-                SaveSystem.SaveTile(tiles[i], false);
-            }
-
-            for(int j = 0; j < resources.Length; j++)
-            {
-                if (j == resources.Length - 1)
-                {
-                    SaveSystem.SaveResource(resources[j], true);
-                    continue;
-                }
-                SaveSystem.SaveResource(resources[j], false);
-            }
-
-            SaveSystem.SaveLocationData();
-            SaveSystem.SaveFile("/" + address);
-        }
-    }
-
     void LoadWhereWeHaveBeen()
     {
         LocationAddresses = new List<string>();
@@ -723,42 +604,22 @@ public class Main : MonoBehaviour
             }
         }
     }
-
     void BuildGenericResourceInformation()
     {
         ResourceLibrary = new ResourceData[SheetData.Count];
         LocationResources = new ResourceData[SheetData.Count];
-        NameReferenceIndex = new string[SheetData.Count];
-        QuedAmounts = new int[SheetData.Count];
+        ResourceNameReferenceIndex = new string[SheetData.Count];
+        QuedResourceAmount = new int[SheetData.Count];
         LoadedData = new List<string[]>();
         itemNames = new List<string>();
 
-        string s = SaveSystem.LoadFile("/resource_shalom");
-        if (s != null)
-        {
-            string[] ar = s.Split(";");
-            foreach (string str in ar)
-            {
-                string[] final = str.Split(',');
-                LoadedData.Add(final);
-            }
-
-            for (int i = 0; i < LoadedData.Count; i++)
-            {
-                itemNames.Add(LoadedData[i][0]);
-            }
-        }
-
-        List<ResourceData> temp = new List<ResourceData>();
+        BuildLoadedData(SaveSystem.LoadFile("/resource_shalom"));
 
         for (int j = 0; j < SheetData.Count; j++)
         {
-            //Load data from previous data on drive
             if (itemNames.Contains(SheetData[j][0]))
             {
-                ResourceLibrary[j] = new ResourceData(LoadedData[j][0], LoadedData[j][1], LoadedData[j][2], LoadedData[j][3], LoadedData[j][4], LoadedData[j][5], LoadedData[j][6],
-                (LoadedData[j][7] == "True") ? true : false, int.Parse(LoadedData[j][8]), int.Parse(LoadedData[j][9]), float.Parse(LoadedData[j][10]), LoadedData[j][11], LoadedData[j][12],
-                LoadedData[j][13], LoadedData[j][14], LoadedData[j][15], LoadedData[j][16], int.Parse(LoadedData[j][17]), LoadedData[j][18]);
+                BuildResourceLibraryFromMemoryAtGivenIndex(j);
 
                 try
                 {
@@ -767,26 +628,18 @@ public class Main : MonoBehaviour
                 }
                 catch (IndexOutOfRangeException e) { }
 
-                NameReferenceIndex[j] = ResourceLibrary[j].displayName;
-                StartCoroutine(UpdateQue(ResourceLibrary[j]));
                 continue;
             }
 
-            //Create new data for non-existing info on drive
-            //name, desc, dis, gr, eType, req, nonReq, vis, cur, autA, timer, created,
-            //coms, createComs, im, snd, ach, most
-            ResourceLibrary[j] = new ResourceData(SheetData[j][0], SheetData[j][8],
-                SheetData[j][9], SheetData[j][10], SheetData[j][1], SheetData[j][2],
-                SheetData[j][3], false, 0, 0, float.Parse(SheetData[j][4]), SheetData[j][5],
-                SheetData[j][6], SheetData[j][7], SheetData[j][11], SheetData[j][12],
-                SheetData[j][13], 0, "");
+            CreateResourceForLibraryAtIndex(j);
 
             //If it is a basic resource we need it to start visible
             if (SheetData[j][3] == "nothing=0" && SheetData[j][4] == "nothing")
             {
                 ResourceLibrary[j].AdjustVisibility(true);
+                Debug.Log($"{ResourceLibrary[j].displayName} is a basic resource and is visible.");
             }
-            //If it is a tool, we need to set it's max amount to 1, or whatever the given max amount will be
+            //If it is a tool, we need to set it's max amount to whatever the given max amount will be
             if (ResourceLibrary[j].groups == "tool")
             {
                 string[] ra = SheetData[j][7].Split(" ");
@@ -794,58 +647,81 @@ public class Main : MonoBehaviour
                 ResourceLibrary[j].SetAtMost(int.Parse(k[1]));
             }
 
-            NameReferenceIndex[j] = ResourceLibrary[j].displayName;
+            ResourceNameReferenceIndex[j] = ResourceLibrary[j].displayName;
             StartCoroutine(UpdateQue(ResourceLibrary[j]));
         }
 
-        CreateAllBuildableStrings();
+        CreateOrResetAllBuildableStrings();
 
         SaveResourceLibrary();
         SaveSystem.SaveResourceLibrary();
         LoadedData.Clear();
     }
-
     void BuildGenericResourceInformationFromMemory()
     {
         LoadedData = new List<string[]>();
         itemNames = new List<string>();
 
-        string s = SaveSystem.LoadFile("/resource_shalom");
-        string[] ar = s.Split(";");
-        if (ar != null)
-        {
-            foreach (string str in ar)
-            {
-                string[] final = str.Split(',');
-                LoadedData.Add(final);
-            }
-
-            for (int i = 0; i < LoadedData.Count; i++)
-            {
-                itemNames.Add(LoadedData[i][0]);
-            }
-        }
+        BuildLoadedData(SaveSystem.LoadFile("/resource_shalom"));
 
         List<ResourceData> temp = new List<ResourceData>();
         ResourceLibrary = new ResourceData[LoadedData.Count];
         LocationResources = new ResourceData[LoadedData.Count];
-        NameReferenceIndex = new string[LoadedData.Count];
-        QuedAmounts = new int[LoadedData.Count];
+        ResourceNameReferenceIndex = new string[LoadedData.Count];
+        QuedResourceAmount = new int[LoadedData.Count];
 
         for (int j = 0; j < LoadedData.Count; j++)
         {
-            ResourceLibrary[j] = new ResourceData(LoadedData[j][0], LoadedData[j][1], LoadedData[j][2], LoadedData[j][3], LoadedData[j][4], LoadedData[j][5], LoadedData[j][6],
-            (LoadedData[j][7] == "True") ? true : false, int.Parse(LoadedData[j][8]), int.Parse(LoadedData[j][9]), float.Parse(LoadedData[j][10]), LoadedData[j][11], LoadedData[j][12],
-            LoadedData[j][13], LoadedData[j][14], LoadedData[j][15], LoadedData[j][16], int.Parse(LoadedData[j][17]), LoadedData[j][18]);
-
-            NameReferenceIndex[j] = ResourceLibrary[j].displayName;
-            StartCoroutine(UpdateQue(ResourceLibrary[j]));
+            BuildResourceLibraryFromMemoryAtGivenIndex(j);
         }
 
-        CreateAllBuildableStrings();
+        CreateOrResetAllBuildableStrings();
         LoadedData.Clear();
     }
+    private void BuildLoadedData(string fileInfo)
+    {
+        if (fileInfo != null)
+        {
+            string[] ar = fileInfo.Split(";");
+            foreach (string str in ar)
+            {
+                string[] final = str.Split(',');
+                LoadedData.Add(final);
+                itemNames.Add(final[0]);
+            }
+        }
+    }
+    private void BuildLoadedData(string[] fileInfo)
+    {
+        if (fileInfo != null)
+        {
+            foreach (string str in fileInfo)
+            {
+                string[] final = str.Split(',');
+                LoadedData.Add(final);
+                itemNames.Add(final[0]);
+            }
+        }
+    }
+    private void BuildResourceLibraryFromMemoryAtGivenIndex(int j)
+    {
+        ResourceLibrary[j] = new ResourceData(LoadedData[j][0], LoadedData[j][1], LoadedData[j][2], LoadedData[j][3], LoadedData[j][4], LoadedData[j][5], LoadedData[j][6],
+                        (LoadedData[j][7] == "True") ? true : false, int.Parse(LoadedData[j][8]), int.Parse(LoadedData[j][9]), float.Parse(LoadedData[j][10]), LoadedData[j][11], LoadedData[j][12],
+                        LoadedData[j][13], LoadedData[j][14], LoadedData[j][15], LoadedData[j][16], int.Parse(LoadedData[j][17]), LoadedData[j][18]);
 
+        ResourceNameReferenceIndex[j] = ResourceLibrary[j].displayName;
+        StartCoroutine(UpdateQue(ResourceLibrary[j]));
+    }
+    private void CreateResourceForLibraryAtIndex(int j)
+    {
+        //name, desc, dis, gr, eType, req, nonReq, vis, cur, autA, timer, created,
+        //coms, createComs, im, snd, ach, most
+        ResourceLibrary[j] = new ResourceData(SheetData[j][0], SheetData[j][8],
+                        SheetData[j][9], SheetData[j][10], SheetData[j][1], SheetData[j][2],
+                        SheetData[j][3], false, 0, 0, float.Parse(SheetData[j][4]), SheetData[j][5],
+                        SheetData[j][6], SheetData[j][7], SheetData[j][11], SheetData[j][12],
+                        SheetData[j][13], 0, "");
+    }
     void LoadAndBuildGameStats(string[] resources)
     {
         LoadedData = new List<string[]>();
@@ -853,46 +729,19 @@ public class Main : MonoBehaviour
 
         if(resources != null)
         {
-            foreach(string str in resources)
-            {
-                string[] final = str.Split(',');
-                LoadedData.Add(final);
-            }
-
-            for (int i = 0; i < LoadedData.Count; i++)
-            {
-                itemNames.Add(LoadedData[i][0]);
-            }
+            BuildLoadedData(resources);
         }
         else
         {
-            string s = SaveSystem.LoadFile("/resource_shalom");
-            if (s != null)
-            {
-                string[] ar = s.Split(';');
-                foreach (string str in ar)
-                {
-                    string[] final = str.Split(',');
-                    LoadedData.Add(final);
-                }
-
-                for (int i = 0; i < LoadedData.Count; i++)
-                {
-                    itemNames.Add(LoadedData[i][0]);
-                }
-            }
+            BuildLoadedData(SaveSystem.LoadFile("/resource_shalom"));
         }
-
-        List<ResourceData> temp = new List<ResourceData>();
 
         for (int j = 0; j < SheetData.Count; j++)
         {
             //Load data from previous data on drive
             if (itemNames.Contains(SheetData[j][0]))
             {
-                LocationResources[j] = new ResourceData(LoadedData[j][0], LoadedData[j][1], LoadedData[j][2], LoadedData[j][3], LoadedData[j][4], LoadedData[j][5], LoadedData[j][6],
-                (LoadedData[j][7] == "True") ? true : false, int.Parse(LoadedData[j][8]), int.Parse(LoadedData[j][9]), float.Parse(LoadedData[j][10]), LoadedData[j][11], LoadedData[j][12],
-                LoadedData[j][13], LoadedData[j][14], LoadedData[j][15], LoadedData[j][16], int.Parse(LoadedData[j][17]), LoadedData[j][18]);
+                BuildResourceLibraryFromMemoryAtGivenIndex(j);
 
                 try
                 {
@@ -901,14 +750,12 @@ public class Main : MonoBehaviour
                 }
                 catch (IndexOutOfRangeException e){}
                 
-                //StartCoroutine(UpdateQue(LocationResources[j]));
                 continue;
             }
         }
 
-        CreateAllBuildableStrings();
+        CreateOrResetAllBuildableStrings();
     }
-
     void LoadDataFromSave(string[] resource)
     {
         LoadedData = new List<string[]>();
@@ -916,34 +763,12 @@ public class Main : MonoBehaviour
 
         if(resource != null) //Checking whether the location had any data at first
         {
-            foreach (string str in resource)
-            {
-                string[] final = str.Split(',');
-                LoadedData.Add(final);
-            }
-
-            for (int i = 0; i < LoadedData.Count; i++)
-            {
-                itemNames.Add(LoadedData[i][0]);
-            }
+            BuildLoadedData(resource);
         }
         else //If not then we need to grab the universal resource list
         {
-            string s = SaveSystem.LoadFile("/resource_shalom"); 
-            if (s != null)
-            {
-                string[] ar = s.Split(';');
-                foreach (string str in ar)
-                {
-                    string[] final = str.Split(',');
-                    LoadedData.Add(final);
-                }
-
-                for (int i = 0; i < LoadedData.Count; i++)
-                {
-                    itemNames.Add(LoadedData[i][0]);
-                }
-            }
+            string s = SaveSystem.LoadFile("/resource_shalom");
+            BuildLoadedData(s);
         }
         
         LocationResources = new ResourceData[LoadedData.Count];
@@ -955,35 +780,30 @@ public class Main : MonoBehaviour
                     LoadedData[j][13], LoadedData[j][14], LoadedData[j][15], LoadedData[j][16], int.Parse(LoadedData[j][17]), LoadedData[j][18]);
         }
     }
-
     string[] TryLoadLevel()
     {
         string s = SaveSystem.LoadFile("/" + universeAdress);
-        if(s != null)
+        if(s != null) // Checking for a save of the planet
         {
             string[] ar = s.Split("|");
             string[] resources = ar[1].Split(";");
 
-            if(SheetData != null)//This grabs all the resource data for this particular planet
-            {
-                LoadAndBuildGameStats(resources);
-                return ar[0].Split(";");
-            }
             LoadDataFromSave(resources);
             return ar[0].Split(";");
         }
 
+        //No planetary info was stored so build new stuff
         if (SheetData != null)//This grabs all the resource data for this particular planet
         {
             LoadAndBuildGameStats(null);
         }
-        LoadDataFromSave(null);
+        LoadDataFromSave(null);//This is here if we are offline from when we started
         return null;
     }
-
-    public void DeleteSaveFileData()
+    private void OnApplicationQuit()
     {
-        SaveSystem.SeriouslyDeleteAllSaveFiles();
+        SaveUniverseLocation();
+        SaveLocationAddressBook();
     }
     #endregion
 
@@ -992,16 +812,13 @@ public class Main : MonoBehaviour
     {
         UniverseDepth dp = depth;
 
-        if(depthLocations != null)
-            WipeUniversePieces();
-
-
-        List<GameObject> objs = new List<GameObject>();
+        if (depthLocations != null) WipeUniversePieces();
+        
         List<HexTileInfo> temp = new List<HexTileInfo>();
 
         if (!fromMemoryOfLocation)
         {
-            if(depth == UniverseDepth.Universe)
+            if (depth == UniverseDepth.Universe)
             {
                 universeAdress = $"{index}";
             }
@@ -1013,7 +830,7 @@ public class Main : MonoBehaviour
         }
         else
         {
-            Debug.Log($"UniverseAddress being set up again: {universeAdress}");
+            Debug.Log($"UniverseAddress being set up from memory: {universeAdress}");
 
             UnityEngine.Random.InitState(universeAdress.GetHashCode());
 
@@ -1022,388 +839,195 @@ public class Main : MonoBehaviour
             dp = currentDepth;
             fromMemoryOfLocation = false;
         }
-        //Debug.Log($"UniverseAddress: {universeAdress}");
-        //Debug.Log($"HashCode: {universeAdress.GetHashCode()}");
 
-        int amount = NormalizeRandom(-4, 17);
+        int SpawnAmount = NormalizeRandom(-4, 17);
 
         switch (dp)
         {
             case UniverseDepth.Universe:
-                Debug.Log("Should be building SuperCluster Level.");
-                if (depthPrefabs[0] != null)//builds SuperClusters
-                {
-                    for(int i = 0; i < 10; i++)
-                    {
-                        GameObject obj = Instantiate(depthPrefabs[0], new Vector3(UnityEngine.Random.Range(-8.3f, 8.3f), UnityEngine.Random.Range(-4.4f, 4.4f), 0f), Quaternion.identity, universeTransform);
-                        foreach(GameObject ob in objs)
-                        {
-                            if((obj.transform.position.x > ob.transform.position.x-1.5f && obj.transform.position.x < ob.transform.position.x + 1.5f)&&
-                                (obj.transform.position.y > ob.transform.position.y - 1.5f && obj.transform.position.y < ob.transform.position.y + 1.5f))
-                            {
-                                bool makeThrough = false;
-                                while (!makeThrough)
-                                {
-                                    makeThrough = true;
-                                    foreach (GameObject j in objs)
-                                    {
-                                        while ((obj.transform.position.x > j.transform.position.x - 1.5f && obj.transform.position.x < j.transform.position.x + 1.5f) &&
-                                            (obj.transform.position.y > j.transform.position.y - 1.5f && obj.transform.position.y < j.transform.position.y + 1.5f))
-                                        {
-                                            obj.transform.localPosition = new Vector3(UnityEngine.Random.Range(-8.3f, 8.3f), UnityEngine.Random.Range(-4.4f, 4.4f), 0f);
-                                            makeThrough = false;
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                        objs.Add(obj);
-                    }
-                }
+                SetUpSpaceEncounter(0, 10);
                 Camera.main.transform.GetComponent<CameraController>().atUniverse = true;
                 break;
-            case UniverseDepth.SuperCluster://builds Galaxies
-                Debug.Log("Should be building Galaxy Level.");
-                if (depthPrefabs[1] != null)
-                {
-                    for (int i = 0; i < amount; i++)
-                    {
-                        GameObject obj = Instantiate(depthPrefabs[1], new Vector3(UnityEngine.Random.Range(-8.3f, 8.3f), UnityEngine.Random.Range(-4.4f, 4.4f), 0f), Quaternion.identity);
-                        foreach (GameObject ob in objs)
-                        {
-                            if ((obj.transform.position.x > ob.transform.position.x - 1.5f && obj.transform.position.x < ob.transform.position.x + 1.5f) &&
-                                (obj.transform.position.y > ob.transform.position.y - 1.5f && obj.transform.position.y < ob.transform.position.y + 1.5f))
-                            {
-                                bool makeThrough = false;
-                                while (!makeThrough)
-                                {
-                                    makeThrough = true;
-                                    foreach (GameObject j in objs)
-                                    {
-                                        while ((obj.transform.position.x > j.transform.position.x - 1.5f && obj.transform.position.x < j.transform.position.x + 1.5f) &&
-                                            (obj.transform.position.y > j.transform.position.y - 1.5f && obj.transform.position.y < j.transform.position.y + 1.5f))
-                                        {
-                                            obj.transform.localPosition = new Vector3(UnityEngine.Random.Range(-8.3f, 8.3f), UnityEngine.Random.Range(-4.4f, 4.4f), 0f);
-                                            makeThrough = false;
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                        objs.Add(obj);
-                    }
-                }
+            case UniverseDepth.SuperCluster:
+                SetUpSpaceEncounter(1, SpawnAmount);
                 break;
-            case UniverseDepth.Galaxy://builds Nebulas etc.
-                Debug.Log("Should be building Nebulas Level.");
-                if (depthPrefabs[2] != null)
-                {
-                    for (int i = 0; i < amount; i++)
-                    {
-                        GameObject obj = Instantiate(depthPrefabs[2], new Vector3(UnityEngine.Random.Range(-8.3f, 8.3f), UnityEngine.Random.Range(-4.4f, 4.4f), 0f), Quaternion.identity);
-                        foreach (GameObject ob in objs)
-                        {
-                            if ((obj.transform.position.x > ob.transform.position.x - 1.5f && obj.transform.position.x < ob.transform.position.x + 1.5f) &&
-                                (obj.transform.position.y > ob.transform.position.y - 1.5f && obj.transform.position.y < ob.transform.position.y + 1.5f))
-                            {
-                                bool makeThrough = false;
-                                while (!makeThrough)
-                                {
-                                    makeThrough = true;
-                                    foreach (GameObject j in objs)
-                                    {
-                                        while ((obj.transform.position.x > j.transform.position.x - 1.5f && obj.transform.position.x < j.transform.position.x + 1.5f) &&
-                                            (obj.transform.position.y > j.transform.position.y - 1.5f && obj.transform.position.y < j.transform.position.y + 1.5f))
-                                        {
-                                            obj.transform.localPosition = new Vector3(UnityEngine.Random.Range(-8.3f, 8.3f), UnityEngine.Random.Range(-4.4f, 4.4f), 0f);
-                                            makeThrough = false;
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                        objs.Add(obj);
-                    }
-                }
+            case UniverseDepth.Galaxy:
+                SetUpSpaceEncounter(2, SpawnAmount);
                 break;
             case UniverseDepth.Nebula:
-                Debug.Log("Should be building GlobularCluster Level.");
-                if (depthPrefabs[3] != null)
-                {
-                    for (int i = 0; i < amount; i++)
-                    {
-                        GameObject obj = Instantiate(depthPrefabs[3], new Vector3(UnityEngine.Random.Range(-8.3f, 8.3f), UnityEngine.Random.Range(-4.4f, 4.4f), 0f), Quaternion.identity);
-                        foreach (GameObject ob in objs)
-                        {
-                            if ((obj.transform.position.x > ob.transform.position.x - 1.5f && obj.transform.position.x < ob.transform.position.x + 1.5f) &&
-                                (obj.transform.position.y > ob.transform.position.y - 1.5f && obj.transform.position.y < ob.transform.position.y + 1.5f))
-                            {
-                                bool makeThrough = false;
-                                while (!makeThrough)
-                                {
-                                    makeThrough = true;
-                                    foreach (GameObject j in objs)
-                                    {
-                                        while ((obj.transform.position.x > j.transform.position.x - 1.5f && obj.transform.position.x < j.transform.position.x + 1.5f) &&
-                                            (obj.transform.position.y > j.transform.position.y - 1.5f && obj.transform.position.y < j.transform.position.y + 1.5f))
-                                        {
-                                            obj.transform.localPosition = new Vector3(UnityEngine.Random.Range(-8.3f, 8.3f), UnityEngine.Random.Range(-4.4f, 4.4f), 0f);
-                                            makeThrough = false;
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                        objs.Add(obj);
-                    }
-                }
+                SetUpSpaceEncounter(3, SpawnAmount);
                 break;
             case UniverseDepth.GlobularCluster:
-                Debug.Log("Should be building StarCluster Level.");
-                if (depthPrefabs[4] != null)
-                {
-                    for (int i = 0; i < amount; i++)
-                    {
-                        GameObject obj = Instantiate(depthPrefabs[4], new Vector3(UnityEngine.Random.Range(-8.3f, 8.3f), UnityEngine.Random.Range(-4.4f, 4.4f), 0f), Quaternion.identity);
-                        foreach (GameObject ob in objs)
-                        {
-                            if ((obj.transform.position.x > ob.transform.position.x - 1.5f && obj.transform.position.x < ob.transform.position.x + 1.5f) &&
-                                (obj.transform.position.y > ob.transform.position.y - 1.5f && obj.transform.position.y < ob.transform.position.y + 1.5f))
-                            {
-                                bool makeThrough = false;
-                                while (!makeThrough)
-                                {
-                                    makeThrough = true;
-                                    foreach (GameObject j in objs)
-                                    {
-                                        while ((obj.transform.position.x > j.transform.position.x - 1.5f && obj.transform.position.x < j.transform.position.x + 1.5f) &&
-                                            (obj.transform.position.y > j.transform.position.y - 1.5f && obj.transform.position.y < j.transform.position.y + 1.5f))
-                                        {
-                                            obj.transform.localPosition = new Vector3(UnityEngine.Random.Range(-8.3f, 8.3f), UnityEngine.Random.Range(-4.4f, 4.4f), 0f);
-                                            makeThrough = false;
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                        objs.Add(obj);
-                    }
-                }
+                SetUpSpaceEncounter(4, SpawnAmount);
                 break;
             case UniverseDepth.StarCluster:
-                Debug.Log("Should be building Constellation Level.");
-                if (depthPrefabs[5] != null)
-                {
-                    for (int i = 0; i < amount; i++)
-                    {
-                        GameObject obj = Instantiate(depthPrefabs[5], new Vector3(UnityEngine.Random.Range(-8.3f, 8.3f), UnityEngine.Random.Range(-4.4f, 4.4f), 0f), Quaternion.identity);
-                        foreach (GameObject ob in objs)
-                        {
-                            if ((obj.transform.position.x > ob.transform.position.x - 1.5f && obj.transform.position.x < ob.transform.position.x + 1.5f) &&
-                                (obj.transform.position.y > ob.transform.position.y - 1.5f && obj.transform.position.y < ob.transform.position.y + 1.5f))
-                            {
-                                bool makeThrough = false;
-                                while (!makeThrough)
-                                {
-                                    makeThrough = true;
-                                    foreach (GameObject j in objs)
-                                    {
-                                        while ((obj.transform.position.x > j.transform.position.x - 1.5f && obj.transform.position.x < j.transform.position.x + 1.5f) &&
-                                            (obj.transform.position.y > j.transform.position.y - 1.5f && obj.transform.position.y < j.transform.position.y + 1.5f))
-                                        {
-                                            obj.transform.localPosition = new Vector3(UnityEngine.Random.Range(-8.3f, 8.3f), UnityEngine.Random.Range(-4.4f, 4.4f), 0f);
-                                            makeThrough = false;
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                        objs.Add(obj);
-                    }
-                }
+                SetUpSpaceEncounter(5,SpawnAmount);
                 break;
             case UniverseDepth.Constellation:
-                Debug.Log("Should be building SolarSystem Level.");
-                amount = NormalizeRandom(-14, 16);
-                if (depthPrefabs[6] != null)
-                {
-                    for (int i = 0; i < amount; i++)
-                    {
-                        GameObject obj = Instantiate(depthPrefabs[6], new Vector3(UnityEngine.Random.Range(-8.3f, 8.3f), UnityEngine.Random.Range(-4.4f, 4.4f), 0f), Quaternion.identity);
-                        foreach (GameObject ob in objs)
-                        {
-                            if ((obj.transform.position.x > ob.transform.position.x - 1.5f && obj.transform.position.x < ob.transform.position.x + 1.5f) &&
-                                (obj.transform.position.y > ob.transform.position.y - 1.5f && obj.transform.position.y < ob.transform.position.y + 1.5f))
-                            {
-                                bool makeThrough = false;
-                                while (!makeThrough)
-                                {
-                                    makeThrough = true;
-                                    foreach (GameObject j in objs)
-                                    {
-                                        while ((obj.transform.position.x > j.transform.position.x - 1.5f && obj.transform.position.x < j.transform.position.x + 1.5f) &&
-                                            (obj.transform.position.y > j.transform.position.y - 1.5f && obj.transform.position.y < j.transform.position.y + 1.5f))
-                                        {
-                                            obj.transform.localPosition = new Vector3(UnityEngine.Random.Range(-8.3f, 8.3f), UnityEngine.Random.Range(-4.4f, 4.4f), 0f);
-                                            makeThrough = false;
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                        objs.Add(obj);
-                    }
-                }
+                SpawnAmount = NormalizeRandom(-14, 16);
+                SetUpSpaceEncounter(6, SpawnAmount);
                 break;
             case UniverseDepth.SolarSystem:
-                Debug.Log("Should be building PlanetMoon Level.");
-                amount = NormalizeRandom(-14, 16);
-                if (depthPrefabs[7] != null)
-                {
-                    for (int i = 0; i < amount; i++)
-                    {
-                        GameObject obj = Instantiate(depthPrefabs[7], new Vector3(UnityEngine.Random.Range(-8.3f, 8.3f), UnityEngine.Random.Range(-4.4f, 4.4f), 0f), Quaternion.identity);
-                        foreach (GameObject ob in objs)
-                        {
-                            if ((obj.transform.position.x > ob.transform.position.x - 1.5f && obj.transform.position.x < ob.transform.position.x + 1.5f) &&
-                                (obj.transform.position.y > ob.transform.position.y - 1.5f && obj.transform.position.y < ob.transform.position.y + 1.5f))
-                            {
-                                bool makeThrough = false;
-                                while (!makeThrough)
-                                {
-                                    makeThrough = true;
-                                    foreach (GameObject j in objs)
-                                    {
-                                        while ((obj.transform.position.x > j.transform.position.x - 1.5f && obj.transform.position.x < j.transform.position.x + 1.5f) &&
-                                            (obj.transform.position.y > j.transform.position.y - 1.5f && obj.transform.position.y < j.transform.position.y + 1.5f))
-                                        {
-                                            obj.transform.localPosition = new Vector3(UnityEngine.Random.Range(-8.3f, 8.3f), UnityEngine.Random.Range(-4.4f, 4.4f), 0f);
-                                            makeThrough = false;
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                        objs.Add(obj);
-                    }
-                }
+                SpawnAmount = NormalizeRandom(-14, 16);
+                SetUpSpaceEncounter(7, SpawnAmount);
                 break;
             case UniverseDepth.PlanetMoon:
-                Debug.Log("Should be building Planets Level.");
-                amount = NormalizeRandom(-14, 16);
-                if(depthPrefabs[9] != null)
-                {
-                    GameObject obj = Instantiate(depthPrefabs[9], new Vector3(0f, 0f, 0f), Quaternion.identity,universeTransform);
-                    obj.GetComponentInChildren<MeshCollider>().transform.localScale = new Vector3(8f, 8f, 8f);
-                    objs.Add(obj);
-                }
-                if (depthPrefabs[8] != null)
-                {
-                    for (int i = 0; i < amount; i++)
-                    {
-                        GameObject obj = Instantiate(depthPrefabs[8], new Vector3(4f, 0f, 0f), Quaternion.identity, objs[0].transform);
-                        objs.Add(obj);
-                        objs[0].transform.Rotate(0f, 0f, 360f / amount);
-                    }
-                }
                 OnWorldMap?.Invoke(true);
-                created = 0;
+                SpawnAmount = NormalizeRandom(-14, 16);
+                SetUpSpaceEncounter(9, 8, SpawnAmount);               
                 break;
             case UniverseDepth.Planet:
-                Debug.Log("This is the actual planet touchdown interaction.");
                 OnWorldMap?.Invoke(false);
-                if (!LocationAddresses.Contains(universeAdress))
-                {
-                    Debug.Log("This is a new location.");
-                    LocationAddresses.Add(universeAdress);
-                }
-                if(planetContainer == null)
-                {
-                    Debug.Log("There wasn't a location brain container.");
-                    planetContainer = new List<LocationManager>();
-                }
-                bool found = false;
-                foreach(LocationManager brain in planetContainer)
-                {
-                    if(brain.myAddress == universeAdress)
-                    {
-                        activeBrain = brain;
-                        found = true;
-                        Debug.Log("I found a brain that we have used already this play.");
-                        activeBrain.TurnOnVisibility();
-                        break;
-                    }
-                }
-                if (!found)
-                {
-                    Debug.Log("Making a new brain for play.");
-                    GameObject obj = Instantiate(planetPrefab, universeTransform);
-                    LocationManager Ego = obj.GetComponent<LocationManager>();
-                    planetContainer.Add(Ego);
-                    activeBrain = Ego;
-                    Debug.Log("Going to activate the brain.");
-                    activeBrain.BuildPlanetData(TryLoadLevel(), universeAdress, LocationResources);
-                    Debug.Log("Brain should have been activated.");
-                }
-
-
-                #region Diamond Map
-                /*float zOffSet = 0f;
-                int zLast = 0;
-                int zRow = 0;
-                for(int x = 0; x < 19; x++)
-                {
-                    if(x < 9)
-                    {
-                        zRow = 1;
-                        for (int y = zLast+1; y > 0; y--)
-                        {
-                            GameObject obj = Instantiate(tilePrefab, new Vector3(x*0.78f, 0f, (y * -1f)+zOffSet), Quaternion.identity, universeTransform);
-                            objs.Add(obj);
-                            HexTileInfo tf = obj.GetComponent<HexTileInfo>();
-                            tf.SetUpTileLocation(x, zRow);
-                            temp.Add(tf);
-                            zRow++;
-                        }
-                        zOffSet += 0.5f;
-                        zLast++;
-                    }else if(x > 8)
-                    {
-                        zRow = 1;
-                        for (int y = zLast+1; y > 0 ; y--)
-                        {
-                            GameObject obj = Instantiate(tilePrefab, new Vector3(x*0.78f, 0f, (y * -1f) + zOffSet), Quaternion.identity, universeTransform);
-                            objs.Add(obj);
-                            HexTileInfo tf = obj.GetComponent<HexTileInfo>();
-                            tf.SetUpTileLocation(x, zRow);
-                            temp.Add(tf);
-                            zRow++;
-                        }
-                        zOffSet -= 0.5f;
-                        zLast--;
-                    }
-
-                }
-                tileInfoList = new HexTileInfo[temp.Count];
-                for (int i = 0; i < tileInfoList.Length; i++)
-                {
-                    tileInfoList[i] = temp[i];
-                }*/
-                #endregion
+                SetUpPlanetaryEncounter();
                 break;
             case UniverseDepth.Moon:
-                Debug.Log("This is the actual moon touchdown interaction.");
                 OnWorldMap?.Invoke(false);
+                SetUpPlanetaryEncounter();
                 break;
         }
 
+        SetAreaText();
+    }
+    private void SetUpSpaceEncounter(int prefabIndex, int spawnAmount)
+    {
+        List<GameObject> objs = new List<GameObject>();
+        
+        if(depthPrefabs[prefabIndex] != null)
+        {
+            for (int i = 0; i < spawnAmount; i++)
+            {
+                GameObject obj = Instantiate(depthPrefabs[prefabIndex], new Vector3(UnityEngine.Random.Range(-8.3f, 8.3f), UnityEngine.Random.Range(-4.4f, 4.4f), 0f), Quaternion.identity, universeTransform);
+                foreach (GameObject ob in objs) //Probably some great way to ensure this way better than what I did, but it works, I wouldn't try this with a huge list
+                {
+                    if ((obj.transform.position.x > ob.transform.position.x - 1.5f && obj.transform.position.x < ob.transform.position.x + 1.5f) &&
+                        (obj.transform.position.y > ob.transform.position.y - 1.5f && obj.transform.position.y < ob.transform.position.y + 1.5f))
+                    {
+                        bool makeThrough = false;
+                        while (!makeThrough) // this ensures that objects won't be stacked on each other
+                        {
+                            makeThrough = true;
+                            foreach (GameObject j in objs)
+                            {
+                                while ((obj.transform.position.x > j.transform.position.x - 1.5f && obj.transform.position.x < j.transform.position.x + 1.5f) &&
+                                    (obj.transform.position.y > j.transform.position.y - 1.5f && obj.transform.position.y < j.transform.position.y + 1.5f))
+                                {
+                                    obj.transform.localPosition = new Vector3(UnityEngine.Random.Range(-8.3f, 8.3f), UnityEngine.Random.Range(-4.4f, 4.4f), 0f);
+                                    makeThrough = false;
+                                }
+                            }
+                        }
+                    }
+                }
+                objs.Add(obj);
+            }
+        }
+
+        SetupDepthLocationsArray(objs);
+    }
+    private void SetUpSpaceEncounter(int planetPrefabIndex, int moonPrefabIndex,int spawnAmount)
+    {
+        List<GameObject> objs = new List<GameObject>();
+
+        if (depthPrefabs[planetPrefabIndex] != null)
+        {
+            GameObject obj = Instantiate(depthPrefabs[planetPrefabIndex], new Vector3(0f, 0f, 0f), Quaternion.identity, universeTransform);
+            obj.GetComponentInChildren<MeshCollider>().transform.localScale = new Vector3(8f, 8f, 8f);
+            objs.Add(obj);
+        }
+        if (depthPrefabs[moonPrefabIndex] != null)
+        {
+            for (int i = 0; i < spawnAmount; i++)
+            {
+                GameObject obj = Instantiate(depthPrefabs[moonPrefabIndex], new Vector3(4f, 0f, 0f), Quaternion.identity, objs[0].transform);
+                objs.Add(obj);
+                objs[0].transform.Rotate(0f, 0f, 360f / spawnAmount);
+            }
+        }
+
+        SetupDepthLocationsArray(objs);
+    }
+    private void SetUpPlanetaryEncounter()
+    {
+        if (!LocationAddresses.Contains(universeAdress)) LocationAddresses.Add(universeAdress);
+        
+        if (planetContainer == null) planetContainer = new List<LocationManager>();
+        
+        bool found = false;
+        foreach (LocationManager brain in planetContainer)
+        {
+            if (brain.myAddress == universeAdress)
+            {
+                activeBrain = brain;
+                found = true;
+                activeBrain.TurnOnVisibility();
+                break;
+            }
+        }
+        if (!found)
+        {
+            GameObject obj = Instantiate(planetPrefab, universeTransform);
+            LocationManager Ego = obj.GetComponent<LocationManager>();
+            planetContainer.Add(Ego);
+            activeBrain = Ego;
+            string[] ar = TryLoadLevel();
+            activeBrain.BuildPlanetData(ar, universeAdress, LocationResources);
+        }
+
+        #region Diamond Map
+        /*float zOffSet = 0f;
+        int zLast = 0;
+        int zRow = 0;
+        for(int x = 0; x < 19; x++)
+        {
+            if(x < 9)
+            {
+                zRow = 1;
+                for (int y = zLast+1; y > 0; y--)
+                {
+                    GameObject obj = Instantiate(tilePrefab, new Vector3(x*0.78f, 0f, (y * -1f)+zOffSet), Quaternion.identity, universeTransform);
+                    objs.Add(obj);
+                    HexTileInfo tf = obj.GetComponent<HexTileInfo>();
+                    tf.SetUpTileLocation(x, zRow);
+                    temp.Add(tf);
+                    zRow++;
+                }
+                zOffSet += 0.5f;
+                zLast++;
+            }else if(x > 8)
+            {
+                zRow = 1;
+                for (int y = zLast+1; y > 0 ; y--)
+                {
+                    GameObject obj = Instantiate(tilePrefab, new Vector3(x*0.78f, 0f, (y * -1f) + zOffSet), Quaternion.identity, universeTransform);
+                    objs.Add(obj);
+                    HexTileInfo tf = obj.GetComponent<HexTileInfo>();
+                    tf.SetUpTileLocation(x, zRow);
+                    temp.Add(tf);
+                    zRow++;
+                }
+                zOffSet -= 0.5f;
+                zLast--;
+            }
+
+        }
+        tileInfoList = new HexTileInfo[temp.Count];
+        for (int i = 0; i < tileInfoList.Length; i++)
+        {
+            tileInfoList[i] = temp[i];
+        }*/
+        #endregion
+    }
+    private void SetupDepthLocationsArray(List<GameObject> objs)
+    {
         depthLocations = new GameObject[objs.Count];
-        for(int j = 0; j < objs.Count; j++)
+        for (int j = 0; j < objs.Count; j++)
         {
             depthLocations[j] = objs[j];
         }
-
-        if(currentDepth != UniverseDepth.Planet)
+    }
+    private void SetAreaText()
+    {
+        if (currentDepth != UniverseDepth.Planet)
         {
             areaText.text = $"{universeAdress} : {currentDepth}";
             return;
@@ -1411,7 +1035,6 @@ public class Main : MonoBehaviour
 
         areaText.text = $"{universeAdress} : {currentDepth} : NamedOrNot";
     }
-
     void WipeUniversePieces()
     {
         int j = depthLocations.Length;
@@ -1420,7 +1043,6 @@ public class Main : MonoBehaviour
             Destroy(depthLocations[i]);
         }
     }
-
     void CheckForSpaceObject(GameObject obj)
     {
         areaText.text = "";
@@ -1428,31 +1050,20 @@ public class Main : MonoBehaviour
         {
             if(ReferenceEquals(obj,depthLocations[i]))
             {
-                if(i == 0 && currentDepth == UniverseDepth.PlanetMoon)
-                {
-                    planetOrMoon = true;
-                }else if(currentDepth == UniverseDepth.PlanetMoon && i != 0)
-                {
-                    planetOrMoon = false;
-                }
+                if(currentDepth == UniverseDepth.PlanetMoon) isPlanet = (i == 0);
+
                 StartCoroutine(ZoomWait(i));
                 break;
             }
         }
     }
-
     IEnumerator ZoomWait(int index)
     {
-        Debug.Log("Waiting on Zoom");
-        yield return new WaitUntil(() => b_zoomContinued);
-        Debug.Log("Wait complete");
-        b_zoomContinued = false;
+        yield return new WaitUntil(() => canZoomContinue);
+        canZoomContinue = false;
         DeeperIntoUniverseLocationDepth();
         GenerateUniverseLocation(currentDepth, index);
     }
-
-
-
     void DeeperIntoUniverseLocationDepth()
     {
         switch (currentDepth)
@@ -1482,12 +1093,11 @@ public class Main : MonoBehaviour
                 currentDepth = UniverseDepth.PlanetMoon;
                 break;
             case UniverseDepth.PlanetMoon:
-                currentDepth = planetOrMoon == true ? UniverseDepth.Planet : UniverseDepth.Moon;
+                currentDepth = isPlanet == true ? UniverseDepth.Planet : UniverseDepth.Moon;
                 break;
         }
         areaText.text = $"{universeAdress} : {currentDepth}";
     }
-
     void SetLocationDepthByInt(int depth)
     {
         switch (depth)
@@ -1526,7 +1136,6 @@ public class Main : MonoBehaviour
                 break;
         }
     }
-
     public void GoBackAStep()
     {
         string[] ar = universeAdress.Split(",");
@@ -1542,34 +1151,21 @@ public class Main : MonoBehaviour
                     if (i == ar.Length - 2)
                     {
                         index = int.Parse(ar[i]);
+                        continue;
                     }
-                    else
-                    {
-                        universeAdress += "," + ar[i];
-                    }
+                    universeAdress += "," + ar[i];
+                    continue;
                 }
-                else
-                {
-                    universeAdress += ar[i];
-                }
+                universeAdress += ar[i];
             }
         }
 
-        if(index == 42)
-        {
-            SetLocationDepthByInt(1);
-        }
+        if(index == 42) SetLocationDepthByInt(1);
+        
         GenerateUniverseLocation(currentDepth, index);
-            OnGoingToHigherLevel?.Invoke(depthLocations[int.Parse(ar[ar.Length - 1])]);
+        OnGoingToHigherLevel?.Invoke(depthLocations[int.Parse(ar[ar.Length - 1])]);
     }
-
-    public void ToTheTop()
-    {
-        SetLocationDepthByInt(1);
-        GenerateUniverseLocation(currentDepth, 42);
-    }
-
-    int NormalizeRandom(int minValue, int maxValue)
+    int NormalizeRandom(int minValue, int maxValue) //Normal distribution
     {
         //-4&17 = 12 average
         //-14&16 = 8 average
@@ -1577,10 +1173,8 @@ public class Main : MonoBehaviour
         float mean = (minValue + maxValue) / 2;
         float sigma = (maxValue - mean) ;
         int ret = Mathf.RoundToInt(UnityEngine.Random.value * sigma + mean);
-        if(ret > maxValue -1)
-        {
-            ret = maxValue -1;
-        }
+        if(ret > maxValue -1) ret = maxValue -1;
+        
         return ret;
     }
     #endregion
@@ -1592,7 +1186,7 @@ public class Main : MonoBehaviour
         foreach(string s in items)
         {
             string[] ar = s.Split("=");
-            ReturnData(ar[0]).AdjustCurrentAmount(int.Parse(ar[1]));
+            FindResourceFromString(ar[0]).AdjustCurrentAmount(int.Parse(ar[1]));
         }
     }
 
@@ -1602,12 +1196,6 @@ public class Main : MonoBehaviour
         yield return new WaitForSeconds(5f);
         Debug.Log("Pushing message");
         OnSendMessage?.Invoke(type, message);
-    }
-
-    private void OnApplicationQuit()
-    {
-        SaveUniverseLocation();
-        SaveLocationAddressBook();
     }
     #endregion
 }

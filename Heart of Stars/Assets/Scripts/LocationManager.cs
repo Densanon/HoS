@@ -5,8 +5,6 @@ using UnityEngine;
 
 public class LocationManager : MonoBehaviour
 {
-    public static Action<HexTileInfo[], string, ResourceData[]> OnSaveMyLocationInfo = delegate { };
-
     public string myAddress;
     public float frequencyForLandSpawning = 1.5f;
     public int landStartingPointsForSpawning = 5;
@@ -15,6 +13,17 @@ public class LocationManager : MonoBehaviour
     public HexTileInfo[] tileInfoList;
     public ResourceData[] myResources;
     Vector2[] TileLocations;
+
+    #region Debugging
+    void DestroyAllScenePieces()
+    {
+        int j = myPlanetPieces.Length;
+        for (int i = 0; i < j; i++)
+        {
+            Destroy(myPlanetPieces[i]);
+        }
+    }
+    #endregion
 
     #region Unity Methods
     private void Awake()
@@ -28,10 +37,18 @@ public class LocationManager : MonoBehaviour
     }
     #endregion
 
+    #region Setup
     public void BuildPlanetData(string[] hextiles, string address, ResourceData[] resources)
     {
         myAddress = address;
-        myResources = resources;
+        myResources = new ResourceData[resources.Length];
+        Array.Copy(resources, myResources, resources.Length);
+
+        foreach(ResourceData dt in myResources)
+        {
+            if(dt.visible)
+                Debug.Log(dt.itemName);
+        }
 
         BuildTileBase();
 
@@ -43,7 +60,7 @@ public class LocationManager : MonoBehaviour
 
         OrganizePieces();
 
-        OnSaveMyLocationInfo?.Invoke(tileInfoList, myAddress, myResources);
+        SaveLocationInfo();
     }
 
     void BuildTileBase()
@@ -121,6 +138,7 @@ public class LocationManager : MonoBehaviour
             hex.SetNeighbors(FindNeighbors(hex.myPositionInTheArray));
         }
     }
+    #endregion
 
     #region Location Checks For Neighbors
     private Vector2[] FindNeighbors(Vector2 location)
@@ -282,18 +300,35 @@ public class LocationManager : MonoBehaviour
     }
     #endregion
 
-    void DestroyAllScenePieces()
-    {
-        int j = myPlanetPieces.Length;
-        for (int i = 0; i < j; i++)
-        {
-            Destroy(myPlanetPieces[i]);
-        }
-    }
-
     void SaveLocationInfo()
     {
-        OnSaveMyLocationInfo?.Invoke(tileInfoList, myAddress, myResources);
+        SaveSystem.WipeString();
+
+        if (tileInfoList != null)
+        {
+            for (int i = 0; i < tileInfoList.Length; i++)
+            {
+                if (i == tileInfoList.Length - 1)
+                {
+                    SaveSystem.SaveTile(tileInfoList[i], true);
+                    continue;
+                }
+                SaveSystem.SaveTile(tileInfoList[i], false);
+            }
+
+            for (int j = 0; j < myResources.Length; j++)
+            {
+                if (j == myResources.Length - 1)
+                {
+                    SaveSystem.SaveResource(myResources[j], true);
+                    continue;
+                }
+                SaveSystem.SaveResource(myResources[j], false);
+            }
+
+            SaveSystem.SaveLocationData();
+            SaveSystem.SaveFile("/" + myAddress);
+        }
     }
 
     private void OnApplicationQuit()

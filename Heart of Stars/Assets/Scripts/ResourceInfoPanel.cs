@@ -80,8 +80,8 @@ public class ResourceInfoPanel : MonoBehaviour
         myDetails.text = data.description;
         amountOwned.text = $"Amount Owned: {data.currentAmount}";
 
-        myResourceNeeds = main.ReturnDependencies(data);
-        int[] oTemp = main.ReturnDependencyAmounts(data);
+        myResourceNeeds = main.FindDependenciesFromResourceData(data);
+        int[] oTemp = main.FindDependencyAmountsFromResourceData(data);
 
         myDependencies.text = "";
         myDependenciesNeededAmounts.text = "";

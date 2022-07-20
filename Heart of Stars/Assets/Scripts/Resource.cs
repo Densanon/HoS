@@ -71,7 +71,7 @@ public class Resource : MonoBehaviour
             foreach (string s in str)
             {
                 string[] tAr = s.Split('=');
-                temp.Add(main.ReturnData(tAr[0]));
+                temp.Add(main.FindResourceFromString(tAr[0]));
                 tempIndices.Add(int.Parse(tAr[1]));
                 tempNames.Add(tAr[0]);
             }
@@ -85,7 +85,7 @@ public class Resource : MonoBehaviour
             foreach (string s in str)
             {
                 string[] tAr = s.Split('=');
-                temp.Add(main.ReturnData(tAr[0]));
+                temp.Add(main.FindResourceFromString(tAr[0]));
                 tempIndices.Add(int.Parse(tAr[1]));
                 tempNames.Add(tAr[0]);
             }
@@ -134,7 +134,7 @@ public class Resource : MonoBehaviour
                     foreach (string s in str)
                     {
                         string[] tAr = s.Split('=');
-                        ResourceData TD = main.ReturnData(tAr[0]);
+                        ResourceData TD = main.FindResourceFromString(tAr[0]);
                         if (!temp.Contains(TD))
                         {
                             dump.Add(TD);
@@ -150,7 +150,7 @@ public class Resource : MonoBehaviour
                     foreach (string s in str)
                     {
                         string[] tAr = s.Split('=');
-                        ResourceData TD = main.ReturnData(tAr[0]);
+                        ResourceData TD = main.FindResourceFromString(tAr[0]);
                         if (!temp.Contains(TD))
                         {
                             dump.Add(TD);

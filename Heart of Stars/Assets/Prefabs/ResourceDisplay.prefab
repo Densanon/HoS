@@ -714,9 +714,9 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   nameText: {fileID: 2604220087026278072}
   displayText: {fileID: 2604220087813226730}
-  curText: {fileID: 2604220088570444670}
-  autoAText: {fileID: 2604220088282804376}
-  autoTText: {fileID: 2604220087132145360}
+  currentText: {fileID: 2604220088570444670}
+  autoAmountText: {fileID: 2604220088282804376}
+  autoTimeText: {fileID: 2604220087132145360}
 --- !u!1 &2604220087552708265
 GameObject:
   m_ObjectHideFlags: 0

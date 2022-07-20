@@ -30,6 +30,7 @@ public class CameraController : MonoBehaviour
     bool needsNormalZoom = false;
     bool canOverWorldZoomIn = false;
     bool isZooming = false;
+    bool planetaryCameraIsFrozen = false;
 
     float cameraPlanetaryZoomRate = 0.25f;
 
@@ -225,7 +226,7 @@ public class CameraController : MonoBehaviour
     private void ZoomCameraOnPlanet()
     {
         float f = Input.mouseScrollDelta.y;
-        if (f != 0)
+        if (f != 0 && !planetaryCameraIsFrozen)
         {
             float val = f * -1 * 0.25f;
             float size = myCamera.orthographicSize;
@@ -242,13 +243,18 @@ public class CameraController : MonoBehaviour
 
     private void MoveCameraOnPlanet()
     {
-        if (canMoveOnMap)
+        if (canMoveOnMap && !planetaryCameraIsFrozen)
         {
             Vector3 pos = myTransform.position;
             pos.z += Input.GetAxis("Mouse Y") * cameraPlanetaryZoomRate * -1;
             pos.x += Input.GetAxis("Mouse X") * cameraPlanetaryZoomRate * -1;
             myTransform.position = pos;
         }
+    }
+
+    public void TogglePlanetaryCameraMovement()
+    {
+        planetaryCameraIsFrozen = !planetaryCameraIsFrozen;
     }
     #endregion
 
