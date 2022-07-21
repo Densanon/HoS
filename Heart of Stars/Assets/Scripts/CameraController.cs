@@ -50,8 +50,8 @@ public class CameraController : MonoBehaviour
         Main.OnWorldMap += TransitionCameraSettings;
         Main.OnGoingToHigherLevel += ZoomFromGivenObject;
         Main.SendCameraState += LoadCamState;
-        Main.OnInitializeFirstInteraction += FirstEncounterSetup;
         HexTileInfo.OnStartingTile += FindStartingPosition;
+        HexTileInfo.OnLanded += EndLandingSequence;
         Depthinteraction.SpaceInteractionHover += ZoomIntoSpaceobject;
     }
 
@@ -60,17 +60,11 @@ public class CameraController : MonoBehaviour
         Main.OnWorldMap -= TransitionCameraSettings;
         Main.OnGoingToHigherLevel -= ZoomFromGivenObject;
         Main.SendCameraState -= LoadCamState;
-        Main.OnInitializeFirstInteraction -= FirstEncounterSetup;
         HexTileInfo.OnStartingTile -= FindStartingPosition;
+        HexTileInfo.OnLanded -= EndLandingSequence;
         Depthinteraction.SpaceInteractionHover -= ZoomIntoSpaceobject;
     }
 
-    private void FirstEncounterSetup()
-    {
-        //probably some animated fly around deal
-        inInitializedSequence = true;
-        planetaryCameraIsFrozen = true;
-    }
     #endregion
 
     #region Space Camera Controls
@@ -207,8 +201,7 @@ public class CameraController : MonoBehaviour
             if (inInitializedSequence)
             {
                 //Do your thing cam.
-                inInitializedSequence = false;
-                planetaryCameraIsFrozen = false;
+                transform.LookAt(targetTransform);
             }
 
             CheckMouseWheelPress();
@@ -221,12 +214,22 @@ public class CameraController : MonoBehaviour
 
     private void FindStartingPosition(Transform tran)
     {
+        Debug.Log("I have been told a starting point.");
+        targetTransform = tran;
         Vector3 pos = tran.position;
         pos.y += 10;
         pos.z -= 10;
         myTransform.position = pos;
-    }
 
+        //probably some animated fly around deal
+        inInitializedSequence = true;
+        planetaryCameraIsFrozen = true;
+    }
+    private void EndLandingSequence()
+    {
+        inInitializedSequence = false;
+        planetaryCameraIsFrozen = false;
+    }
     private void CheckMouseWheelPress()
     {
         if (Input.GetMouseButtonDown(2))
@@ -305,6 +308,6 @@ public class CameraController : MonoBehaviour
 
     private void OnApplicationQuit()
     {
-        SaveCameraState?.Invoke(SaveCameraSettings());
+        //SaveCameraState?.Invoke(SaveCameraSettings());
     }
 }

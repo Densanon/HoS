@@ -31,14 +31,14 @@ public class ResourceInfoPanel : MonoBehaviour
     {
         Resource.OnClicked += UpdateInfo;
         Resource.OnUpdate += UpdateInfo;
-        HoverAble.OnHoverUpdate += UpdateInfo;
+        HoverAbleResourceButton.OnHoverUpdate += UpdateInfo;
     }
 
     private void OnDisable()
     {
         Resource.OnClicked -= UpdateInfo;
         Resource.OnUpdate -= UpdateInfo;
-        HoverAble.OnHoverUpdate -= UpdateInfo;
+        HoverAbleResourceButton.OnHoverUpdate -= UpdateInfo;
     }
 
     public void Assignment(Resource data, Main main)

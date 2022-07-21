@@ -99,21 +99,14 @@ public class LocationManager : MonoBehaviour
         }
 
         myPlanetPieces = new GameObject[objs.Count];
-        for (int j = 0; j < objs.Count; j++)
-        {
-            myPlanetPieces[j] = objs[j];
-        }
-
         tileInfoList = new HexTileInfo[temp.Count];
+        TileLocations = new Vector2[locs.Count];
+
         for (int i = 0; i < tileInfoList.Length; i++)
         {
+            myPlanetPieces[i] = objs[i];
             tileInfoList[i] = temp[i];
-        }
-
-        TileLocations = new Vector2[locs.Count];
-        for (int k = 0; k < TileLocations.Length; k++)
-        {
-            TileLocations[k] = locs[k];
+            TileLocations[i] = locs[i];
         }
     }
 
@@ -122,7 +115,7 @@ public class LocationManager : MonoBehaviour
         for (int i = 0; i < hextiles.Length; i++)
         {
             string[] ar = hextiles[i].Split(":");
-            tileInfoList[i].SetAllTileInfoFromMemory(ar[0], int.Parse(ar[1]), ar[2]);
+            tileInfoList[i].SetAllTileInfoFromMemory(ar[0], int.Parse(ar[1]), ar[2], (ar[3] == "True"));
         }
     }
 
@@ -132,24 +125,24 @@ public class LocationManager : MonoBehaviour
         {
             float l = 100f;
             float q = (float)p / (float)landStartingPointsForSpawning * l;
-            //Debug.Log($"Current low: {q}");
+
             float f = (float)(p + 1) / (float)landStartingPointsForSpawning * l;
-            //Debug.Log($"Current high: {f}");
+
             int k = UnityEngine.Random.Range(Mathf.RoundToInt(q), Mathf.RoundToInt(f));
-            //Debug.Log(k);
+
             tileInfoList[k].TurnLand();
         }
 
-        HexTileInfo info = myPlanetPieces[UnityEngine.Random.Range(0, myPlanetPieces.Length)].GetComponent<HexTileInfo>();
-        /*while (info.i_tileType != 1)
+        bool start = false;
+        foreach(HexTileInfo tile in tileInfoList)
         {
-            info = myPlanetPieces[UnityEngine.Random.Range(0, myPlanetPieces.Length)].GetComponent<HexTileInfo>();
-        }*/
-        if (info.myTileType == 1) info.SetAsStartingPoint();
-
-        foreach (HexTileInfo hex in tileInfoList)
-        {
-            hex.SetNeighbors(FindNeighbors(hex.myPositionInTheArray));
+            tile.SetNeighbors(FindNeighbors(tile.myPositionInTheArray));
+            if (!start && tile.myTileType == tile.GetResourceSpritesLengthForStartPoint())
+            {
+                Debug.Log($"Found a starting point! {tile.myPositionInTheArray}");
+                tile.SetAsStartingPoint();
+                start = true;
+            }
         }
     }
     #endregion

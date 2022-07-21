@@ -47,9 +47,9 @@ public class Resource : MonoBehaviour
         {
             if (myText != null) myText.text = myResource.displayName;
 
-            if (transform.GetComponent<HoverAble>() != null)
+            if (transform.GetComponent<HoverAbleResourceButton>() != null)
             {
-                HoverAble h = transform.GetComponent<HoverAble>();
+                HoverAbleResourceButton h = transform.GetComponent<HoverAbleResourceButton>();
                 h.Assignment(this, main);
                 if (panelButton)  h.panelButton = true;
             }

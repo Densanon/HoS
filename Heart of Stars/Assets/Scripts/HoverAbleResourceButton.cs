@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using System;
 
-public class HoverAble : MonoBehaviour
+public class HoverAbleResourceButton : MonoBehaviour
 {
     public static Action<ResourceData> OnHoverUpdate = delegate { };
 

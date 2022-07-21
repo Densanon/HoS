@@ -6,12 +6,23 @@ using UnityEngine;
 public class HexTileInfo : MonoBehaviour
 {
     public static Action<Transform> OnStartingTile = delegate { };
+    public static Action OnLanded = delegate { };
     public static Action<Vector2> OnTakeover = delegate { };
     public static Action<Vector2> TypeTransform = delegate { };
     public static Action<Vector2> LookingForNeighbors = delegate { };
+    public static Action<HexTileInfo> OnNeedUIElementsForTile = delegate { };
 
     [SerializeField]
     Texture2D[] tileTextures;
+
+    [SerializeField]
+    Sprite[] resourceSprites;
+
+    [SerializeField]
+    Sprite[] buildingSprites;
+
+    [SerializeField]
+    Sprite[] armySprites;
 
     [SerializeField]
     Renderer[] myRenderers;
@@ -27,6 +38,13 @@ public class HexTileInfo : MonoBehaviour
     TileStates myState = TileStates.UnPlayable;
 
     public int myTileType = 0;
+
+    bool isInitializingLandingSequence = false;
+    Vector3 startPosition;
+    Vector3 endPosition;
+    float landingSequenceTimer;
+    float landingSequenceDesiredTime;
+    bool isStartingPoint;
 
     #region Unity Methods
     private void OnEnable()
@@ -47,7 +65,7 @@ public class HexTileInfo : MonoBehaviour
     {
         myPositionInTheArray = new Vector2(column, row);
 
-        DeactivateDetailLayer();
+        DeactivateDetailLayers();
     }
 
     public void SetNeighbors(Vector2[] locations)
@@ -72,11 +90,34 @@ public class HexTileInfo : MonoBehaviour
 
     public void TurnLand()
     {
-        myTileType = 1;
-        myRenderers[0].material.mainTexture = tileTextures[1];
-        myState = TileStates.UnClickable;
         TypeTransform -= TryToTransformToLand;
         TypeTransform?.Invoke(myPositionInTheArray);
+        myState = TileStates.UnClickable;
+        myRenderers[0].material.mainTexture = tileTextures[1];
+
+        if (UnityEngine.Random.Range(0, 4) == 0)
+        { 
+            myTileType = UnityEngine.Random.Range(1, resourceSprites.Length+1);
+            myRenderers[2].enabled = true;
+            myRenderers[2].GetComponent<SpriteRenderer>().sprite = resourceSprites[myTileType-1];
+            return;
+        }
+        myTileType = resourceSprites.Length+1; // blank space
+        /// mountain
+        /// tree
+        /// mine
+        /// wheat
+        /// tent
+        /// building
+        /// trap?
+        /// chest
+        /// guy
+        /// robot spider
+    }
+
+    public int GetResourceSpritesLengthForStartPoint()
+    {
+        return resourceSprites.Length + 1;
     }
 
     private void CheckForPlayability(Vector2 pos)
@@ -95,22 +136,67 @@ public class HexTileInfo : MonoBehaviour
 
     public void SetAsStartingPoint()
     {
+        isStartingPoint = true;
         myRenderers[0].material.mainTexture = tileTextures[3];
         myState = TileStates.Conquered;
-        OnStartingTile?.Invoke(transform);
+        OnStartingTile?.Invoke(myRenderers[4].transform);
         OnTakeover -= CheckForPlayability;
         OnTakeover?.Invoke(myPositionInTheArray);
+        LandingSequenceAnimation();
+        Debug.Log("Sending Starting Point.");
     }
+
+    void LandingSequenceAnimation()
+    {
+        myRenderers[4].GetComponent<SpriteRenderer>().enabled = true;
+        myRenderers[4].GetComponent<SpriteRenderer>().sprite = armySprites[armySprites.Length - 1];
+        endPosition = myRenderers[4].transform.position;
+        startPosition = new Vector3(endPosition.x, endPosition.y + 6f, endPosition.z);
+        landingSequenceTimer = 0;
+        landingSequenceDesiredTime = 6f;
+        isInitializingLandingSequence = true;
+    }
+
+    void LeavingSequenceAnimation()
+    {
+
+    }
+
+    private void Update()
+    {
+        if (isInitializingLandingSequence)
+        {
+            myRenderers[4].transform.position = Vector3.Lerp(startPosition, endPosition, landingSequenceTimer/landingSequenceDesiredTime);
+
+            landingSequenceTimer += Time.deltaTime;
+            Debug.Log(landingSequenceTimer);
+            if(landingSequenceTimer > landingSequenceDesiredTime)
+            {
+                Debug.Log("Landed");
+                isInitializingLandingSequence = false;
+                myRenderers[4].transform.position = endPosition;
+                OnLanded?.Invoke();
+            }
+        }
+    }
+
     #endregion
 
     #region Setup Tiles From Memory
-    public void SetAllTileInfoFromMemory(string state, int tileType, string neighbors)
+    public void SetAllTileInfoFromMemory(string state, int tileType, string neighbors, bool isStart)
     {
         SetTileStateFromString(state);
 
         myTileType = tileType;
+        if(myTileType < 5 && myTileType != 0)
+        {
+            myRenderers[2].GetComponent<SpriteRenderer>().sprite = resourceSprites[myTileType-1];
+            myRenderers[2].enabled = true;
+        }
 
         SetNeighborsFromString(neighbors);
+
+        if (isStart) SetAsStartingPoint();
     }
 
     private void SetNeighborsFromString(string neighbors)
@@ -166,6 +252,9 @@ public class HexTileInfo : MonoBehaviour
             myRenderers[0].material.mainTexture = tileTextures[3];
             OnTakeover -= CheckForPlayability;
             OnTakeover?.Invoke(myPositionInTheArray);
+        }else if(myState == TileStates.Conquered)
+        {
+            OnNeedUIElementsForTile?.Invoke(this);
         }
     }
 
@@ -189,9 +278,12 @@ public class HexTileInfo : MonoBehaviour
         gameObject.SetActive(false);
     }
 
-    void DeactivateDetailLayer()
+    void DeactivateDetailLayers()
     {
-        myRenderers[1].gameObject.SetActive(false);
+        myRenderers[1].enabled = false;
+        myRenderers[2].enabled = false;
+        myRenderers[3].enabled = false;
+        myRenderers[4].enabled = false;
     }
 
     public string DigitizeForSerialization()
@@ -205,9 +297,7 @@ public class HexTileInfo : MonoBehaviour
             st = st.Remove(st.Length - 1);
             s = (first) ? s + st : s + "'" + st;
             first = false;
-
         }
-
-        return $"{myState}:{myTileType}:{s};";
+        return $"{myState}:{myTileType}:{s}:{isStartingPoint};";
     }
 }
