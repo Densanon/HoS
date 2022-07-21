@@ -29,15 +29,35 @@ public class LocationManager : MonoBehaviour
     private void Awake()
     {
         Main.OnWorldMap += TurnOffVisibility;
+        Main.OnInitializeFirstInteraction += FirstEncounterSetup;
     }
 
     private void OnDestroy()
     {
         Main.OnWorldMap -= TurnOffVisibility;
+        Main.OnInitializeFirstInteraction -= FirstEncounterSetup;
+
     }
     #endregion
 
     #region Setup
+    private void FirstEncounterSetup()
+    {
+        //Do some stuff for the firstencounter.
+        foreach(ResourceData data in myResources)
+        {
+            if(data.itemName == "soldier")
+            {
+                data.SetCurrentAmount(10);
+                continue;
+            }
+            if(data.itemName == "food")
+            {
+                data.SetCurrentAmount(100);
+                continue;
+            }
+        }
+    }
     public void BuildPlanetData(string[] hextiles, string address, ResourceData[] resources)
     {
         myAddress = address;

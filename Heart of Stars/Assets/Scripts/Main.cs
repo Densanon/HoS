@@ -10,6 +10,7 @@ public class Main : MonoBehaviour
     public static Action<bool> OnWorldMap = delegate { };
     public static Action<GameObject> OnGoingToHigherLevel = delegate { };
     public static Action<string> SendCameraState = delegate { };
+    public static Action OnInitializeFirstInteraction = delegate { };
 
     public enum UniverseDepth {Universe, SuperCluster, Galaxy, Nebula, GlobularCluster, StarCluster, Constellation, SolarSystem, PlanetMoon, Planet, Moon}
     static UniverseDepth currentDepth = UniverseDepth.Universe;
@@ -63,6 +64,8 @@ public class Main : MonoBehaviour
     int buttonsCreated = 0;
     public string searchInputField = "";
     bool needResetAllBuildables = false;
+
+    bool isInitialized = false;
 
     WeightedRandomBag<ResourceData> dropTypes = new WeightedRandomBag<ResourceData>();
     
@@ -164,11 +167,26 @@ public class Main : MonoBehaviour
         SaveSystem.SaveFile("/resource_shalom");
         LoadedData.Clear();
     }
+    public void ResetTheInitialEncounter()
+    {
+        isInitialized = false;
+        PlayerPrefs.SetInt("Initialized", 0);
+        SaveSystem.DeleteAllLocationInformation();
+        Destroy(activeBrain.gameObject);
+        activeBrain = null;
+        planetContainer.Clear();
+        LocationAddresses.Clear();
+    }
     #endregion
 
     #region Unity Methods
     void Awake()
     {
+        if (PlayerPrefs.HasKey("Initialized"))
+        {
+            isInitialized = 1 == PlayerPrefs.GetInt("Initialized");
+        }
+
         UnityEngine.Random.InitState(42);
         
         SheetData = SheetReader.GetSheetData();
@@ -869,7 +887,8 @@ public class Main : MonoBehaviour
             case UniverseDepth.PlanetMoon:
                 OnWorldMap?.Invoke(true);
                 SpawnAmount = NormalizeRandom(-14, 16);
-                SetUpSpaceEncounter(9, 8, SpawnAmount);               
+                SetUpSpaceEncounter(9, 8, SpawnAmount);
+                SaveLocationAddressBook();
                 break;
             case UniverseDepth.Planet:
                 OnWorldMap?.Invoke(false);
@@ -966,6 +985,12 @@ public class Main : MonoBehaviour
             activeBrain = Ego;
             string[] ar = TryLoadLevel();
             activeBrain.BuildPlanetData(ar, universeAdress, LocationResources);
+            if (!isInitialized)
+            {
+                Debug.Log("Activating Initial sequence!");
+                PlayerPrefs.SetInt("Initialized", 1);
+                OnInitializeFirstInteraction?.Invoke();
+            }
         }
 
         #region Diamond Map

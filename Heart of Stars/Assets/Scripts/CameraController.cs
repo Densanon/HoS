@@ -13,6 +13,7 @@ public class CameraController : MonoBehaviour
     Transform myTransform;
     bool inMap = false;
     public bool atUniverse = false;
+    bool inInitializedSequence = false;
 
     Transform targetTransform;
     Vector3 cameraNormalPosition;
@@ -49,6 +50,7 @@ public class CameraController : MonoBehaviour
         Main.OnWorldMap += TransitionCameraSettings;
         Main.OnGoingToHigherLevel += ZoomFromGivenObject;
         Main.SendCameraState += LoadCamState;
+        Main.OnInitializeFirstInteraction += FirstEncounterSetup;
         HexTileInfo.OnStartingTile += FindStartingPosition;
         Depthinteraction.SpaceInteractionHover += ZoomIntoSpaceobject;
     }
@@ -58,8 +60,16 @@ public class CameraController : MonoBehaviour
         Main.OnWorldMap -= TransitionCameraSettings;
         Main.OnGoingToHigherLevel -= ZoomFromGivenObject;
         Main.SendCameraState -= LoadCamState;
+        Main.OnInitializeFirstInteraction -= FirstEncounterSetup;
         HexTileInfo.OnStartingTile -= FindStartingPosition;
         Depthinteraction.SpaceInteractionHover -= ZoomIntoSpaceobject;
+    }
+
+    private void FirstEncounterSetup()
+    {
+        //probably some animated fly around deal
+        inInitializedSequence = true;
+        planetaryCameraIsFrozen = true;
     }
     #endregion
 
@@ -185,7 +195,7 @@ public class CameraController : MonoBehaviour
 
         myTransform.Rotate(45f, 0f, 0f);
         myTransform.position = new Vector3(0f, 10f, -.5f);
-        myCamera.orthographicSize = 1.5f;
+        myCamera.orthographicSize = 1.75f;
         inMap = true;
     }
 
@@ -194,6 +204,13 @@ public class CameraController : MonoBehaviour
     {
         if (inMap)
         {
+            if (inInitializedSequence)
+            {
+                //Do your thing cam.
+                inInitializedSequence = false;
+                planetaryCameraIsFrozen = false;
+            }
+
             CheckMouseWheelPress();
 
             MoveCameraOnPlanet();

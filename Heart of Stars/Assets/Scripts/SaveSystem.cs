@@ -133,26 +133,15 @@ public static class SaveSystem
         }
     }
 
-    public static void SeriouslyDeleteAllSaveFiles()
+    public static void DeleteAllLocationInformation()
     {
-        string path = Application.persistentDataPath + "/resource_shalom";
-        if (File.Exists(path))
-        {
-            File.Delete(path);
-            Debug.Log("I found the file, and have deleted it.");
-        }
-        path = Application.persistentDataPath + "/address_nissi";
-        if (File.Exists(path))
-        {
-            File.Delete(path);
-            Debug.Log("I found the file, and have deleted it.");
-        }
+        string path;
 
         string s = LoadFile("/Locations_Jireh");
-        if(s != null)
+        if (s != null)
         {
-            string[] ar = s.Split(",");
-            foreach(string str in ar)
+            string[] ar = s.Split(";");
+            foreach (string str in ar)
             {
                 path = Application.persistentDataPath + "/" + str;
                 if (File.Exists(path))
@@ -169,5 +158,23 @@ public static class SaveSystem
             File.Delete(path);
             Debug.Log("I found the file, and have deleted it.");
         }
+    }
+
+    public static void SeriouslyDeleteAllSaveFiles()
+    {
+        string path = Application.persistentDataPath + "/resource_shalom";
+        if (File.Exists(path))
+        {
+            File.Delete(path);
+            Debug.Log("I found the file, and have deleted it.");
+        }
+        path = Application.persistentDataPath + "/address_nissi";
+        if (File.Exists(path))
+        {
+            File.Delete(path);
+            Debug.Log("I found the file, and have deleted it.");
+        }
+
+        DeleteAllLocationInformation();
     }
 }
