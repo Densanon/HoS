@@ -13,7 +13,7 @@ public class CameraController : MonoBehaviour
     Transform myTransform;
     bool inMap = false;
     public bool atUniverse = false;
-    bool inInitializedSequence = false;
+    public bool inSpaceshipSequence = false;
 
     Transform targetTransform;
     Vector3 cameraNormalPosition;
@@ -51,7 +51,8 @@ public class CameraController : MonoBehaviour
         Main.OnGoingToHigherLevel += ZoomFromGivenObject;
         Main.SendCameraState += LoadCamState;
         HexTileInfo.OnStartingTile += FindStartingPosition;
-        HexTileInfo.OnLanded += EndLandingSequence;
+        HexTileInfo.OnLanded += EndSpaceshipSequence;
+        HexTileInfo.OnLeaving += EndSpaceshipSequence;
         Depthinteraction.SpaceInteractionHover += ZoomIntoSpaceobject;
     }
 
@@ -61,7 +62,8 @@ public class CameraController : MonoBehaviour
         Main.OnGoingToHigherLevel -= ZoomFromGivenObject;
         Main.SendCameraState -= LoadCamState;
         HexTileInfo.OnStartingTile -= FindStartingPosition;
-        HexTileInfo.OnLanded -= EndLandingSequence;
+        HexTileInfo.OnLanded -= EndSpaceshipSequence;
+        HexTileInfo.OnLeaving -= EndSpaceshipSequence;
         Depthinteraction.SpaceInteractionHover -= ZoomIntoSpaceobject;
     }
 
@@ -198,7 +200,7 @@ public class CameraController : MonoBehaviour
     {
         if (inMap)
         {
-            if (inInitializedSequence)
+            if (inSpaceshipSequence)
             {
                 //Do your thing cam.
                 transform.LookAt(targetTransform);
@@ -214,7 +216,6 @@ public class CameraController : MonoBehaviour
 
     private void FindStartingPosition(Transform tran)
     {
-        Debug.Log("I have been told a starting point.");
         targetTransform = tran;
         Vector3 pos = tran.position;
         pos.y += 10;
@@ -222,12 +223,12 @@ public class CameraController : MonoBehaviour
         myTransform.position = pos;
 
         //probably some animated fly around deal
-        inInitializedSequence = true;
+        inSpaceshipSequence = true;
         planetaryCameraIsFrozen = true;
     }
-    private void EndLandingSequence()
+    private void EndSpaceshipSequence()
     {
-        inInitializedSequence = false;
+        inSpaceshipSequence = false;
         planetaryCameraIsFrozen = false;
     }
     private void CheckMouseWheelPress()

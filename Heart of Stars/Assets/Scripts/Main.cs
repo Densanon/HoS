@@ -217,6 +217,7 @@ public class Main : MonoBehaviour
         CameraController.OnCameraZoomContinue += SetZoomContinueTrue;
         CameraController.OnNeedZoomInfo += GoBackAStep;
         CameraController.SaveCameraState += SaveCamState;
+        HexTileInfo.OnLeaving += GoBackAStep;
     }
 
     private void SetZoomContinueTrue()
@@ -1036,6 +1037,11 @@ public class Main : MonoBehaviour
             tileInfoList[i] = temp[i];
         }*/
         #endregion
+    }
+    public void StartLeaveSequence()
+    {
+        activeBrain.StartLeaveSequence();
+        Camera.main.GetComponent<CameraController>().inSpaceshipSequence = true;
     }
     private void SetupDepthLocationsArray(List<GameObject> objs)
     {

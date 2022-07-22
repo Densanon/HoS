@@ -11,6 +11,7 @@ public class LocationManager : MonoBehaviour
     public GameObject[] myPlanetPieces;
     public GameObject tilePrefab;
     public HexTileInfo[] tileInfoList;
+    HexTileInfo starter;
     public ResourceData[] myResources;
     Vector2[] TileLocations;
 
@@ -76,7 +77,6 @@ public class LocationManager : MonoBehaviour
 
         SaveLocationInfo();
     }
-
     void BuildTileBase()
     {
         List<HexTileInfo> temp = new List<HexTileInfo>();
@@ -109,16 +109,18 @@ public class LocationManager : MonoBehaviour
             TileLocations[i] = locs[i];
         }
     }
-
     private void SetHexTileInformationFromMemory(string[] hextiles)
     {
         for (int i = 0; i < hextiles.Length; i++)
         {
             string[] ar = hextiles[i].Split(":");
             tileInfoList[i].SetAllTileInfoFromMemory(ar[0], int.Parse(ar[1]), ar[2], (ar[3] == "True"));
+            if (ar[3] == "True")
+            {
+                starter = tileInfoList[i];
+            }
         }
     }
-
     public void OrganizePieces()
     {
         for (int p = 0; p < landStartingPointsForSpawning; p++)
@@ -142,6 +144,18 @@ public class LocationManager : MonoBehaviour
                 Debug.Log($"Found a starting point! {tile.myPositionInTheArray}");
                 tile.SetAsStartingPoint();
                 start = true;
+                starter = tile;
+            }
+        }
+    }
+    public void StartLeaveSequence()
+    {
+        foreach(HexTileInfo tile in tileInfoList)
+        {
+            if (tile.isStartingPoint)
+            {
+                tile.StartLeavingSequenceAnimation();
+                return;
             }
         }
     }
@@ -304,6 +318,7 @@ public class LocationManager : MonoBehaviour
     public void TurnOnVisibility()
     {
         gameObject.SetActive(true);
+        starter.StartLandingSequenceAnimation();
     }
     #endregion
 

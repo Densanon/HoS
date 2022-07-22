@@ -2267,6 +2267,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   atUniverse: 0
+  inSpaceshipSequence: 0
 --- !u!1 &760186820
 GameObject:
   m_ObjectHideFlags: 0
@@ -7825,7 +7826,31 @@ MonoBehaviour:
   m_TargetGraphic: {fileID: 2066587455}
   m_OnClick:
     m_PersistentCalls:
-      m_Calls: []
+      m_Calls:
+      - m_Target: {fileID: 1118570888}
+        m_TargetAssemblyTypeName: Main, Assembly-CSharp
+        m_MethodName: StartLeaveSequence
+        m_Mode: 1
+        m_Arguments:
+          m_ObjectArgument: {fileID: 0}
+          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
+          m_IntArgument: 0
+          m_FloatArgument: 0
+          m_StringArgument: 
+          m_BoolArgument: 0
+        m_CallState: 2
+      - m_Target: {fileID: 2129234724}
+        m_TargetAssemblyTypeName: UnityEngine.GameObject, UnityEngine
+        m_MethodName: SetActive
+        m_Mode: 6
+        m_Arguments:
+          m_ObjectArgument: {fileID: 0}
+          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
+          m_IntArgument: 0
+          m_FloatArgument: 0
+          m_StringArgument: 
+          m_BoolArgument: 0
+        m_CallState: 2
 --- !u!114 &2066587455
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -8353,6 +8378,7 @@ MonoBehaviour:
   TilePanelInfoPrefab: {fileID: 6474343256560521088, guid: efbd23c81c155dc46b59d649858f0a3a, type: 3}
   Content: {fileID: 943423809}
   depthOfInformation: 0
+  LeaveButton: {fileID: 2066587452}
 --- !u!1 &2137770230
 GameObject:
   m_ObjectHideFlags: 0

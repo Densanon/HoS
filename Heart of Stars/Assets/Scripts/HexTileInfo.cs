@@ -7,6 +7,7 @@ public class HexTileInfo : MonoBehaviour
 {
     public static Action<Transform> OnStartingTile = delegate { };
     public static Action OnLanded = delegate { };
+    public static Action OnLeaving = delegate { };
     public static Action<Vector2> OnTakeover = delegate { };
     public static Action<Vector2> TypeTransform = delegate { };
     public static Action<Vector2> LookingForNeighbors = delegate { };
@@ -26,9 +27,13 @@ public class HexTileInfo : MonoBehaviour
 
     [SerializeField]
     Renderer[] myRenderers;
+    Transform spaceship;
 
     [SerializeField]
     Vector2[] myNeighbors;
+
+    [SerializeField]
+    ResourceData[] myResources; // need to implement
 
     public Vector2 myPositionInTheArray;
 
@@ -40,11 +45,12 @@ public class HexTileInfo : MonoBehaviour
     public int myTileType = 0;
 
     bool isInitializingLandingSequence = false;
+    bool isInitializingLeavingSequence = false;
     Vector3 startPosition;
     Vector3 endPosition;
-    float landingSequenceTimer;
-    float landingSequenceDesiredTime;
-    bool isStartingPoint;
+    float spaceshipSequenceTimer;
+    float spaceshipSequenceDesiredTime;
+    public bool isStartingPoint;
 
     #region Unity Methods
     private void OnEnable()
@@ -139,43 +145,59 @@ public class HexTileInfo : MonoBehaviour
         isStartingPoint = true;
         myRenderers[0].material.mainTexture = tileTextures[3];
         myState = TileStates.Conquered;
-        OnStartingTile?.Invoke(myRenderers[4].transform);
         OnTakeover -= CheckForPlayability;
         OnTakeover?.Invoke(myPositionInTheArray);
-        LandingSequenceAnimation();
+        StartLandingSequenceAnimation();
         Debug.Log("Sending Starting Point.");
     }
 
-    void LandingSequenceAnimation()
+    public void StartLandingSequenceAnimation()
     {
-        myRenderers[4].GetComponent<SpriteRenderer>().enabled = true;
-        myRenderers[4].GetComponent<SpriteRenderer>().sprite = armySprites[armySprites.Length - 1];
-        endPosition = myRenderers[4].transform.position;
+        spaceship = myRenderers[4].transform;
+        OnStartingTile?.Invoke(spaceship);
+        SpriteRenderer rend = myRenderers[4].GetComponent<SpriteRenderer>();
+        rend.enabled = true;
+        rend.sprite = armySprites[armySprites.Length - 1];
+        endPosition = spaceship.position;
         startPosition = new Vector3(endPosition.x, endPosition.y + 6f, endPosition.z);
-        landingSequenceTimer = 0;
-        landingSequenceDesiredTime = 6f;
+        spaceshipSequenceTimer = 0;
+        spaceshipSequenceDesiredTime = 6f;
         isInitializingLandingSequence = true;
     }
 
-    void LeavingSequenceAnimation()
+    public void StartLeavingSequenceAnimation()
     {
-
+        spaceshipSequenceTimer = 0;
+        spaceshipSequenceDesiredTime = 6f;
+        isInitializingLeavingSequence = true;
     }
 
     private void Update()
     {
         if (isInitializingLandingSequence)
         {
-            myRenderers[4].transform.position = Vector3.Lerp(startPosition, endPosition, landingSequenceTimer/landingSequenceDesiredTime);
+            spaceship.position = Vector3.Lerp(startPosition, endPosition, spaceshipSequenceTimer/spaceshipSequenceDesiredTime);
 
-            landingSequenceTimer += Time.deltaTime;
-            Debug.Log(landingSequenceTimer);
-            if(landingSequenceTimer > landingSequenceDesiredTime)
+            spaceshipSequenceTimer += Time.deltaTime;
+            if(spaceshipSequenceTimer > spaceshipSequenceDesiredTime)
             {
                 Debug.Log("Landed");
                 isInitializingLandingSequence = false;
-                myRenderers[4].transform.position = endPosition;
+                spaceship.position = endPosition;
                 OnLanded?.Invoke();
+            }
+        }
+        if (isInitializingLeavingSequence)
+        {
+            spaceship.position = Vector3.Lerp(endPosition, startPosition, spaceshipSequenceTimer / spaceshipSequenceDesiredTime);
+
+            spaceshipSequenceTimer += Time.deltaTime;
+            if (spaceshipSequenceTimer > spaceshipSequenceDesiredTime)
+            {
+                Debug.Log("Left");
+                isInitializingLeavingSequence = false;
+                OnLeaving?.Invoke();
+                spaceship.position = endPosition;
             }
         }
     }
