@@ -31,11 +31,14 @@ public class CameraController : MonoBehaviour
     bool needsNormalZoom = false;
     bool canOverWorldZoomIn = false;
     bool isZooming = false;
-    bool planetaryCameraIsFrozen = false;
+    public bool planetaryCameraIsFrozen = false;
+    public bool canMoveOnMap = false;
+    public float cameraPlanetaryZoomRate = 0.25f;
 
-    float cameraPlanetaryZoomRate = 0.25f;
+    public float camMoveX;
+    public float camMoveY;
 
-    bool canMoveOnMap = false;
+
 
     #region Unity Methods
     private void Awake()
@@ -267,8 +270,12 @@ public class CameraController : MonoBehaviour
         if (canMoveOnMap && !planetaryCameraIsFrozen)
         {
             Vector3 pos = myTransform.position;
-            pos.z += Input.GetAxis("Mouse Y") * cameraPlanetaryZoomRate * -1;
-            pos.x += Input.GetAxis("Mouse X") * cameraPlanetaryZoomRate * -1;
+            //pos.z += Input.GetAxis("Mouse Y") * cameraPlanetaryZoomRate * -1;
+            camMoveY = Input.GetAxis("Mouse Y") * cameraPlanetaryZoomRate;
+            pos.z += camMoveY * -1;
+            //pos.x += Input.GetAxis("Mouse X") * cameraPlanetaryZoomRate * -1;
+            camMoveX = Input.GetAxis("Mouse X") * cameraPlanetaryZoomRate;
+            pos.x += camMoveX * -1;
             myTransform.position = pos;
         }
     }

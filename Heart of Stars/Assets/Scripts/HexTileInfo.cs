@@ -15,25 +15,24 @@ public class HexTileInfo : MonoBehaviour
 
     [SerializeField]
     Texture2D[] tileTextures;
-
     [SerializeField]
     Sprite[] resourceSprites;
-
     [SerializeField]
     Sprite[] buildingSprites;
-
     [SerializeField]
     Sprite[] armySprites;
-
     [SerializeField]
     Renderer[] myRenderers;
     Transform spaceship;
-
     [SerializeField]
     Vector2[] myNeighbors;
-
     [SerializeField]
     ResourceData[] myResources; // need to implement
+    [SerializeField]
+    GameObject dependenceButtonPrefab;
+
+    public GameObject canvasContainerPrefab;
+    public Transform myCanvasContainer;
 
     public Vector2 myPositionInTheArray;
 
@@ -43,6 +42,8 @@ public class HexTileInfo : MonoBehaviour
     TileStates myState = TileStates.UnPlayable;
 
     public int myTileType = 0;
+    LocationManager myManager;
+    Main main;
 
     bool isInitializingLandingSequence = false;
     bool isInitializingLeavingSequence = false;
@@ -51,18 +52,48 @@ public class HexTileInfo : MonoBehaviour
     float spaceshipSequenceTimer;
     float spaceshipSequenceDesiredTime;
     public bool isStartingPoint;
+    bool isMousePresent;
 
     #region Unity Methods
     private void OnEnable()
     {
         OnTakeover += CheckForPlayability;
         TypeTransform += TryToTransformToLand;
+        OnNeedUIElementsForTile += CheckDeactivateOptions;
     }
-
     private void OnDisable()
     {
         OnTakeover -= CheckForPlayability;
         TypeTransform -= TryToTransformToLand;
+        OnNeedUIElementsForTile -= CheckDeactivateOptions;
+
+    }
+    private void Update()
+    {
+        if (isInitializingLandingSequence)
+        {
+            spaceship.position = Vector3.Lerp(startPosition, endPosition, spaceshipSequenceTimer/spaceshipSequenceDesiredTime);
+
+            spaceshipSequenceTimer += Time.deltaTime;
+            if(spaceshipSequenceTimer > spaceshipSequenceDesiredTime)
+            {
+                isInitializingLandingSequence = false;
+                spaceship.position = endPosition;
+                OnLanded?.Invoke();
+            }
+        }
+        if (isInitializingLeavingSequence)
+        {
+            spaceship.position = Vector3.Lerp(endPosition, startPosition, spaceshipSequenceTimer / spaceshipSequenceDesiredTime);
+
+            spaceshipSequenceTimer += Time.deltaTime;
+            if (spaceshipSequenceTimer > spaceshipSequenceDesiredTime)
+            {
+                isInitializingLeavingSequence = false;
+                OnLeaving?.Invoke();
+                spaceship.position = endPosition;
+            }
+        }
     }
     #endregion
 
@@ -71,14 +102,18 @@ public class HexTileInfo : MonoBehaviour
     {
         myPositionInTheArray = new Vector2(column, row);
 
+        if(myPositionInTheArray.x == 0 || myPositionInTheArray.x == myManager.locationXBounds-1 ||
+           myPositionInTheArray.y == 0 || myPositionInTheArray.y == myManager.locationYBounds-1)
+        {
+            TypeTransform -= TryToTransformToLand;
+        }
+
         DeactivateDetailLayers();
     }
-
     public void SetNeighbors(Vector2[] locations)
     {
         myNeighbors = locations;
     }
-
     private void TryToTransformToLand(Vector2 pos)
     {
         if ((myState == TileStates.UnPlayable && pos.x == myPositionInTheArray.x && (pos.y + 1 == myPositionInTheArray.y || pos.y - 1 == myPositionInTheArray.y)) || //Same column +- row
@@ -87,13 +122,12 @@ public class HexTileInfo : MonoBehaviour
             (myState == TileStates.UnPlayable && pos.x % 2 == 0 && pos.x - 1 == myPositionInTheArray.x && (pos.y == myPositionInTheArray.y || pos.y - 1 == myPositionInTheArray.y)) || //Even -Column +=row 
             (myState == TileStates.UnPlayable && pos.x % 2 == 1 && pos.x - 1 == myPositionInTheArray.x && (pos.y == myPositionInTheArray.y || pos.y + 1 == myPositionInTheArray.y))) //Odd -Column -=row 
         {
-            if(Mathf.RoundToInt(UnityEngine.Random.Range(0f,2f)*frequencyOfLandDistribution) == 1)
+            if (Mathf.RoundToInt(UnityEngine.Random.Range(0f, 2f) * frequencyOfLandDistribution) == 1)
             {
                     TurnLand();
             }
         }
     }
-
     public void TurnLand()
     {
         TypeTransform -= TryToTransformToLand;
@@ -106,13 +140,15 @@ public class HexTileInfo : MonoBehaviour
             myTileType = UnityEngine.Random.Range(1, resourceSprites.Length+1);
             myRenderers[2].enabled = true;
             myRenderers[2].GetComponent<SpriteRenderer>().sprite = resourceSprites[myTileType-1];
+            CreateResources();
             return;
         }
         myTileType = resourceSprites.Length+1; // blank space
-        /// mountain
-        /// tree
-        /// mine
-        /// wheat
+        CreateResources();
+        ///1 mountain
+        ///2 tree
+        ///3 mine
+        ///4 wheat
         /// tent
         /// building
         /// trap?
@@ -120,12 +156,39 @@ public class HexTileInfo : MonoBehaviour
         /// guy
         /// robot spider
     }
+    void CreateResources()
+    {
+        List<ResourceData> tempToPermanent = new List<ResourceData>();
+        List<ResourceData> locationTypeOptionList = new List<ResourceData>();
 
+        foreach(ResourceData data in myManager.myResources)
+        {
+            if (data.itemName == "soldier") //UniversalResource
+            {
+                tempToPermanent.Add(new ResourceData(data));
+            }else if(myTileType == 1 && data.groups == "metal")
+            {
+                locationTypeOptionList.Add(data);
+            }
+        }
+
+        if(locationTypeOptionList.Count > 0)
+            tempToPermanent.Add(new ResourceData(locationTypeOptionList[UnityEngine.Random.Range(0, locationTypeOptionList.Count)]));
+        
+        myResources = tempToPermanent.ToArray();
+    }
+    public void SetMain(Main m)
+    {
+        main = m;
+    }
+    public void SetManager(LocationManager manager)
+    {
+        myManager = manager;
+    }
     public int GetResourceSpritesLengthForStartPoint()
     {
         return resourceSprites.Length + 1;
     }
-
     private void CheckForPlayability(Vector2 pos)
     {
         if((myState == TileStates.UnClickable && pos.x == myPositionInTheArray.x && (pos.y +1 == myPositionInTheArray.y || pos.y - 1 == myPositionInTheArray.y)) || //Same column +- row
@@ -139,7 +202,6 @@ public class HexTileInfo : MonoBehaviour
             OnTakeover -= CheckForPlayability;
         }
     }
-
     public void SetAsStartingPoint()
     {
         isStartingPoint = true;
@@ -148,9 +210,7 @@ public class HexTileInfo : MonoBehaviour
         OnTakeover -= CheckForPlayability;
         OnTakeover?.Invoke(myPositionInTheArray);
         StartLandingSequenceAnimation();
-        Debug.Log("Sending Starting Point.");
     }
-
     public void StartLandingSequenceAnimation()
     {
         spaceship = myRenderers[4].transform;
@@ -164,44 +224,12 @@ public class HexTileInfo : MonoBehaviour
         spaceshipSequenceDesiredTime = 6f;
         isInitializingLandingSequence = true;
     }
-
     public void StartLeavingSequenceAnimation()
     {
         spaceshipSequenceTimer = 0;
         spaceshipSequenceDesiredTime = 6f;
         isInitializingLeavingSequence = true;
     }
-
-    private void Update()
-    {
-        if (isInitializingLandingSequence)
-        {
-            spaceship.position = Vector3.Lerp(startPosition, endPosition, spaceshipSequenceTimer/spaceshipSequenceDesiredTime);
-
-            spaceshipSequenceTimer += Time.deltaTime;
-            if(spaceshipSequenceTimer > spaceshipSequenceDesiredTime)
-            {
-                Debug.Log("Landed");
-                isInitializingLandingSequence = false;
-                spaceship.position = endPosition;
-                OnLanded?.Invoke();
-            }
-        }
-        if (isInitializingLeavingSequence)
-        {
-            spaceship.position = Vector3.Lerp(endPosition, startPosition, spaceshipSequenceTimer / spaceshipSequenceDesiredTime);
-
-            spaceshipSequenceTimer += Time.deltaTime;
-            if (spaceshipSequenceTimer > spaceshipSequenceDesiredTime)
-            {
-                Debug.Log("Left");
-                isInitializingLeavingSequence = false;
-                OnLeaving?.Invoke();
-                spaceship.position = endPosition;
-            }
-        }
-    }
-
     #endregion
 
     #region Setup Tiles From Memory
@@ -268,30 +296,86 @@ public class HexTileInfo : MonoBehaviour
     #region Mouse Interactions
     private void OnMouseDown()
     {
-        if(myState == TileStates.Clickable)
+        if (isMousePresent)
         {
-            myState = TileStates.Conquered;
-            myRenderers[0].material.mainTexture = tileTextures[3];
-            OnTakeover -= CheckForPlayability;
-            OnTakeover?.Invoke(myPositionInTheArray);
-        }else if(myState == TileStates.Conquered)
-        {
-            OnNeedUIElementsForTile?.Invoke(this);
+            if(myState == TileStates.Clickable)
+            {
+                myState = TileStates.Conquered;
+                myRenderers[0].material.mainTexture = tileTextures[3];
+                OnTakeover -= CheckForPlayability;
+                OnTakeover?.Invoke(myPositionInTheArray);
+            }else if(myState == TileStates.Conquered)
+            {
+                ActivateTileOptions();
+                OnNeedUIElementsForTile?.Invoke(this);
+            }
+            return;
         }
     }
-
     public void OnMouseEnter()
     {
-        if (myState == TileStates.Conquered) return;
+        isMousePresent = true;
+        Vector3 v = transform.position;
+        v.y += .1f;
+        transform.position = v;
+        //if (myState == TileStates.Conquered) return;
         if (myState == TileStates.UnClickable) return;
     }
-
     private void OnMouseExit()
     {
-        if (myState == TileStates.Conquered) return;
+        isMousePresent = false;
+        Vector3 v = transform.position;
+        v.y -= .1f;
+        transform.position = v;
+        //if (myState == TileStates.Conquered) return;
         if (myState == TileStates.UnClickable) return;
     }
     #endregion
+    private void CheckDeactivateOptions(HexTileInfo tile)
+    {
+        if (tile.GetInstanceID() != this.GetInstanceID())
+        {
+            DeactivateTileOptions();
+        }
+    }
+    private void ActivateTileOptions()
+    {
+        if (myCanvasContainer == null)
+        {
+            CreateTileOptions();
+            return;
+        }else if (myCanvasContainer.gameObject.activeInHierarchy)
+        {
+            myCanvasContainer.gameObject.SetActive(false);
+            return;
+        }
+
+        myCanvasContainer.gameObject.SetActive(true);
+        SetButtonsOnScreenPosition();
+    }
+    private void SetButtonsOnScreenPosition()
+    {
+        myCanvasContainer.position = Camera.main.WorldToScreenPoint(transform.position);
+    }
+    private void CreateTileOptions()
+    {
+        myCanvasContainer = GameObject.Find("Canvas").transform;
+        GameObject obj = Instantiate(canvasContainerPrefab, myCanvasContainer);
+        myCanvasContainer = obj.transform;
+        SetButtonsOnScreenPosition();
+        foreach (ResourceData data in myResources)
+        {
+            Debug.Log($"Resource: {data.itemName}");
+            GameObject obs = Instantiate(dependenceButtonPrefab, myCanvasContainer);
+            obs.transform.position = new Vector3(obs.transform.position.x, obs.transform.position.y + 10f);
+            myCanvasContainer.Rotate(0f, 0f, 360f / myResources.Length);
+            obs.GetComponent<Resource>().SetUpResource(data, false, main);
+        }
+    }
+    void DeactivateTileOptions()
+    {
+        if(myCanvasContainer != null) myCanvasContainer.gameObject.SetActive(false);
+    }
 
     public void DeactivateSelf()
     {

@@ -60,6 +60,5 @@ public class HoverAbleResourceButton : MonoBehaviour
     {
         isHovering = false;
         if (!panelIsStalled) HidePanel();
-
     }
 }

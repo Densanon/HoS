@@ -75,7 +75,6 @@ public class Resource : MonoBehaviour
                 tempIndices.Add(int.Parse(tAr[1]));
                 tempNames.Add(tAr[0]);
             }
-
         }
 
         //check for nonconsumable dependencies
@@ -86,7 +85,7 @@ public class Resource : MonoBehaviour
             {
                 string[] tAr = s.Split('=');
                 temp.Add(main.FindResourceFromString(tAr[0]));
-                tempIndices.Add(int.Parse(tAr[1]));
+                tempIndices.Add(1);
                 tempNames.Add(tAr[0]);
             }
         }

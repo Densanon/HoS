@@ -984,11 +984,11 @@ public class Main : MonoBehaviour
             LocationManager Ego = obj.GetComponent<LocationManager>();
             planetContainer.Add(Ego);
             activeBrain = Ego;
+            Ego.AssignMain(this);
             string[] ar = TryLoadLevel();
             activeBrain.BuildPlanetData(ar, universeAdress, LocationResources);
             if (!isInitialized)
             {
-                Debug.Log("Activating Initial sequence!");
                 PlayerPrefs.SetInt("Initialized", 1);
                 OnInitializeFirstInteraction?.Invoke();
             }

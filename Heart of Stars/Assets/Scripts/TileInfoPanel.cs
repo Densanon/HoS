@@ -20,7 +20,7 @@ public class TileInfoPanel : MonoBehaviour
 
     private void Awake()
     {
-        HexTileInfo.OnNeedUIElementsForTile += ActivateTile;
+        //HexTileInfo.OnNeedUIElementsForTile += ActivateTile;
         gameObject.SetActive(false); 
     }
 

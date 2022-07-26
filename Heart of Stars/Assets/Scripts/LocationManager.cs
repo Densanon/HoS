@@ -5,24 +5,34 @@ using UnityEngine;
 
 public class LocationManager : MonoBehaviour
 {
+    Main main;
+
     public string myAddress;
-    public float frequencyForLandSpawning = 1.5f;
-    public int landStartingPointsForSpawning = 5;
+    public float frequencyForLandSpawning; //set in inspector
+    public int landStartingPointsForSpawning; //set in inspector
     public GameObject[] myPlanetPieces;
     public GameObject tilePrefab;
     public HexTileInfo[] tileInfoList;
     HexTileInfo starter;
     public ResourceData[] myResources;
     Vector2[] TileLocations;
+    public int locationXBounds;
+    public int locationYBounds;
 
     #region Debugging
-    void DestroyAllScenePieces()
+    public void DestroyAllScenePieces()
     {
         int j = myPlanetPieces.Length;
         for (int i = 0; i < j; i++)
         {
             Destroy(myPlanetPieces[i]);
         }
+    }
+    public void Rebuild()
+    {
+        DestroyAllScenePieces();
+        BuildTileBase();
+        OrganizePieces();
     }
     #endregion
 
@@ -42,6 +52,10 @@ public class LocationManager : MonoBehaviour
     #endregion
 
     #region Setup
+    public void AssignMain(Main m)
+    {
+        main = m;
+    }
     private void FirstEncounterSetup()
     {
         //Do some stuff for the firstencounter.
@@ -83,14 +97,19 @@ public class LocationManager : MonoBehaviour
         List<GameObject> objs = new List<GameObject>();
         List<Vector2> locs = new List<Vector2>();
 
-        for (int x = 0; x < 10; x++)
+        locationXBounds = UnityEngine.Random.Range(30, 45);
+        locationYBounds = UnityEngine.Random.Range(20, 35);
+
+        for (int x = 0; x < locationXBounds; x++)
         {
             bool odd = (x % 2 == 1) ? true : false;
-            for (int y = 0; y < 10; y++)
+            for (int y = 0; y < locationYBounds; y++)
             {
                 GameObject obj = Instantiate(tilePrefab, new Vector3(x * 0.75f, 0f, (odd) ? y * .87f + .43f : y * .87f), Quaternion.identity, transform);
                 objs.Add(obj);
                 HexTileInfo tf = obj.GetComponent<HexTileInfo>();
+                tf.SetManager(this);
+                tf.SetMain(main);
                 tf.SetUpTileLocation(x, y);
                 tf.frequencyOfLandDistribution = frequencyForLandSpawning;
                 temp.Add(tf);
@@ -125,12 +144,22 @@ public class LocationManager : MonoBehaviour
     {
         for (int p = 0; p < landStartingPointsForSpawning; p++)
         {
-            float l = 100f;
+            float l = locationXBounds*locationYBounds;
             float q = (float)p / (float)landStartingPointsForSpawning * l;
-
             float f = (float)(p + 1) / (float)landStartingPointsForSpawning * l;
-
-            int k = UnityEngine.Random.Range(Mathf.RoundToInt(q), Mathf.RoundToInt(f));
+            int k = 0;
+            bool suitable = false;
+            while (!suitable)
+            {
+                k = UnityEngine.Random.Range(Mathf.RoundToInt(q), Mathf.RoundToInt(f));
+                Vector2 target = tileInfoList[k].myPositionInTheArray;
+                if(target.x != 0 && target.x != locationXBounds-1 &&
+                   target.y != 0 && target.y != locationYBounds - 1 &&
+                   tileInfoList[k].myTileType == 0)
+                {
+                    suitable = true;
+                }
+            }
 
             tileInfoList[k].TurnLand();
         }
@@ -141,7 +170,6 @@ public class LocationManager : MonoBehaviour
             tile.SetNeighbors(FindNeighbors(tile.myPositionInTheArray));
             if (!start && tile.myTileType == tile.GetResourceSpritesLengthForStartPoint())
             {
-                Debug.Log($"Found a starting point! {tile.myPositionInTheArray}");
                 tile.SetAsStartingPoint();
                 start = true;
                 starter = tile;

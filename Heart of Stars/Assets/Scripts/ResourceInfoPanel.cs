@@ -19,13 +19,10 @@ public class ResourceInfoPanel : MonoBehaviour
     TMP_Text myDependenciesCurAmount;
     [SerializeField]
     TMP_Text amountOwned;
+    [SerializeField]
+    TMP_Text myMakeables;
 
     ResourceData[] myResourceNeeds;
-
-    [SerializeField]
-    GameObject buttonPrefab;
-    [SerializeField]
-    Transform buttonContainer;
 
     private void OnEnable()
     {
@@ -44,9 +41,12 @@ public class ResourceInfoPanel : MonoBehaviour
     public void Assignment(Resource data, Main main)
     {
         myResource = data.myResource;
-        myTitle.text = data.myResource.displayName;
-        myDetails.text = data.myResource.description;
-        amountOwned.text = $"Amount Owned: {data.myResource.currentAmount}";
+        Debug.Log(myResource);
+        Debug.Log(myTitle);
+        myTitle.text = myResource.displayName;
+        myDetails.text = myResource.description;
+        amountOwned.text = $"Amount Owned: {myResource.currentAmount}";
+        myMakeables.text = myResource.buildables;
 
         myResourceNeeds = data.GetImediateDependencyNames();
         int[] oTemp = data.GetDependencyAmounts();
@@ -61,11 +61,11 @@ public class ResourceInfoPanel : MonoBehaviour
         {
             for(int i = 0; i < myResourceNeeds.Length; i++)
             {
-                GameObject obj = Instantiate(buttonPrefab, buttonContainer);
-                Resource r = obj.GetComponent<Resource>();
-                r.panelButton = true;
-                r.SetUpResource(myResourceNeeds[i], false, main);
-                r.ResetRotation();
+                //GameObject obj = Instantiate(buttonPrefab, buttonContainer);
+                //Resource r = obj.GetComponent<Resource>();
+                //r.panelButton = true;
+                //r.SetUpResource(myResourceNeeds[i], false, main);
+                //r.ResetRotation();
                 myDependencies.text = myDependencies.text + myResourceNeeds[i].displayName + "\n";
                 myDependenciesNeededAmounts.text = myDependenciesNeededAmounts.text + oTemp[i].ToString() + "\n";
                 myDependenciesCurAmount.text = myDependenciesCurAmount.text + myResourceNeeds[i].currentAmount.ToString() + "\n";
@@ -79,6 +79,7 @@ public class ResourceInfoPanel : MonoBehaviour
         myTitle.text = data.displayName;
         myDetails.text = data.description;
         amountOwned.text = $"Amount Owned: {data.currentAmount}";
+        myMakeables.text = data.buildables;
 
         myResourceNeeds = main.FindDependenciesFromResourceData(data);
         int[] oTemp = main.FindDependencyAmountsFromResourceData(data);
@@ -93,11 +94,11 @@ public class ResourceInfoPanel : MonoBehaviour
         {
             for (int i = 0; i < myResourceNeeds.Length; i++)
             {
-                GameObject obj = Instantiate(buttonPrefab, buttonContainer);
-                Resource r = obj.GetComponent<Resource>();
-                r.panelButton = true;
-                r.SetUpResource(data, false, main);
-                r.ResetRotation();
+                //GameObject obj = Instantiate(buttonPrefab, buttonContainer);
+                //Resource r = obj.GetComponent<Resource>();
+                //r.panelButton = true;
+                //r.SetUpResource(data, false, main);
+                //r.ResetRotation();
 
                 myDependencies.text = myDependencies.text + myResourceNeeds[i].displayName + "\n";
                 myDependenciesNeededAmounts.text = myDependenciesNeededAmounts.text + oTemp[i].ToString() + "\n";

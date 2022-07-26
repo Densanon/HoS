@@ -279,9 +279,13 @@ MonoBehaviour:
   - {fileID: 7011921762730667544}
   - {fileID: 2322204848405432411}
   myNeighbors: []
+  myResources: []
+  dependenceButtonPrefab: {fileID: 4311139583789081462, guid: 7935b2d8249344043b2e603f39b5a0ac, type: 3}
+  canvasContainerPrefab: {fileID: 8011429825803110569, guid: f332a2bc0eefae3469868b342644e04a, type: 3}
   myPositionInTheArray: {x: 0, y: 0}
   frequencyOfLandDistribution: 0
   myTileType: 0
+  isStartingPoint: 0
 --- !u!1 &4744813338121559864
 GameObject:
   m_ObjectHideFlags: 0

@@ -44,10 +44,12 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d344428ed9a3e1545888787e59641933, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  s_MyAddress: 
-  frequencySet: 1.5
-  startingPoints: 5
-  g_MyPlanetPieces: []
+  myAddress: 
+  frequencyForLandSpawning: 1.6
+  landStartingPointsForSpawning: 6
+  myPlanetPieces: []
   tilePrefab: {fileID: 4744813338005404904, guid: 790721e2f4e2719499c5b222984d7b22, type: 3}
   tileInfoList: []
   myResources: []
+  locationXBounds: 0
+  locationYBounds: 0
