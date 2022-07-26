@@ -26,8 +26,7 @@ public class HexTileInfo : MonoBehaviour
     Transform spaceship;
     [SerializeField]
     Vector2[] myNeighbors;
-    [SerializeField]
-    ResourceData[] myResources; // need to implement
+    public ResourceData[] myResources;
     [SerializeField]
     GameObject dependenceButtonPrefab;
 
@@ -44,6 +43,8 @@ public class HexTileInfo : MonoBehaviour
     public int myTileType = 0;
     LocationManager myManager;
     Main main;
+    Camera camera;
+    UIResourceManager myResourceManager;
 
     bool isInitializingLandingSequence = false;
     bool isInitializingLeavingSequence = false;
@@ -60,12 +61,16 @@ public class HexTileInfo : MonoBehaviour
         OnTakeover += CheckForPlayability;
         TypeTransform += TryToTransformToLand;
         OnNeedUIElementsForTile += CheckDeactivateOptions;
+        CameraController.OnZoomRelocateUI += SetButtonsOnScreenPosition;
+        CameraController.OnZoomedOutTurnOffUI += DeactivateTileOptions;
     }
     private void OnDisable()
     {
         OnTakeover -= CheckForPlayability;
         TypeTransform -= TryToTransformToLand;
         OnNeedUIElementsForTile -= CheckDeactivateOptions;
+        CameraController.OnZoomRelocateUI -= SetButtonsOnScreenPosition;
+        CameraController.OnZoomedOutTurnOffUI -= DeactivateTileOptions;
 
     }
     private void Update()
@@ -109,6 +114,7 @@ public class HexTileInfo : MonoBehaviour
         }
 
         DeactivateDetailLayers();
+        camera = Camera.main;
     }
     public void SetNeighbors(Vector2[] locations)
     {
@@ -161,12 +167,15 @@ public class HexTileInfo : MonoBehaviour
         List<ResourceData> tempToPermanent = new List<ResourceData>();
         List<ResourceData> locationTypeOptionList = new List<ResourceData>();
 
-        foreach(ResourceData data in myManager.myResources)
+        foreach(ResourceData data in main.GetResourceLibrary())
         {
             if (data.itemName == "soldier") //UniversalResource
             {
                 tempToPermanent.Add(new ResourceData(data));
             }else if(myTileType == 1 && data.groups == "metal")
+            {
+                locationTypeOptionList.Add(data);
+            }else if(myTileType == 2 && data.itemName == "food")
             {
                 locationTypeOptionList.Add(data);
             }
@@ -233,7 +242,7 @@ public class HexTileInfo : MonoBehaviour
     #endregion
 
     #region Setup Tiles From Memory
-    public void SetAllTileInfoFromMemory(string state, int tileType, string neighbors, bool isStart)
+    public void SetAllTileInfoFromMemory(string state, int tileType, string neighbors, bool isStart, string resources)
     {
         SetTileStateFromString(state);
 
@@ -247,6 +256,24 @@ public class HexTileInfo : MonoBehaviour
         SetNeighborsFromString(neighbors);
 
         if (isStart) SetAsStartingPoint();
+
+        if(resources != "")
+        {
+            List<ResourceData> temp = new List<ResourceData>();
+            string[] ar = resources.Split(";");
+            foreach(string s in ar)
+            {
+                string[] st = s.Split(",");
+                //string name, string display, string dis, string gr, string eType, string reqs, string nonReqs, bool vis, int cur, int autoA, float craft,
+                //string created, string coms, string createComs, string im, string snd, string ach, int mos, string build
+                temp.Add(new ResourceData(st[0], st[1], st[2], st[3], st[4], st[5], st[6],
+                        (st[7] == "True") ? true : false, int.Parse(st[8]), int.Parse(st[9]), 
+                        float.Parse(st[10]), st[11], st[12],st[13], st[14], st[15], st[16], 
+                        int.Parse(st[17]), st[18]));
+            }
+
+            myResources = temp.ToArray();
+        }
     }
 
     private void SetNeighborsFromString(string neighbors)
@@ -296,7 +323,7 @@ public class HexTileInfo : MonoBehaviour
     #region Mouse Interactions
     private void OnMouseDown()
     {
-        if (isMousePresent)
+        if (isMousePresent && camera.orthographicSize < 4.25f)
         {
             if(myState == TileStates.Clickable)
             {
@@ -346,35 +373,63 @@ public class HexTileInfo : MonoBehaviour
             return;
         }else if (myCanvasContainer.gameObject.activeInHierarchy)
         {
+            Debug.Log("Container was active.");
+            if (myResourceManager.CheckMouseOnUI()) return;
+            Debug.Log("Container is active.");
             myCanvasContainer.gameObject.SetActive(false);
             return;
         }
-
+        Debug.Log("Container was off.");
         myCanvasContainer.gameObject.SetActive(true);
+        myResourceManager.ResetUI();
         SetButtonsOnScreenPosition();
     }
     private void SetButtonsOnScreenPosition()
     {
-        myCanvasContainer.position = Camera.main.WorldToScreenPoint(transform.position);
+        if (myCanvasContainer != null)
+        {
+            myCanvasContainer.position = camera.WorldToScreenPoint(transform.position);
+            myCanvasContainer.localScale = new Vector3(1.75f / camera.orthographicSize, 1.75f / camera.orthographicSize, 1f);
+        }
     }
     private void CreateTileOptions()
     {
         myCanvasContainer = GameObject.Find("Canvas").transform;
         GameObject obj = Instantiate(canvasContainerPrefab, myCanvasContainer);
         myCanvasContainer = obj.transform;
+        myResourceManager = obj.GetComponent<UIResourceManager>();
+        myResourceManager.SetMyTileAndMain(this, main);
+        myResourceManager.CreateResourceButtons();
         SetButtonsOnScreenPosition();
-        foreach (ResourceData data in myResources)
-        {
-            Debug.Log($"Resource: {data.itemName}");
-            GameObject obs = Instantiate(dependenceButtonPrefab, myCanvasContainer);
-            obs.transform.position = new Vector3(obs.transform.position.x, obs.transform.position.y + 10f);
-            myCanvasContainer.Rotate(0f, 0f, 360f / myResources.Length);
-            obs.GetComponent<Resource>().SetUpResource(data, false, main);
-        }
     }
+
+   public int GetSoldierCount()
+    {
+        foreach(ResourceData resource in myResources)
+        {
+            if (resource.itemName == "soldier")
+            {
+                return resource.currentAmount;
+            }
+        }
+        return 0;
+    }
+
     void DeactivateTileOptions()
     {
         if(myCanvasContainer != null) myCanvasContainer.gameObject.SetActive(false);
+    }
+
+    public ResourceData CheckIfAndUseOwnResources(ResourceData item)
+    {
+        foreach(ResourceData data in myResources)
+        {
+            if(data != item && data.itemName == item.itemName)
+            {
+                return data;
+            }
+        }
+        return item;
     }
 
     public void DeactivateSelf()
@@ -383,7 +438,6 @@ public class HexTileInfo : MonoBehaviour
         TypeTransform -= TryToTransformToLand;
         gameObject.SetActive(false);
     }
-
     void DeactivateDetailLayers()
     {
         myRenderers[1].enabled = false;
@@ -404,6 +458,19 @@ public class HexTileInfo : MonoBehaviour
             s = (first) ? s + st : s + "'" + st;
             first = false;
         }
-        return $"{myState}:{myTileType}:{s}:{isStartingPoint};";
+
+        string str = "";
+        if(myResources.Length != 0)
+        {
+            foreach(ResourceData data in myResources)
+            {
+                str = str + data.DigitizeForSerialization();
+                if (data == myResources[myResources.Length - 1])
+                {
+                    str = str.Remove(str.Length - 1);
+                }
+            }
+        }
+        return $"{myState}:{myTileType}:{s}:{isStartingPoint}:{str}|";
     }
 }

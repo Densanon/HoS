@@ -2537,6 +2537,11 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   atUniverse: 0
   inSpaceshipSequence: 0
+  planetaryCameraIsFrozen: 0
+  canMoveOnMap: 0
+  cameraPlanetaryZoomRate: 0.25
+  camMoveX: 0
+  camMoveY: 0
 --- !u!1 &760186820
 GameObject:
   m_ObjectHideFlags: 0
@@ -2584,7 +2589,7 @@ RectTransform:
   - {fileID: 1275609751}
   - {fileID: 1768127}
   m_Father: {fileID: 855154519}
-  m_RootOrder: 5
+  m_RootOrder: 4
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0}
   m_AnchorMax: {x: 1, y: 1}
@@ -3465,8 +3470,8 @@ RectTransform:
   - {fileID: 772723581}
   - {fileID: 1697511297}
   - {fileID: 1668620301}
-  - {fileID: 1125121803}
   - {fileID: 760186821}
+  - {fileID: 1125121803}
   - {fileID: 1035021491}
   - {fileID: 2129234725}
   m_Father: {fileID: 0}

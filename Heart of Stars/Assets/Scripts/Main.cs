@@ -363,7 +363,7 @@ public class Main : MonoBehaviour
     }
     public ResourceData FindResourceFromString(string itemName)
     {
-        foreach(ResourceData data in activeBrain.myResources)
+        foreach(ResourceData data in ResourceLibrary)
         {
             if(data.itemName == itemName)
             {
@@ -439,7 +439,7 @@ public class Main : MonoBehaviour
 
         if (group == "all")
         {
-            foreach (ResourceData data in activeBrain.myResources)
+            foreach (ResourceData data in ResourceLibrary)
             {
                 CreateInfoPanel(data);
             }
@@ -448,7 +448,7 @@ public class Main : MonoBehaviour
 
         if (group == "allVisible")
         {
-            foreach (ResourceData data in activeBrain.myResources)
+            foreach (ResourceData data in ResourceLibrary)
             {
                 if (data.visible) CreateInfoPanel(data);
             }
@@ -457,7 +457,7 @@ public class Main : MonoBehaviour
 
         if (type == "Groups")
         {
-            foreach (ResourceData data in activeBrain.myResources)//checking group name
+            foreach (ResourceData data in ResourceLibrary)//checking group name
             {
                 string[] ar = data.groups.Split(" ");
                 foreach(string s in ar)
@@ -471,7 +471,7 @@ public class Main : MonoBehaviour
 
             if(resourcePanelInfoPieces.Count == 0)
             {
-                foreach (ResourceData dt in activeBrain.myResources)
+                foreach (ResourceData dt in ResourceLibrary)
                 {
                     string[] ar = dt.displayName.Split(" ");
                     foreach(string s in ar)
@@ -489,7 +489,7 @@ public class Main : MonoBehaviour
 
         if (type == "Game Element")
         {
-            foreach (ResourceData data in activeBrain.myResources)
+            foreach (ResourceData data in ResourceLibrary)
             {
                 if (data.gameElementType == group)
                 {
@@ -508,7 +508,7 @@ public class Main : MonoBehaviour
     {
         RemovePreviousPanelInformation();
         Debug.Log($"Looking to create: {resourceByName}");
-        foreach(ResourceData data in activeBrain.myResources)
+        foreach(ResourceData data in ResourceLibrary)
         {
             if(resourceByName.ToLower() == data.displayName.ToLower())
             {
@@ -799,17 +799,17 @@ public class Main : MonoBehaviour
         string s = SaveSystem.LoadFile("/" + universeAdress);
         if(s != null) // Checking for a save of the planet
         {
-            string[] ar = s.Split("|");
-            string[] resources = ar[1].Split(";");
+            //string[] ar = s.Split("|");
+            //string[] resources = ar[1].Split(";");
 
-            LoadDataFromSave(resources);
-            return ar[0].Split(";");
+            //LoadDataFromSave(resources);
+            return s.Split("|");//ar[0].Split(";");
         }
 
         //No planetary info was stored so build new stuff
         if (SheetData != null)//This grabs all the resource data for this particular planet
         {
-            LoadAndBuildGameStats(null);
+            //LoadAndBuildGameStats(null);
         }
         LoadDataFromSave(null);//This is here if we are offline from when we started
         return null;
@@ -985,8 +985,7 @@ public class Main : MonoBehaviour
             planetContainer.Add(Ego);
             activeBrain = Ego;
             Ego.AssignMain(this);
-            string[] ar = TryLoadLevel();
-            activeBrain.BuildPlanetData(ar, universeAdress, LocationResources);
+            activeBrain.BuildPlanetData(TryLoadLevel(), universeAdress);
             if (!isInitialized)
             {
                 PlayerPrefs.SetInt("Initialized", 1);
@@ -1202,6 +1201,10 @@ public class Main : MonoBehaviour
         if(ret > maxValue -1) ret = maxValue -1;
         
         return ret;
+    }
+    public ResourceData[] GetResourceLibrary()
+    {
+        return ResourceLibrary;
     }
     #endregion
 

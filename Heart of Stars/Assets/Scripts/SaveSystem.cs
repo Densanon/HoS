@@ -71,7 +71,7 @@ public static class SaveSystem
 
     public static void SaveLocationData()
     {
-        FileData = Tiles + "|" + Resources;
+        FileData = Tiles; //+ "|" + Resources;
     }
 
     public static void SaveLocationList(string locations)

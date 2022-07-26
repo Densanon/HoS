@@ -10,6 +10,7 @@ public class Resource : MonoBehaviour
     public static Action<ResourceData> OnUpdate = delegate { };
 
     Main main;
+    HexTileInfo tile;
 
     [SerializeField]
     string myNamedResource;
@@ -56,6 +57,11 @@ public class Resource : MonoBehaviour
         }
     }
 
+    public void AssignTile(HexTileInfo hexTile)
+    {
+        tile = hexTile;
+    }
+
     private void SetUpDependencyLists(ResourceData source)
     {
         myImediateDependence = new List<ResourceData>();
@@ -99,6 +105,10 @@ public class Resource : MonoBehaviour
         dependencyAmounts = tempIndices.ToArray();
         myNamedimediateDependencies = tempNames.ToArray();
 
+        for(int k = 0; k < myImediateDependence.Count; k++) //Setting to my tile resources if there are any
+        {
+            myImediateDependence[k] = tile.CheckIfAndUseOwnResources(myImediateDependence[k]);
+        }
 
         if (isOriginalResource)
         {

@@ -41,8 +41,6 @@ public class ResourceInfoPanel : MonoBehaviour
     public void Assignment(Resource data, Main main)
     {
         myResource = data.myResource;
-        Debug.Log(myResource);
-        Debug.Log(myTitle);
         myTitle.text = myResource.displayName;
         myDetails.text = myResource.description;
         amountOwned.text = $"Amount Owned: {myResource.currentAmount}";

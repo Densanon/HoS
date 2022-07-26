@@ -7,7 +7,7 @@ public class HoverAbleResourceButton : MonoBehaviour
 {
     public static Action<ResourceData> OnHoverUpdate = delegate { };
 
-    bool isHovering = false;
+    public bool isHovering = false;
     bool panelIsActive = false;
     bool panelIsStalled = false;
 

@@ -8,6 +8,8 @@ public class CameraController : MonoBehaviour
     public static Action OnCameraZoomContinue = delegate { };
     public static Action OnNeedZoomInfo = delegate { };
     public static Action<string> SaveCameraState = delegate { };
+    public static Action OnZoomRelocateUI = delegate { };
+    public static Action OnZoomedOutTurnOffUI = delegate { };
 
     Camera myCamera;
     Transform myTransform;
@@ -261,6 +263,11 @@ public class CameraController : MonoBehaviour
             if (size < cameraZoomedInSize)
             {
                 myCamera.orthographicSize = cameraZoomedInSize;
+            }
+            OnZoomRelocateUI?.Invoke();
+            if(size > 4f)
+            {
+                OnZoomedOutTurnOffUI?.Invoke();
             }
         }
     }

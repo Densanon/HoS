@@ -14,7 +14,7 @@ public class LocationManager : MonoBehaviour
     public GameObject tilePrefab;
     public HexTileInfo[] tileInfoList;
     HexTileInfo starter;
-    public ResourceData[] myResources;
+    //public ResourceData[] myResources;
     Vector2[] TileLocations;
     public int locationXBounds;
     public int locationYBounds;
@@ -59,25 +59,25 @@ public class LocationManager : MonoBehaviour
     private void FirstEncounterSetup()
     {
         //Do some stuff for the firstencounter.
-        foreach(ResourceData data in myResources)
-        {
-            if(data.itemName == "soldier")
-            {
-                data.SetCurrentAmount(10);
-                continue;
-            }
-            if(data.itemName == "food")
-            {
-                data.SetCurrentAmount(100);
-                continue;
-            }
-        }
+        //foreach(ResourceData data in myResources)
+        //{
+        //    if(data.itemName == "soldier")
+        //    {
+        //        data.SetCurrentAmount(10);
+        //        continue;
+        //    }
+        //    if(data.itemName == "food")
+        //    {
+        //        data.SetCurrentAmount(100);
+        //        continue;
+        //    }
+        //}
     }
-    public void BuildPlanetData(string[] hextiles, string address, ResourceData[] resources)
+    public void BuildPlanetData(string[] hextiles, string address)
     {
         myAddress = address;
-        myResources = new ResourceData[resources.Length];
-        Array.Copy(resources, myResources, resources.Length);
+        //myResources = new ResourceData[resources.Length];
+        //Array.Copy(resources, myResources, resources.Length);
 
         BuildTileBase();
 
@@ -128,12 +128,12 @@ public class LocationManager : MonoBehaviour
             TileLocations[i] = locs[i];
         }
     }
-    private void SetHexTileInformationFromMemory(string[] hextiles)
+    private void SetHexTileInformationFromMemory(string[] hextileslist)
     {
-        for (int i = 0; i < hextiles.Length; i++)
+        for (int i = 0; i < hextileslist.Length; i++)
         {
-            string[] ar = hextiles[i].Split(":");
-            tileInfoList[i].SetAllTileInfoFromMemory(ar[0], int.Parse(ar[1]), ar[2], (ar[3] == "True"));
+            string[] ar = hextileslist[i].Split(":");
+            tileInfoList[i].SetAllTileInfoFromMemory(ar[0], int.Parse(ar[1]), ar[2], (ar[3] == "True"), ar[4]);
             if (ar[3] == "True")
             {
                 starter = tileInfoList[i];
@@ -366,15 +366,15 @@ public class LocationManager : MonoBehaviour
                 SaveSystem.SaveTile(tileInfoList[i], false);
             }
 
-            for (int j = 0; j < myResources.Length; j++)
-            {
-                if (j == myResources.Length - 1)
-                {
-                    SaveSystem.SaveResource(myResources[j], true);
-                    continue;
-                }
-                SaveSystem.SaveResource(myResources[j], false);
-            }
+            //for (int j = 0; j < myResources.Length; j++)
+            //{
+            //    if (j == myResources.Length - 1)
+            //    {
+            //        SaveSystem.SaveResource(myResources[j], true);
+            //        continue;
+            //    }
+            //    SaveSystem.SaveResource(myResources[j], false);
+            //}
 
             SaveSystem.SaveLocationData();
             SaveSystem.SaveFile("/" + myAddress);
