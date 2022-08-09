@@ -73,6 +73,11 @@ public class LocationManager : MonoBehaviour
         //Do some stuff for the firstencounter.
         foreach(ResourceData data in starter.myResources)
         {
+            if(data.itemName == "enemy")
+            {
+                data.SetCurrentAmount(0);
+                continue;
+            }
             if(data.itemName == "soldier")
             {
                 data.SetCurrentAmount(100);
@@ -81,6 +86,11 @@ public class LocationManager : MonoBehaviour
             if (data.itemName == "food")
             {
                 data.SetCurrentAmount(100);
+                continue;
+            }
+            if(data.itemName == "barracks")
+            {
+                data.SetCurrentAmount(1);
                 continue;
             }
         }

@@ -13,6 +13,9 @@ public class Main : MonoBehaviour
     public static Action OnInitializeVeryFirstInteraction = delegate { };
     public static Action<int> OnInitializeRegularFirstPlanetaryInteraction = delegate { };
 
+    public static Action OnRevealTileLocations = delegate { };
+    public static Action<Vector2> OnRevealTileSpecificInformation = delegate { };
+
     public enum UniverseDepth {Universe, SuperCluster, Galaxy, Nebula, GlobularCluster, StarCluster, Constellation, SolarSystem, PlanetMoon, Planet, Moon}
     static UniverseDepth currentDepth = UniverseDepth.Universe;
 
@@ -179,6 +182,16 @@ public class Main : MonoBehaviour
         planetContainer.Clear();
         LocationAddresses.Clear();
     }
+    public void RevealTileLocation()
+    {
+        OnRevealTileLocations?.Invoke();
+    }
+    public void DebugTileInformation()
+    {
+        string[] s = debugField.Split(",");
+        Vector2 v = new Vector2(int.Parse(s[0]), int.Parse(s[1]));
+        OnRevealTileSpecificInformation(v);
+    }
     #endregion
 
     #region Unity Methods
@@ -250,52 +263,7 @@ public class Main : MonoBehaviour
     }
     #endregion
 
-    #region Qeue
-    public void StartQueUpdate(ResourceData data)
-    {
-        Debug.Log($"I have been told to start the que for {data.displayName}");
-        StartCoroutine(UpdateQue(data));
-    }
-
-    IEnumerator UpdateQue(ResourceData data)
-    {
-        bool addedNormal = false;
-        yield return new WaitForSeconds(data.craftTime);
-        if (data.visible  && (QuedResourceAmount[System.Array.IndexOf(ResourceNameReferenceIndex, data.displayName)] > 0 || data.autoAmount > 0))
-        {
-            Debug.Log($"Starting {data.displayName} Que Update process.");
-            if (QuedResourceAmount[System.Array.IndexOf(ResourceNameReferenceIndex, data.displayName)] > 0)
-            {
-                QuedResourceAmount[System.Array.IndexOf(ResourceNameReferenceIndex, data.displayName)] -= 1;
-                addedNormal = true;
-                Debug.Log($"{data.displayName} has something in Que.");
-            }
-
-            if (addedNormal)
-            {
-                data.AdjustCurrentAmount(1 + data.autoAmount);
-                Debug.Log($"Adding {data.displayName} auto amount and que.");
-            }
-            else
-            {
-                data.AdjustCurrentAmount(data.autoAmount);
-                Debug.Log($"Adding {data.displayName} sinlge que.");
-            }
-
-            StartCoroutine(UpdateQue(data));
-        }
-    }
-
-    public void AddToQue(ResourceData data, int amount)
-    {
-        Debug.Log($"I have been told to add {amount} to the {data.displayName} que");
-        Debug.Log($"{data.displayName} before addition: {QuedResourceAmount[System.Array.IndexOf(ResourceNameReferenceIndex, data.displayName)]}");
-        QuedResourceAmount[System.Array.IndexOf(ResourceNameReferenceIndex, data.displayName)] += amount;
-        Debug.Log($"{data.displayName} after addition: {QuedResourceAmount[System.Array.IndexOf(ResourceNameReferenceIndex, data.displayName)]}");
-
-        StartQueUpdate(data);
-    }
-    #endregion
+    
 
     #region Data Calls
     void CreateOrResetAllBuildableStrings()
@@ -328,14 +296,11 @@ public class Main : MonoBehaviour
         {
             if (ar[0] == data.itemName)
             {
-                if(data.displayName != ar[8]) data.SetDisplayName(ar[8]);
-                
-                if(data.description != ar[9]) data.SetDescription(ar[9]);
-                
-                if(data.groups != ar[10]) data.SetGroups(ar[10]);
-                
-                if(data.gameElementType != ar[1]) data.SetGameElementType(ar[1]);
-                
+                Debug.Log($"{data.itemName} is gettting checked for value changes.");
+                if(data.displayName != ar[8]) data.SetDisplayName(ar[8]);      
+                if(data.description != ar[9]) data.SetDescription(ar[9]);              
+                if(data.groups != ar[10]) data.SetGroups(ar[10]);                
+                if(data.gameElementType != ar[1]) data.SetGameElementType(ar[1]);               
                 if(data.consumableRequirements != ar[2])
                 {
                     data.SetConsumableRequirements(ar[2]);
@@ -346,18 +311,12 @@ public class Main : MonoBehaviour
                     data.SetNonConsumableRequirements(ar[3]);
                     needResetAllBuildables = true;
                 }
-                if(data.craftTime != float.Parse(ar[4])) data.SetCraftTimer(float.Parse(ar[4]));
-                
-                if (data.itemsToGain != ar[5]) data.SetItemsToGain(ar[5]);
-                
-                if(data.commandsOnPressed != ar[6]) data.SetCommandsOnPressed(ar[6]);
-                
-                if (data.commandsOnCreated != ar[7]) data.SetCommandsOnCreated(ar[7]);
-                
+                if(data.craftTime != float.Parse(ar[4])) data.SetCraftTimer(float.Parse(ar[4]));               
+                if (data.itemsToGain != ar[5]) data.SetItemsToGain(ar[5]);                
+                if(data.commandsOnPressed != ar[6]) data.SetCommandsOnPressed(ar[6]);                
+                if (data.commandsOnCreated != ar[7]) data.SetCommandsOnCreated(ar[7]);                
                 if (data.imageName != ar[11]) data.SetImageName(ar[11]);
-
                 if (data.soundName != ar[12]) data.SetSoundName(ar[12]);
-
                 if (data.achievement != ar[13]) data.SetAchievementName(ar[13]);
                 return;
             }
@@ -653,7 +612,7 @@ public class Main : MonoBehaviour
             CreateResourceForLibraryAtIndex(j);
 
             //If it is a basic resource we need it to start visible
-            if (SheetData[j][2] == "nothing=0" && SheetData[j][3] == "nothing") ResourceLibrary[j].AdjustVisibility(true);
+            if ((SheetData[j][2] == "nothing=0" && SheetData[j][3] == "nothing")|| SheetData[j][0] == "barracks") ResourceLibrary[j].AdjustVisibility(true);
 
             //If it is a tool, we need to set it's max amount to whatever the given max amount will be
             if (ResourceLibrary[j].groups == "tool")
@@ -664,7 +623,6 @@ public class Main : MonoBehaviour
             }
 
             ResourceNameReferenceIndex[j] = ResourceLibrary[j].displayName;
-            StartCoroutine(UpdateQue(ResourceLibrary[j]));
         }
 
         CreateOrResetAllBuildableStrings();
@@ -726,7 +684,6 @@ public class Main : MonoBehaviour
                         LoadedData[j][13], LoadedData[j][14], LoadedData[j][15], LoadedData[j][16], int.Parse(LoadedData[j][17]), LoadedData[j][18]);
 
         ResourceNameReferenceIndex[j] = ResourceLibrary[j].displayName;
-        StartCoroutine(UpdateQue(ResourceLibrary[j]));
     }
     private void CreateResourceForLibraryAtIndex(int j)
     {

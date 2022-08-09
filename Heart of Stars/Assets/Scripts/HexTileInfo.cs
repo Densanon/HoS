@@ -60,7 +60,10 @@ public class HexTileInfo : MonoBehaviour
     LocationManager myManager;
     Main main;
     Camera camera;
+
     public UIResourceManager myResourceManager;
+    int[] QuedResourceAmount;
+    string[] ResourceNameReferenceIndex;
 
     bool isInitializingLandingSequence = false;
     bool isInitializingLeavingSequence = false;
@@ -77,6 +80,24 @@ public class HexTileInfo : MonoBehaviour
     LineRenderer lineRenderer;
     bool isDrawingRayForPicking;
 
+    #region Debugging
+    private void RevealTileInfoInConsole(Vector2 tile)
+    {
+        if (tile == myPositionInTheArray) Debug.Log(DigitizeForSerialization());
+    }
+
+    private void RevealTileLocation()
+    {
+        if (FloatingText.gameObject.activeInHierarchy)
+        {
+            FloatingText.gameObject.SetActive(false);
+            return;
+        }
+        FloatingText.gameObject.SetActive(true);
+        FloatingText.text = $"{myPositionInTheArray}";
+    }
+    #endregion
+
     #region Unity Methods
     private void OnEnable()
     {
@@ -86,6 +107,9 @@ public class HexTileInfo : MonoBehaviour
         CameraController.OnZoomRelocateUI += SetButtonsOnScreenPosition;
         CameraController.OnZoomedOutTurnOffUI += DeactivateTileOptions;
         UIResourceManager.OnTilePickInteraction += CheckTileInteratability;
+
+        Main.OnRevealTileLocations += RevealTileLocation;
+        Main.OnRevealTileSpecificInformation += RevealTileInfoInConsole;
     }
     private void OnDisable()
     {
@@ -95,8 +119,10 @@ public class HexTileInfo : MonoBehaviour
         CameraController.OnZoomRelocateUI -= SetButtonsOnScreenPosition;
         CameraController.OnZoomedOutTurnOffUI -= DeactivateTileOptions;
         UIResourceManager.OnTilePickInteraction -= CheckTileInteratability;
-    }
 
+        Main.OnRevealTileLocations -= RevealTileLocation;
+        Main.OnRevealTileSpecificInformation -= RevealTileInfoInConsole;
+    }
     private void Update()
     {
         if (isInitializingLandingSequence)
@@ -124,7 +150,6 @@ public class HexTileInfo : MonoBehaviour
             }
         }       
     }
-
     private void FixedUpdate()
     {
         if (isDrawingRayForPicking)
@@ -136,6 +161,58 @@ public class HexTileInfo : MonoBehaviour
             lineRenderer.SetPosition(0, myPos);
             lineRenderer.SetPosition(1, camera.ScreenToWorldPoint(Input.mousePosition));
         }
+    }
+    #endregion
+
+    #region Qeue
+    public void StartQueUpdate(ResourceData data)
+    {
+        Debug.Log($"I have been told to start the que for {data.displayName}");
+        StartCoroutine(UpdateQue(data));
+    }
+    IEnumerator UpdateQue(ResourceData data)
+    {
+        bool addedNormal = false;
+        yield return new WaitForSeconds(data.craftTime);
+        Debug.Log($"Created: {data.itemName}");
+        if (QuedResourceAmount[System.Array.IndexOf(ResourceNameReferenceIndex, data.displayName)] > 0 || data.autoAmount > 0)
+        {
+            Debug.Log($"Starting {data.displayName} Que Update process.");
+            if (QuedResourceAmount[System.Array.IndexOf(ResourceNameReferenceIndex, data.displayName)] > 0)
+            {
+                QuedResourceAmount[System.Array.IndexOf(ResourceNameReferenceIndex, data.displayName)] -= 1;
+                addedNormal = true;
+                Debug.Log($"{data.displayName} has something in Que.");
+            }
+
+            if (addedNormal)
+            {
+                data.AdjustCurrentAmount(1 + data.autoAmount);
+                Debug.Log($"Adding {data.displayName} auto amount and que.");
+            }
+            else
+            {
+                data.AdjustCurrentAmount(data.autoAmount);
+                Debug.Log($"Adding {data.displayName} sinlge que.");
+            }
+
+            StartCoroutine(UpdateQue(data));
+        }
+    }
+    public void AddToQue(ResourceData data, int amount)
+    {
+        if (data == null || !data.visible)
+        {
+            Debug.Log("Didn't get a legitamate resource.");
+            return;
+        }
+
+        Debug.Log($"I have been told to add {amount} to the {data.displayName} que");
+        Debug.Log($"{data.displayName} before que addition: {QuedResourceAmount[System.Array.IndexOf(ResourceNameReferenceIndex, data.displayName)]}");
+        QuedResourceAmount[System.Array.IndexOf(ResourceNameReferenceIndex, data.displayName)] += amount;
+        Debug.Log($"{data.displayName} after que addition: {QuedResourceAmount[System.Array.IndexOf(ResourceNameReferenceIndex, data.displayName)]}");
+
+        StartQueUpdate(data);
     }
     #endregion
 
@@ -203,6 +280,7 @@ public class HexTileInfo : MonoBehaviour
     }
     void CreateResources()
     {
+        Debug.Log($"Creating Resource List For: {myPositionInTheArray}");
         List<ResourceData> tempToPermanent = new List<ResourceData>();
         List<ResourceData> locationTypeOptionList = new List<ResourceData>();
 
@@ -212,17 +290,24 @@ public class HexTileInfo : MonoBehaviour
             {
                 soldiers = new ResourceData(data);
                 tempToPermanent.Add(soldiers);
-            }else if(myTileType == 1 && data.groups == "metal")
+                continue;
+            }
+            if(myTileType == 1 && data.groups == "metal")
             {
                 locationTypeOptionList.Add(new ResourceData(data));
-            }else if(myTileType == 2 && data.itemName == "food")
+                continue;
+            }
+            if(myTileType == 2 && data.itemName == "food")
             {
                 locationTypeOptionList.Add(new ResourceData(data));
-            }else if(data.itemName == "enemy" && myTileType != 0)
+                continue;
+            }
+            if(data.itemName == "enemy" && myTileType != 0)
             {
                 enemies = new ResourceData(data);
                 tempToPermanent.Add(enemies);
                 TrySpawnEnemy();
+                continue;
             }
         }
 
@@ -270,10 +355,56 @@ public class HexTileInfo : MonoBehaviour
         isStartingPoint = true;
         myRenderers[0].material.mainTexture = tileTextures[3];
         myState = TileStates.Conquered;
+        if (!CheckIfResourceIsInMyArray("barracks"))
+        {
+            AddResourceToMyResources("barracks");
+            AddResourceToMyResources("food");
+        }
         OnTakeover -= CheckForPlayability;
         OnTakeover?.Invoke(myPositionInTheArray);
         StartLandingSequenceAnimation();
+
+        foreach(ResourceData data in myResources)
+        {
+            Debug.Log($"Checking all resources: {data.itemName}");
+        }
     }
+
+    private bool CheckIfResourceIsInMyArray(string itemName)
+    {
+        foreach(ResourceData data in myResources)
+        {
+            if(data.itemName == itemName)
+            {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    void AddResourceToMyResources(string itemName)
+    {
+        List<ResourceData> temp = new List<ResourceData>();
+        foreach(ResourceData data in myResources)
+        {
+            temp.Add(data);
+        }
+
+        foreach(ResourceData dt in main.GetResourceLibrary())
+        {
+            if(itemName == dt.itemName)
+            {
+                ResourceData d = new ResourceData(dt);
+                d.SetCurrentAmount(1);
+                temp.Add(d);
+                break;
+            }
+        }
+
+        myResources = temp.ToArray();
+    }
+
+    #region TileShipAnimation
     public void StartLandingSequenceAnimation()
     {
         spaceship = myRenderers[4].transform;
@@ -294,6 +425,7 @@ public class HexTileInfo : MonoBehaviour
         isInitializingLeavingSequence = true;
     }
     #endregion
+    #endregion
 
     #region Setup Tiles From Memory
     public void SetAllTileInfoFromMemory(string state, int tileType, string neighbors, bool isStart, string resources)
@@ -308,8 +440,6 @@ public class HexTileInfo : MonoBehaviour
         }
 
         SetNeighborsFromString(neighbors);
-
-        if (isStart) SetAsStartingPoint();
 
         if(resources != "")
         {
@@ -339,21 +469,19 @@ public class HexTileInfo : MonoBehaviour
                 }
                 else if(data.itemName == "enemy")
                 {
-                    Debug.Log($"{myPositionInTheArray} has remembered enemy.");
                     enemies = data;
-                    Debug.Log($"{enemies.DigitizeForSerialization()}");
                     if (enemies.currentAmount > 0 && myState == TileStates.Clickable)
                     {
                         enemyCount = enemies.currentAmount;
-                        Debug.Log($"Should be seeing an enemy on {myPositionInTheArray}.");
                         ShowEnemyOnTile();
                         continue;
                     }
                 }
             }
         }
-    }
 
+        if (isStart) SetAsStartingPoint();
+    }
     private void SetNeighborsFromString(string neighbors)
     {
         List<Vector2> temp = new List<Vector2>();
@@ -371,7 +499,6 @@ public class HexTileInfo : MonoBehaviour
             myNeighbors[i] = temp[i];
         }
     }
-
     private void SetTileStateFromString(string state)
     {
         switch (state)
@@ -429,8 +556,8 @@ public class HexTileInfo : MonoBehaviour
     IEnumerator BattleSequence()
     {
         BattleObject.SetActive(true);
-        Debug.Log("There was an enemy. Initiating combat!");
-        Debug.Log($"{enemyCount} - {potentialAmountToReceive}");
+        //Debug.Log("There was an enemy. Initiating combat!");
+        //Debug.Log($"{enemyCount} - {potentialAmountToReceive}");
         float timer = 2f;
         if(enemyCount > potentialAmountToReceive)
         {
@@ -439,12 +566,11 @@ public class HexTileInfo : MonoBehaviour
         yield return new WaitForSeconds(timer);
         BattleObject.SetActive(false);
         int difference = enemyCount - potentialAmountToReceive;
-        Debug.Log($"Difference: {difference}");
+        //Debug.Log($"Difference: {difference}");
         OnResetStateToPreviousFromInteraction?.Invoke();
         if (difference < 0)
         {
-            //Win
-            Debug.Log($"Potential Amount: {potentialAmountToReceive}");
+            //Debug.Log($"Potential Amount: {potentialAmountToReceive}");
             AdjustSoldiers(potentialAmountToReceive);
             enemies.SetCurrentAmount(0);
             enemyCount = 0;
@@ -453,21 +579,19 @@ public class HexTileInfo : MonoBehaviour
             OnTakeover?.Invoke(myPositionInTheArray);
             myState = TileStates.Conquered;
             FloatingText.gameObject.SetActive(false);
-            Debug.Log("Soldiers current: " + soldiers.currentAmount);
-            Debug.Log("I won!");
+            //Debug.Log("Soldiers current: " + soldiers.currentAmount);
+            //Debug.Log("I won!");
             potentialAmountToReceive = 0;
         }
         else if (difference == 0)
         {
-            //Stale Mate
             OnTradeWithPartnerTile?.Invoke(resourceTradingBuddy, "soldier", potentialAmountToReceive);
             ShowEnemyOnTile();
-            Debug.Log("We Tied!");
+            //Debug.Log("We Tied!");
         }else if (difference > 0)
         {
-            //Lose
             ShowEnemyOnTile();
-            Debug.Log("I lost.");
+            //Debug.Log("I lost.");
         }
 
         OnReinstateInteractability?.Invoke();
@@ -536,6 +660,7 @@ public class HexTileInfo : MonoBehaviour
         if (myState == TileStates.UnClickable) return;
     }
     #endregion
+
     private void ActivateTileOptions()
     {
         if (myCanvasContainer == null)
@@ -657,10 +782,25 @@ public class HexTileInfo : MonoBehaviour
         {
             if(data != item && data.itemName == item.itemName)
             {
+                //Debug.Log($"Using local resource: {data.itemName}");
                 return data;
             }
         }
         return item;
+    }
+
+    public ResourceData GetResourceByString(string itemName)
+    {
+        foreach(ResourceData data in myResources)
+        {
+            if(itemName == data.itemName)
+            {
+                return data;
+            }
+        }
+
+        Debug.Log($"No item by the given string: {itemName}");
+        return null;
     }
 
     public void DeactivateSelf()
@@ -695,15 +835,6 @@ public class HexTileInfo : MonoBehaviour
         {
             foreach(ResourceData data in myResources)
             {
-                if (data.itemName == "enemy")
-                {
-                    str = str + enemies.DigitizeForSerialization();
-                    if (data == myResources[myResources.Length - 1])
-                    {
-                        str = str.Remove(str.Length - 1);
-                    };
-                    continue;
-                }
                 str = str + data.DigitizeForSerialization();
                 if (data == myResources[myResources.Length - 1])
                 {

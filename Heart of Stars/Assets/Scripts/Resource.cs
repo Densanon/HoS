@@ -107,7 +107,9 @@ public class Resource : MonoBehaviour
 
         for(int k = 0; k < myImediateDependence.Count; k++) //Setting to my tile resources if there are any
         {
+            //Debug.Log($"Checking for resource: {myImediateDependence[k].itemName}:{myImediateDependence[k].currentAmount}");
             myImediateDependence[k] = tile.CheckIfAndUseOwnResources(myImediateDependence[k]);
+            //Debug.Log($"Checking for resource: {myImediateDependence[k].itemName}:{myImediateDependence[k].currentAmount}");
         }
 
         if (isOriginalResource)
@@ -229,6 +231,7 @@ public class Resource : MonoBehaviour
         {
             if (myResource.groups == "tool" && myResource.currentAmount == myResource.atMostAmount)
             {
+                Debug.Log("You are trying to create a tool when you already have the max.");
                 return; // if I am a tool and already have it we don't need to be here
             }
 
@@ -252,7 +255,8 @@ public class Resource : MonoBehaviour
                 }
             }
 
-            main.AddToQue(myResource, int.Parse(myResource.itemsToGain.Split("=")[1]));
+            string[] ar = myResource.itemsToGain.Split("=");           
+            tile.AddToQue(tile.GetResourceByString(ar[0]), int.Parse(ar[1]));
             OnClicked?.Invoke(myResource);
             StartCoroutine(UpdateMyInformation());
         }
@@ -263,7 +267,8 @@ public class Resource : MonoBehaviour
                 return;
             }
 
-            main.AddToQue(myResource, int.Parse(myResource.itemsToGain.Split("=")[1]));
+            string[] ar = myResource.itemsToGain.Split("=");
+            tile.AddToQue(tile.GetResourceByString(ar[0]), int.Parse(ar[1]));
             OnClicked?.Invoke(myResource);
             StartCoroutine(UpdateMyInformation());
         }
@@ -282,7 +287,7 @@ public class Resource : MonoBehaviour
     public void BecomeVisible()
     {
         myResource.AdjustVisibility(true);
-        main.StartQueUpdate(myResource);
+        tile.StartQueUpdate(myResource);
 
     }
 

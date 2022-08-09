@@ -21,6 +21,8 @@ public class UIResourceManager : MonoBehaviour
     [SerializeField]
     Transform resourceContainer;
     [SerializeField]
+    Transform resourcePivot;
+    [SerializeField]
     GameObject troopActionButton;
     [SerializeField]
     TMP_Text troopText;
@@ -40,19 +42,32 @@ public class UIResourceManager : MonoBehaviour
     public void CreateResourceButtons()
     {
         List<HoverAbleResourceButton> temp = new List<HoverAbleResourceButton>();
+        List<Resource> rotationList = new List<Resource>();
+        int pivotCount = -1;
         foreach (ResourceData data in myTile.myResources)
         {
-            if (data.itemName == "soldier") continue;
-            GameObject obs = Instantiate(dependenceButtonPrefab, resourceContainer);
+            if (data.itemName == "soldier" || data.itemName == "enemy") continue;
+            
+            GameObject obs = Instantiate(dependenceButtonPrefab, resourcePivot);
+            if(pivotCount != -1) resourcePivot.Rotate(0f, 0f, -45f - (22.5f * pivotCount));
             obs.transform.position = new Vector3(obs.transform.position.x, obs.transform.position.y + 100f);
-            resourceContainer.Rotate(0f, 0f, 360f / (myTile.myResources.Length - 1));
+            if (pivotCount != -1) resourcePivot.Rotate(0f, 0f, 22.5f + (22.5f * pivotCount));
+            pivotCount++;
+            
             Resource r = obs.GetComponent<Resource>();
             r.AssignTile(myTile);
             r.SetUpResource(data, false, main);
+            rotationList.Add(r);
             temp.Add(obs.GetComponent<HoverAbleResourceButton>());
         }
         resourceButtons = temp.ToArray();
         troopSlider.onValueChanged.AddListener(SetTroopTextForMove);
+
+        foreach(Resource res in rotationList)
+        {
+            res.ResetRotation();
+        }
+        rotationList.Clear();
 
         ResetUI();
     }
