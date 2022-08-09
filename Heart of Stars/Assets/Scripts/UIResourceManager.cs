@@ -2,11 +2,17 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
+using TMPro;
+using System;
 
 public class UIResourceManager : MonoBehaviour
 {
+    public static Action<string, Vector2, int> OnTilePickInteraction = delegate { };
+
     Main main;
     HexTileInfo myTile;
+
+    public int activeMouseHoverInteractions;
 
     [SerializeField]
     GameObject[] Containers;
@@ -16,13 +22,15 @@ public class UIResourceManager : MonoBehaviour
     Transform resourceContainer;
     [SerializeField]
     GameObject troopActionButton;
+    [SerializeField]
+    TMP_Text troopText;
+    [SerializeField]
+    Slider troopSlider;
+    int troopCount;
 
     [SerializeField]
     GameObject dependenceButtonPrefab;
     HoverAbleResourceButton[] resourceButtons;
-
-    [SerializeField]
-    int activeMouseHoverInteractions;
 
     public void SetMyTileAndMain(HexTileInfo tile, Main m)
     {
@@ -44,19 +52,34 @@ public class UIResourceManager : MonoBehaviour
             temp.Add(obs.GetComponent<HoverAbleResourceButton>());
         }
         resourceButtons = temp.ToArray();
+        troopSlider.onValueChanged.AddListener(SetTroopTextForMove);
 
         ResetUI();
     }
     public void ResetUI()
     {
-        Debug.Log("Reseting the UI.");
+        //Debug.Log("Reseting the UI.");
         mainFunctionsContainer.gameObject.SetActive(true);
         troopActionButton.SetActive(myTile.GetSoldierCount() > 0);
         foreach(GameObject obj in Containers)
         {
-            Debug.Log($"{obj.name} is getting turned off.");
+            //Debug.Log($"{obj.name} is getting turned off.");
             obj.gameObject.SetActive(false);
         }
+        ResetTroopText();      
+    }
+
+    public void SetTroopTextForMove(float amount)
+    {
+        troopCount = Mathf.RoundToInt(amount);
+        troopText.text = amount.ToString();
+    }
+    public void ResetTroopText()
+    {
+        troopCount = myTile.GetSoldierCount();
+        troopText.text = troopCount.ToString();
+        troopSlider.maxValue = troopCount;
+        troopSlider.value = troopSlider.maxValue;
     }
 
     public void AddMouseHoverInteraction()
@@ -66,6 +89,7 @@ public class UIResourceManager : MonoBehaviour
     public void SubtractMouseHoverInteraction()
     {
         activeMouseHoverInteractions--;
+        if(activeMouseHoverInteractions < 0) activeMouseHoverInteractions = 0;
     }
     public bool CheckMouseOnUI()
     {
@@ -82,5 +106,23 @@ public class UIResourceManager : MonoBehaviour
         }
         Debug.Log("All good here.");
         return false;
+    }
+    public void ActivateTilePickInteraction(string type)
+    {
+        myTile.StartDrawingRayForPicking();
+        myTile.SetupReceivingOfTroopsForOriginator();
+        OnTilePickInteraction(type, myTile.myPositionInTheArray, troopCount);
+        myTile.AdjustSoldiers(troopCount * -1);
+        DeactivateSelf();
+        ResetUI();
+    }
+    public void ActivateSelf()
+    {
+        gameObject.SetActive(true);
+    }
+    public void DeactivateSelf()
+    {
+        gameObject.SetActive(false);
+        activeMouseHoverInteractions = 0;
     }
 }

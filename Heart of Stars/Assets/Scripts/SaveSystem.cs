@@ -91,7 +91,7 @@ public static class SaveSystem
         formatter.Serialize(stream, FileData);
         stream.Close();
 
-        Debug.Log($"SaveString: for {file}:{FileData}");
+        //Debug.Log($"SaveString: for {file}:{FileData}");
         WipeString();
 
     }
@@ -121,7 +121,7 @@ public static class SaveSystem
                 stream.Close();
                 File.Delete(path);
             }
-            Debug.Log($"Here is the file: for {file}:{s}");
+            //Debug.Log($"Here is the file: for {file}:{s}");
             
 
             return s;

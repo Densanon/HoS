@@ -6,6 +6,7 @@ using UnityEngine;
 public class LocationManager : MonoBehaviour
 {
     Main main;
+    UIResourceManager activeManager;
 
     public string myAddress;
     public float frequencyForLandSpawning; //set in inspector
@@ -40,14 +41,25 @@ public class LocationManager : MonoBehaviour
     private void Awake()
     {
         Main.OnWorldMap += TurnOffVisibility;
-        Main.OnInitializeFirstInteraction += FirstEncounterSetup;
+        Main.OnInitializeVeryFirstInteraction += VeryFirstEncounterSetup;
+        Main.OnInitializeRegularFirstPlanetaryInteraction += FirstRegularPlanetaryEncounter;
+    }
+
+    private void OnEnable()
+    {
+        HexTileInfo.OnNeedUIElementsForTile += CheckNewTileOptions;
+    }
+
+    private void OnDisable()
+    {
+        HexTileInfo.OnNeedUIElementsForTile -= CheckNewTileOptions;
     }
 
     private void OnDestroy()
     {
         Main.OnWorldMap -= TurnOffVisibility;
-        Main.OnInitializeFirstInteraction -= FirstEncounterSetup;
-
+        Main.OnInitializeVeryFirstInteraction -= VeryFirstEncounterSetup;
+        Main.OnInitializeRegularFirstPlanetaryInteraction -= FirstRegularPlanetaryEncounter;
     }
     #endregion
 
@@ -56,22 +68,33 @@ public class LocationManager : MonoBehaviour
     {
         main = m;
     }
-    private void FirstEncounterSetup()
+    private void VeryFirstEncounterSetup()
     {
         //Do some stuff for the firstencounter.
-        //foreach(ResourceData data in myResources)
-        //{
-        //    if(data.itemName == "soldier")
-        //    {
-        //        data.SetCurrentAmount(10);
-        //        continue;
-        //    }
-        //    if(data.itemName == "food")
-        //    {
-        //        data.SetCurrentAmount(100);
-        //        continue;
-        //    }
-        //}
+        foreach(ResourceData data in starter.myResources)
+        {
+            if(data.itemName == "soldier")
+            {
+                data.SetCurrentAmount(100);
+                continue;
+            }
+            if (data.itemName == "food")
+            {
+                data.SetCurrentAmount(100);
+                continue;
+            }
+        }
+    }
+    private void FirstRegularPlanetaryEncounter(int amount)//will actually need resource names and amounts
+    {
+        foreach (ResourceData data in starter.myResources)
+        {
+            if (data.itemName == "soldier")
+            {
+                data.SetCurrentAmount(amount);
+                continue;
+            }
+        }
     }
     public void BuildPlanetData(string[] hextiles, string address)
     {
@@ -347,6 +370,29 @@ public class LocationManager : MonoBehaviour
     {
         gameObject.SetActive(true);
         starter.StartLandingSequenceAnimation();
+    }
+
+    private void CheckNewTileOptions(HexTileInfo tile)
+    {
+        UIResourceManager res = tile.myResourceManager;
+        if (activeManager == null) activeManager = res;
+        if (res != activeManager && activeManager.activeMouseHoverInteractions == 0)
+        {
+            activeManager.activeMouseHoverInteractions = 0;
+            activeManager.ResetUI();
+            activeManager.DeactivateSelf();
+            activeManager = res;
+            activeManager.ActivateSelf();
+            activeManager.ResetUI();
+        }
+        else if (res != activeManager && activeManager.activeMouseHoverInteractions > 0)
+        {
+            res.DeactivateSelf();
+        }else if (res == activeManager && !activeManager.gameObject.activeInHierarchy)
+        {
+            activeManager.ActivateSelf();
+            activeManager.ResetUI();
+        }
     }
     #endregion
 

@@ -10,7 +10,8 @@ public class Main : MonoBehaviour
     public static Action<bool> OnWorldMap = delegate { };
     public static Action<GameObject> OnGoingToHigherLevel = delegate { };
     public static Action<string> SendCameraState = delegate { };
-    public static Action OnInitializeFirstInteraction = delegate { };
+    public static Action OnInitializeVeryFirstInteraction = delegate { };
+    public static Action<int> OnInitializeRegularFirstPlanetaryInteraction = delegate { };
 
     public enum UniverseDepth {Universe, SuperCluster, Galaxy, Nebula, GlobularCluster, StarCluster, Constellation, SolarSystem, PlanetMoon, Planet, Moon}
     static UniverseDepth currentDepth = UniverseDepth.Universe;
@@ -37,6 +38,7 @@ public class Main : MonoBehaviour
     List<LocationManager> planetContainer;
     [SerializeField]
     LocationManager activeBrain;
+    int amountOfResourcesToStartWith = 0;
 
     [SerializeField]
     HexTileInfo[] tileInfoList;
@@ -585,7 +587,7 @@ public class Main : MonoBehaviour
                 continue;
             }
             SaveSystem.SaveResource(ResourceLibrary[i], true);
-            Debug.Log("Finished saving the last resource to the library.");
+            //Debug.Log("Finished saving the last resource to the library.");
         }
     }
     public void SaveLocationAddressBook()
@@ -844,7 +846,7 @@ public class Main : MonoBehaviour
         }
         else
         {
-            Debug.Log($"UniverseAddress being set up from memory: {universeAdress}");
+            //Debug.Log($"UniverseAddress being set up from memory: {universeAdress}");
 
             UnityEngine.Random.InitState(universeAdress.GetHashCode());
 
@@ -963,7 +965,11 @@ public class Main : MonoBehaviour
     }
     private void SetUpPlanetaryEncounter()
     {
-        if (!LocationAddresses.Contains(universeAdress)) LocationAddresses.Add(universeAdress);
+        bool isBrandNew = false;
+        if (!LocationAddresses.Contains(universeAdress)) {
+            LocationAddresses.Add(universeAdress);
+            isBrandNew = true;
+        }
         
         if (planetContainer == null) planetContainer = new List<LocationManager>();
         
@@ -988,8 +994,14 @@ public class Main : MonoBehaviour
             activeBrain.BuildPlanetData(TryLoadLevel(), universeAdress);
             if (!isInitialized)
             {
+                Debug.Log("Setting up very first encounter.");
                 PlayerPrefs.SetInt("Initialized", 1);
-                OnInitializeFirstInteraction?.Invoke();
+                OnInitializeVeryFirstInteraction?.Invoke();
+            }else if (isBrandNew && isInitialized)
+            {
+                Debug.Log("Setting up first encounter.");
+                amountOfResourcesToStartWith = 10;
+                OnInitializeRegularFirstPlanetaryInteraction?.Invoke(amountOfResourcesToStartWith);
             }
         }
 
