@@ -71,6 +71,7 @@ public class UIResourceManager : MonoBehaviour
     public void SetBattleTimerAndStart(float time)
     {
         battleTime = time;
+        battleTimer = 0f;
         visualBattleTimer.gameObject.SetActive(true);
         visualBattleTimer.maxValue = time;
         needBattleTimer = true;

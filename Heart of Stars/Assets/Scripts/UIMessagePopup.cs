@@ -27,5 +27,6 @@ public class UIMessagePopup : MonoBehaviour
         panel.SetActive(true);
         titleText.text = type;
         messageText.text = message;
+        transform.SetAsLastSibling();
     }
 }

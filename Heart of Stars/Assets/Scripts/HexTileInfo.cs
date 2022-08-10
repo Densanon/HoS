@@ -39,7 +39,7 @@ public class HexTileInfo : MonoBehaviour
     Vector2[] myNeighbors;
     public ResourceData[] myResources;
     ResourceData soldiers;
-    ResourceData enemies;
+    public ResourceData enemies;
     
     [SerializeField]
     GameObject dependenceButtonPrefab;
@@ -54,7 +54,7 @@ public class HexTileInfo : MonoBehaviour
 
     public enum TileStates { UnClickable, Clickable, Conquered, UnPlayable, Pickable}
     [SerializeField]
-    TileStates myState = TileStates.UnPlayable;
+    public TileStates myState = TileStates.UnPlayable;
     TileStates previousState = TileStates.UnPlayable;
 
     public int myTileType = 0;
@@ -75,7 +75,7 @@ public class HexTileInfo : MonoBehaviour
     public bool isStartingPoint;
     public bool isMousePresent;
     public bool isInteractable = true;
-    int potentialAmountToReceive;
+    public int potentialAmountToReceive;
 
     [SerializeField]
     LineRenderer lineRenderer;
@@ -85,6 +85,9 @@ public class HexTileInfo : MonoBehaviour
     float enemyRatio;
     int enemyDensityMin;
     int enemyDensityMax;
+
+    bool generalTimerOverride;
+    float generalTimer;
 
     private void RevealTileInfoInConsole(Vector2 tile)
     {
@@ -123,14 +126,15 @@ public class HexTileInfo : MonoBehaviour
     }
     int CheckEnemyAmount()
     {
-        foreach(ResourceData data in myResources)
-        {
-            if(data.itemName == "enemy")
-            {
-                return data.currentAmount;
-            }
-        }
-        return 0;
+        return enemies.currentAmount;
+    }
+
+    public void ReceiveGeneralMove(int troops, float timer)
+    {
+        potentialAmountToReceive = troops;
+        generalTimerOverride = true;
+        generalTimer = timer;
+        StartCoroutine(Move());
     }
     #endregion
 
@@ -568,7 +572,7 @@ public class HexTileInfo : MonoBehaviour
     #region Mouse Interactions
     private void OnMouseDown()
     {
-        if (isMousePresent && isInteractable)
+        if (isMousePresent && isInteractable && !Main.isDebugging && !Main.isBlockingMapInteractions)
         {
             if(myState == TileStates.Conquered && camera.orthographicSize < 4.25f)
             {
@@ -580,13 +584,7 @@ public class HexTileInfo : MonoBehaviour
                 //Debug.Log($"{myPositionInTheArray} has been chosen.");
                 if(enemies.currentAmount == 0)
                 {
-                    AdjustSoldiers(potentialAmountToReceive);
-                    myRenderers[0].material.mainTexture = tileTextures[3];
-                    OnTakeover -= CheckForPlayability;
-                    OnTakeover?.Invoke(myPositionInTheArray);
-                    OnResetStateToPreviousFromInteraction?.Invoke();
-                    myState = TileStates.Conquered;
-                    OnReinstateInteractability?.Invoke();
+                    StartCoroutine(Move());
                     return;
                 }
                 StartCoroutine(BattleSequence());
@@ -595,34 +593,63 @@ public class HexTileInfo : MonoBehaviour
     }
     public void OnMouseEnter()
     {
-        isMousePresent = true;
-        Vector3 v = transform.position;
-        v.y += .1f;
-        transform.position = v;
-        //if (myState == TileStates.Conquered) return;
-        if (myState == TileStates.UnClickable) return;
+        if (!Main.isDebugging && !Main.isBlockingMapInteractions)
+        {
+            isMousePresent = true;
+            Vector3 v = transform.position;
+            v.y += .1f;
+            transform.position = v;
+            //if (myState == TileStates.Conquered) return;
+            if (myState == TileStates.UnClickable) return;
+        }
     }
     private void OnMouseExit()
     {
-        isMousePresent = false;
-        Vector3 v = transform.position;
-        v.y -= .1f;
-        transform.position = v;
-        //if (myState == TileStates.Conquered) return;
-        if (myState == TileStates.UnClickable) return;
+        if (!Main.isDebugging && !Main.isBlockingMapInteractions)
+        {
+            isMousePresent = false;
+            Vector3 v = transform.position;
+            v.y -= .1f;
+            transform.position = v;
+            //if (myState == TileStates.Conquered) return;
+            if (myState == TileStates.UnClickable) return;
+        }
     }
     #endregion
 
-    IEnumerator BattleSequence()
+    public void SetResourceTradingBuddy(Vector2 tile)
+    {
+        resourceTradingBuddy = tile;
+    }
+    public IEnumerator Move()
+    {
+        OnReinstateInteractability?.Invoke();
+        OnResetStateToPreviousFromInteraction?.Invoke();
+        float timer =(generalTimerOverride) ? generalTimer : 2f;
+        CheckNullFloatingText();
+        myResourceManager.SetBattleTimerAndStart(timer);
+
+        yield return new WaitForSeconds(timer);
+
+        generalTimerOverride = false;
+        AdjustSoldiers(potentialAmountToReceive);
+        myRenderers[0].material.mainTexture = tileTextures[3];
+        OnTakeover -= CheckForPlayability;
+        OnTakeover?.Invoke(myPositionInTheArray);
+        myState = TileStates.Conquered;
+    }
+    public IEnumerator BattleSequence()
     {
         float timer = 2f;
         //create some more interesting timer;
         CheckNullFloatingText();
         myResourceManager.SetBattleTimerAndStart(timer);
-        yield return new WaitForSeconds(timer);
-        int difference = enemyCount - potentialAmountToReceive;
-        //Debug.Log($"Difference: {difference}");
+        OnReinstateInteractability?.Invoke();
         OnResetStateToPreviousFromInteraction?.Invoke();
+
+        yield return new WaitForSeconds(timer);
+
+        int difference = enemyCount - potentialAmountToReceive;
         if (difference < 0)
         {
             //Debug.Log($"Potential Amount: {potentialAmountToReceive}");
@@ -655,7 +682,6 @@ public class HexTileInfo : MonoBehaviour
             //Debug.Log("I lost.");
         }
 
-        OnReinstateInteractability?.Invoke();
     }
     private void CheckNullFloatingText()
     {
@@ -821,7 +847,10 @@ public class HexTileInfo : MonoBehaviour
 
     void DeactivateTileOptions()
     {
-        if(myCanvasContainer != null) myCanvasContainer.gameObject.SetActive(false);
+        if (myResourceManager != null)
+        {
+           myResourceManager.DeactivateSelf();
+        }
     }
 
     public ResourceData CheckIfAndUseOwnResources(ResourceData item)

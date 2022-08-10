@@ -1,6 +1,6 @@
 %YAML 1.1
 %TAG !u! tag:unity3d.com,2011:
---- !u!1 &3809490648343622420
+--- !u!1 &44450134641008688
 GameObject:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -8,22 +8,22 @@ GameObject:
   m_PrefabAsset: {fileID: 0}
   serializedVersion: 6
   m_Component:
-  - component: {fileID: 3958983727546964590}
-  - component: {fileID: 4277162221636334861}
+  - component: {fileID: 18488087003251047}
+  - component: {fileID: 6758953757871027272}
   m_Layer: 0
-  m_Name: Planet
+  m_Name: General
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
---- !u!4 &3958983727546964590
+--- !u!4 &18488087003251047
 Transform:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 3809490648343622420}
+  m_GameObject: {fileID: 44450134641008688}
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
@@ -32,22 +32,15 @@ Transform:
   m_Father: {fileID: 0}
   m_RootOrder: 0
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &4277162221636334861
+--- !u!114 &6758953757871027272
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 3809490648343622420}
+  m_GameObject: {fileID: 44450134641008688}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: d344428ed9a3e1545888787e59641933, type: 3}
+  m_Script: {fileID: 11500000, guid: 7037596ff6acb5a4b9f560c9d755f3bf, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  myAddress: 
-  frequencyForLandSpawning: 1.6
-  landStartingPointsForSpawning: 6
-  tilePrefab: {fileID: 4744813338005404904, guid: 790721e2f4e2719499c5b222984d7b22, type: 3}
-  locationXBounds: 0
-  locationYBounds: 0
-  GeneralPrefab: {fileID: 44450134641008688, guid: b306f15c19c1a4d4eb051ff8cb88b7c5, type: 3}

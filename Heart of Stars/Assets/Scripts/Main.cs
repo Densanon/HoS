@@ -82,7 +82,6 @@ public class Main : MonoBehaviour
     GameObject debugPanel;
 
     public static float camCancelUI = 4f;
-
     
     [Tooltip("Percentage to spawn on tiles.")]
     [SerializeField][Range(0f, 1.0f)]
@@ -97,6 +96,10 @@ public class Main : MonoBehaviour
     ResourceData dat;
     public string debugField = "";
     int amount;
+
+    public static bool isBlockingMapInteractions;
+    public static bool isDebugging;
+    public static bool usingGeneral;
     public static bool cantLose;
     public static bool canSeeAllEnemies;
 
@@ -240,11 +243,30 @@ public class Main : MonoBehaviour
     }
     public void ResetLevelWithNewValues()
     {
-        WipeUniversePieces();
         OnDestroyLevel?.Invoke();
         ResetTheInitialEncounter();
         universeAdress = universeAdress.Remove(universeAdress.Length - 2);
         GenerateUniverseLocation(UniverseDepth.Planet, 0);
+    }
+    public void ToggleGeneral()
+    {
+        usingGeneral = !usingGeneral;
+        activeBrain.StartGeneral();
+    }
+    public void SubmitGeneralStart()
+    {
+        string[] s = debugField.Split(",");
+        Vector2 tile = new Vector2(float.Parse(s[0]), float.Parse(s[1]));
+        activeBrain.SetGeneralLocation(tile);
+    }
+    public void SubmitGeneralName()
+    {
+        Debug.Log("Sending name submition.");
+        activeBrain.GiveAnUnNamedGeneralAName(debugField);
+    }
+    public void CreateGeneral()
+    {
+        activeBrain.CreateAGeneral();
     }
     #endregion
 
@@ -288,12 +310,6 @@ public class Main : MonoBehaviour
         CameraController.SaveCameraState += SaveCamState;
         HexTileInfo.OnLeaving += GoBackAStep;
     }
-
-    private void SetZoomContinueTrue()
-    {
-        canZoomContinue = true;
-    }
-
     private void Start()
     {
         //Get Daily message from online
@@ -303,17 +319,14 @@ public class Main : MonoBehaviour
 
         LoadCamState();
     }
-
     private void Update()
     {
-        /*if (Input.GetKeyDown(KeyCode.B) && buttonsCreated == 0)
+        if (Input.GetKeyDown(KeyCode.Escape))
         {
-            buttonsCreated++;
-            GameObject obj = Instantiate(BuildableResourceButtonPrefab, Canvas.transform);
-            obj.GetComponent<Resource>().SetUpResource(ResourceLibrary[UnityEngine.Random.Range(0, ResourceLibrary.Length - 1)], true, this);
-        }*/
-
-        if (Input.GetKeyDown(KeyCode.Escape)) debugPanel.SetActive(!debugPanel.activeSelf);
+            isDebugging = !isDebugging;
+            debugPanel.SetActive(!debugPanel.activeSelf);
+            debugPanel.transform.SetAsLastSibling();
+        }
     }
     #endregion
 
@@ -786,15 +799,8 @@ public class Main : MonoBehaviour
         LoadedData = new List<string[]>();
         itemNames = new List<string>();
 
-        if(resource != null) //Checking whether the location had any data at first
-        {
-            BuildLoadedData(resource);
-        }
-        else //If not then we need to grab the universal resource list
-        {
-            string s = SaveSystem.LoadFile("/resource_shalom");
-            BuildLoadedData(s);
-        }
+        string s = SaveSystem.LoadFile("/resource_shalom");
+        BuildLoadedData(s);
         
         LocationResources = new ResourceData[LoadedData.Count];
 
@@ -810,18 +816,10 @@ public class Main : MonoBehaviour
         string s = SaveSystem.LoadFile("/" + universeAdress);
         if(s != null) // Checking for a save of the planet
         {
-            //string[] ar = s.Split("|");
-            //string[] resources = ar[1].Split(";");
-
-            //LoadDataFromSave(resources);
-            return s.Split("|");//ar[0].Split(";");
+            return s.Split("|");
         }
 
         //No planetary info was stored so build new stuff
-        if (SheetData != null)//This grabs all the resource data for this particular planet
-        {
-            //LoadAndBuildGameStats(null);
-        }
         LoadDataFromSave(null);//This is here if we are offline from when we started
         return null;
     }
@@ -855,7 +853,7 @@ public class Main : MonoBehaviour
         }
         else
         {
-            //Debug.Log($"UniverseAddress being set up from memory: {universeAdress}");
+            Debug.Log($"UniverseAddress being set up from memory: {universeAdress}");
 
             UnityEngine.Random.InitState(universeAdress.GetHashCode());
 
@@ -1112,6 +1110,10 @@ public class Main : MonoBehaviour
         DeeperIntoUniverseLocationDepth();
         GenerateUniverseLocation(currentDepth, index);
     }
+    private void SetZoomContinueTrue()
+    {
+        canZoomContinue = true;
+    }
     void DeeperIntoUniverseLocationDepth()
     {
         switch (currentDepth)
@@ -1241,12 +1243,20 @@ public class Main : MonoBehaviour
             FindResourceFromString(ar[0]).AdjustCurrentAmount(int.Parse(ar[1]));
         }
     }
-
-    IEnumerator PushMessage(string type, string message)
+    public static void ToggleIsBlockingMapInteractions()
+    {
+        isBlockingMapInteractions = !isBlockingMapInteractions;
+    }
+    public IEnumerator PushMessage(string type, string message, float delay)
     {
         Debug.Log("Pushing message wait.");
-        yield return new WaitForSeconds(5f);
+        yield return new WaitForSeconds(delay);
         Debug.Log("Pushing message");
+        OnSendMessage?.Invoke(type, message);
+    }
+    public static void PushMessage(string type, string message)
+    {
+        ToggleIsBlockingMapInteractions();
         OnSendMessage?.Invoke(type, message);
     }
     #endregion
