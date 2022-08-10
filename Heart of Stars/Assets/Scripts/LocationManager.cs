@@ -7,6 +7,7 @@ public class LocationManager : MonoBehaviour
 {
     Main main;
     UIResourceManager activeManager;
+    Transform canvas;
 
     public string myAddress;
     public float frequencyForLandSpawning; //set in inspector
@@ -21,6 +22,10 @@ public class LocationManager : MonoBehaviour
     public int locationYBounds;
 
     #region Debugging
+    float enemyRatio;
+    int enemyDensityMin;
+    int enemyDensityMax;
+
     public void DestroyAllScenePieces()
     {
         int j = myPlanetPieces.Length;
@@ -35,6 +40,12 @@ public class LocationManager : MonoBehaviour
         BuildTileBase();
         OrganizePieces();
     }
+    public void SetEnemyNumbers(float ratio, int densityMin, int densityMax)
+    {
+        enemyRatio = ratio;
+        enemyDensityMin = densityMin;
+        enemyDensityMax = densityMax;
+    }
     #endregion
 
     #region Unity Methods
@@ -43,6 +54,7 @@ public class LocationManager : MonoBehaviour
         Main.OnWorldMap += TurnOffVisibility;
         Main.OnInitializeVeryFirstInteraction += VeryFirstEncounterSetup;
         Main.OnInitializeRegularFirstPlanetaryInteraction += FirstRegularPlanetaryEncounter;
+        canvas = GameObject.Find("Canvas").transform;
     }
 
     private void OnEnable()
@@ -144,6 +156,7 @@ public class LocationManager : MonoBehaviour
                 tf.SetManager(this);
                 tf.SetMain(main);
                 tf.SetUpTileLocation(x, y);
+                tf.SetEnemyNumbers(enemyRatio, enemyDensityMin, enemyDensityMax);
                 tf.frequencyOfLandDistribution = frequencyForLandSpawning;
                 temp.Add(tf);
                 locs.Add(tf.myPositionInTheArray);
@@ -398,11 +411,12 @@ public class LocationManager : MonoBehaviour
         else if (res != activeManager && activeManager.activeMouseHoverInteractions > 0)
         {
             res.DeactivateSelf();
-        }else if (res == activeManager && !activeManager.gameObject.activeInHierarchy)
+        }else if (res == activeManager && !activeManager.interactiblesContainer.activeInHierarchy)
         {
             activeManager.ActivateSelf();
             activeManager.ResetUI();
         }
+        activeManager.transform.SetSiblingIndex(canvas.childCount-1); //Ensures that it is the highest in the hierarchy
     }
     #endregion
 

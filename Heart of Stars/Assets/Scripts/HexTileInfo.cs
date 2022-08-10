@@ -2,6 +2,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System;
 using UnityEngine;
+using TMPro;
 
 public class HexTileInfo : MonoBehaviour
 {
@@ -21,7 +22,7 @@ public class HexTileInfo : MonoBehaviour
     [SerializeField]
     int enemyCount;
     [SerializeField]
-    TextMesh FloatingText;
+    TMP_Text FloatingText;
 
     [SerializeField]
     Texture2D[] tileTextures;
@@ -81,13 +82,17 @@ public class HexTileInfo : MonoBehaviour
     bool isDrawingRayForPicking;
 
     #region Debugging
+    float enemyRatio;
+    int enemyDensityMin;
+    int enemyDensityMax;
+
     private void RevealTileInfoInConsole(Vector2 tile)
     {
         if (tile == myPositionInTheArray) Debug.Log(DigitizeForSerialization());
     }
-
     private void RevealTileLocation()
     {
+        CheckNullFloatingText();
         if (FloatingText.gameObject.activeInHierarchy)
         {
             FloatingText.gameObject.SetActive(false);
@@ -95,6 +100,37 @@ public class HexTileInfo : MonoBehaviour
         }
         FloatingText.gameObject.SetActive(true);
         FloatingText.text = $"{myPositionInTheArray}";
+    }
+    private void RevealEnemies()
+    {
+        if (CheckEnemyAmount() > 0)
+        {
+            CheckNullFloatingText();
+            if (!myRenderers[4].enabled)
+            {
+                ShowEnemyOnTile();
+                return;
+            }
+            myRenderers[4].enabled = false;
+            FloatingText.gameObject.SetActive(false);
+        }        
+    }
+    public void SetEnemyNumbers(float ratio, int densityMin, int densityMax)
+    {
+        enemyRatio = ratio;
+        enemyDensityMin = densityMin;
+        enemyDensityMax = densityMax;
+    }
+    int CheckEnemyAmount()
+    {
+        foreach(ResourceData data in myResources)
+        {
+            if(data.itemName == "enemy")
+            {
+                return data.currentAmount;
+            }
+        }
+        return 0;
     }
     #endregion
 
@@ -104,24 +140,28 @@ public class HexTileInfo : MonoBehaviour
         OnTakeover += CheckForPlayability;
         TypeTransform += TryToTransformToLand;
         OnReinstateInteractability += ReinstateInteractability;
+        OnLeaving += TurnOffAllFloatingText;
         CameraController.OnZoomRelocateUI += SetButtonsOnScreenPosition;
         CameraController.OnZoomedOutTurnOffUI += DeactivateTileOptions;
         UIResourceManager.OnTilePickInteraction += CheckTileInteratability;
 
         Main.OnRevealTileLocations += RevealTileLocation;
         Main.OnRevealTileSpecificInformation += RevealTileInfoInConsole;
+        Main.OnRevealEnemies += RevealEnemies;
     }
     private void OnDisable()
     {
         OnTakeover -= CheckForPlayability;
         TypeTransform -= TryToTransformToLand;
         OnReinstateInteractability -= ReinstateInteractability;
+        OnLeaving -= TurnOffAllFloatingText;
         CameraController.OnZoomRelocateUI -= SetButtonsOnScreenPosition;
         CameraController.OnZoomedOutTurnOffUI -= DeactivateTileOptions;
         UIResourceManager.OnTilePickInteraction -= CheckTileInteratability;
 
         Main.OnRevealTileLocations -= RevealTileLocation;
         Main.OnRevealTileSpecificInformation -= RevealTileInfoInConsole;
+        Main.OnRevealEnemies -= RevealEnemies;
     }
     private void Update()
     {
@@ -280,7 +320,7 @@ public class HexTileInfo : MonoBehaviour
     }
     void CreateResources()
     {
-        Debug.Log($"Creating Resource List For: {myPositionInTheArray}");
+        //Debug.Log($"Creating Resource List For: {myPositionInTheArray}");
         List<ResourceData> tempToPermanent = new List<ResourceData>();
         List<ResourceData> locationTypeOptionList = new List<ResourceData>();
 
@@ -318,9 +358,10 @@ public class HexTileInfo : MonoBehaviour
     }
     void TrySpawnEnemy()
     {
-        if(UnityEngine.Random.Range(0,1f) > 0.15f)
+        if(UnityEngine.Random.Range(0,1f) > 1 - enemyRatio)
         {
-            int x = UnityEngine.Random.Range(5, 100);
+
+            int x = Main.NormalizeRandom(enemyDensityMin, enemyDensityMax);
             enemies.SetCurrentAmount(x);
             enemyCount = x;
         }
@@ -332,6 +373,10 @@ public class HexTileInfo : MonoBehaviour
     public void SetManager(LocationManager manager)
     {
         myManager = manager;
+    }
+    public void SetFloatingText(TMP_Text text)
+    {
+        FloatingText = text;
     }
     public int GetResourceSpritesLengthForStartPoint()
     {
@@ -364,12 +409,11 @@ public class HexTileInfo : MonoBehaviour
         OnTakeover?.Invoke(myPositionInTheArray);
         StartLandingSequenceAnimation();
 
-        foreach(ResourceData data in myResources)
-        {
-            Debug.Log($"Checking all resources: {data.itemName}");
-        }
+        //foreach(ResourceData data in myResources)
+        //{
+        //    Debug.Log($"Checking all resources: {data.itemName}");
+        //}
     }
-
     private bool CheckIfResourceIsInMyArray(string itemName)
     {
         foreach(ResourceData data in myResources)
@@ -381,7 +425,6 @@ public class HexTileInfo : MonoBehaviour
         }
         return false;
     }
-
     void AddResourceToMyResources(string itemName)
     {
         List<ResourceData> temp = new List<ResourceData>();
@@ -461,21 +504,18 @@ public class HexTileInfo : MonoBehaviour
             {
                 if(data.itemName == "soldier")
                 {
+                    //Debug.Log($"Soldiers: {data.currentAmount} on {myPositionInTheArray}");
                     soldiers = data;
                     if(data.currentAmount > 0)
                     {
                         myRenderers[4].enabled = true;
                     }
+                    continue;
                 }
-                else if(data.itemName == "enemy")
+                if(data.itemName == "enemy")
                 {
                     enemies = data;
-                    if (enemies.currentAmount > 0 && myState == TileStates.Clickable)
-                    {
-                        enemyCount = enemies.currentAmount;
-                        ShowEnemyOnTile();
-                        continue;
-                    }
+                    enemyCount = enemies.currentAmount;
                 }
             }
         }
@@ -553,18 +593,33 @@ public class HexTileInfo : MonoBehaviour
             }
         }
     }
+    public void OnMouseEnter()
+    {
+        isMousePresent = true;
+        Vector3 v = transform.position;
+        v.y += .1f;
+        transform.position = v;
+        //if (myState == TileStates.Conquered) return;
+        if (myState == TileStates.UnClickable) return;
+    }
+    private void OnMouseExit()
+    {
+        isMousePresent = false;
+        Vector3 v = transform.position;
+        v.y -= .1f;
+        transform.position = v;
+        //if (myState == TileStates.Conquered) return;
+        if (myState == TileStates.UnClickable) return;
+    }
+    #endregion
+
     IEnumerator BattleSequence()
     {
-        BattleObject.SetActive(true);
-        //Debug.Log("There was an enemy. Initiating combat!");
-        //Debug.Log($"{enemyCount} - {potentialAmountToReceive}");
         float timer = 2f;
-        if(enemyCount > potentialAmountToReceive)
-        {
-            timer = 5f;
-        }
+        //create some more interesting timer;
+        CheckNullFloatingText();
+        myResourceManager.SetBattleTimerAndStart(timer);
         yield return new WaitForSeconds(timer);
-        BattleObject.SetActive(false);
         int difference = enemyCount - potentialAmountToReceive;
         //Debug.Log($"Difference: {difference}");
         OnResetStateToPreviousFromInteraction?.Invoke();
@@ -578,6 +633,7 @@ public class HexTileInfo : MonoBehaviour
             OnTakeover -= CheckForPlayability;
             OnTakeover?.Invoke(myPositionInTheArray);
             myState = TileStates.Conquered;
+            CheckNullFloatingText();
             FloatingText.gameObject.SetActive(false);
             //Debug.Log("Soldiers current: " + soldiers.currentAmount);
             //Debug.Log("I won!");
@@ -590,15 +646,28 @@ public class HexTileInfo : MonoBehaviour
             //Debug.Log("We Tied!");
         }else if (difference > 0)
         {
+            if (Main.cantLose)
+            {
+                Debug.Log("Can't Lose is on.");
+                OnTradeWithPartnerTile?.Invoke(resourceTradingBuddy, "soldier", potentialAmountToReceive);
+            }
             ShowEnemyOnTile();
             //Debug.Log("I lost.");
         }
 
         OnReinstateInteractability?.Invoke();
     }
-
+    private void CheckNullFloatingText()
+    {
+        if (FloatingText == null)
+        {
+            ActivateTileOptions();
+            myResourceManager.DeactivateSelf();
+        }
+    }
     private void ShowEnemyOnTile()
     {
+        CheckNullFloatingText();
         FloatingText.gameObject.SetActive(true);
         FloatingText.text = enemyCount.ToString();
         SpriteRenderer rend = myRenderers[4].GetComponent<SpriteRenderer>();
@@ -640,27 +709,6 @@ public class HexTileInfo : MonoBehaviour
             }
         }
     }
-
-    public void OnMouseEnter()
-    {
-        isMousePresent = true;
-        Vector3 v = transform.position;
-        v.y += .1f;
-        transform.position = v;
-        //if (myState == TileStates.Conquered) return;
-        if (myState == TileStates.UnClickable) return;
-    }
-    private void OnMouseExit()
-    {
-        isMousePresent = false;
-        Vector3 v = transform.position;
-        v.y -= .1f;
-        transform.position = v;
-        //if (myState == TileStates.Conquered) return;
-        if (myState == TileStates.UnClickable) return;
-    }
-    #endregion
-
     private void ActivateTileOptions()
     {
         if (myCanvasContainer == null)
@@ -803,6 +851,10 @@ public class HexTileInfo : MonoBehaviour
         return null;
     }
 
+    private void TurnOffAllFloatingText()
+    {
+        FloatingText.gameObject.SetActive(false);
+    }
     public void DeactivateSelf()
     {
         OnTakeover -= CheckForPlayability;

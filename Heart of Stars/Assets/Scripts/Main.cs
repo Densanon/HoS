@@ -13,9 +13,6 @@ public class Main : MonoBehaviour
     public static Action OnInitializeVeryFirstInteraction = delegate { };
     public static Action<int> OnInitializeRegularFirstPlanetaryInteraction = delegate { };
 
-    public static Action OnRevealTileLocations = delegate { };
-    public static Action<Vector2> OnRevealTileSpecificInformation = delegate { };
-
     public enum UniverseDepth {Universe, SuperCluster, Galaxy, Nebula, GlobularCluster, StarCluster, Constellation, SolarSystem, PlanetMoon, Planet, Moon}
     static UniverseDepth currentDepth = UniverseDepth.Universe;
 
@@ -73,14 +70,35 @@ public class Main : MonoBehaviour
     bool isInitialized = false;
 
     WeightedRandomBag<ResourceData> dropTypes = new WeightedRandomBag<ResourceData>();
-    
+
     #region Debug Values
+    public static Action OnRevealTileLocations = delegate { };
+    public static Action<Vector2> OnRevealTileSpecificInformation = delegate { };
+    public static Action OnRevealEnemies = delegate { };
+    public static Action OnDestroyLevel = delegate { };
+
+    [Header("Debug Values")]
     [SerializeField]
     GameObject debugPanel;
+
+    public static float camCancelUI = 4f;
+
+    
+    [Tooltip("Percentage to spawn on tiles.")]
+    [SerializeField][Range(0f, 1.0f)]
+    float spawnEnemyRatio;
+    [SerializeField]
+    int spawnEnemyDensityMin;
+    [SerializeField]
+    int spawnEnemyDensityMax;
+    [SerializeField]
+    int testAmounts;
 
     ResourceData dat;
     public string debugField = "";
     int amount;
+    public static bool cantLose;
+    public static bool canSeeAllEnemies;
 
     [SerializeField]
     TMP_Text ResourceName;
@@ -192,6 +210,42 @@ public class Main : MonoBehaviour
         Vector2 v = new Vector2(int.Parse(s[0]), int.Parse(s[1]));
         OnRevealTileSpecificInformation(v);
     }
+    public void ToggleCantLose()
+    {
+        cantLose = !cantLose;
+    }
+    public void TestNormalizeNumbers()
+    {
+        int average = 0;
+        int min = 100;
+        int max = 0;
+        for(int i = 0; i < testAmounts; i++)
+        {
+            int j = NormalizeRandom(spawnEnemyDensityMin, spawnEnemyDensityMax);
+            average += j;
+            if (j < min) min = j;
+            if (j > max) max = j;
+        }
+        Debug.Log("Min: " + min);
+        Debug.Log("Max: " + max);
+        Debug.Log("Average: " + average / testAmounts);
+    }
+    public void RevealEnemies()
+    {
+        OnRevealEnemies?.Invoke();
+    }
+    public void ChangeCameraZoomToggleUI()
+    {
+        camCancelUI = float.Parse(debugField);
+    }
+    public void ResetLevelWithNewValues()
+    {
+        WipeUniversePieces();
+        OnDestroyLevel?.Invoke();
+        ResetTheInitialEncounter();
+        universeAdress = universeAdress.Remove(universeAdress.Length - 2);
+        GenerateUniverseLocation(UniverseDepth.Planet, 0);
+    }
     #endregion
 
     #region Unity Methods
@@ -262,8 +316,6 @@ public class Main : MonoBehaviour
         if (Input.GetKeyDown(KeyCode.Escape)) debugPanel.SetActive(!debugPanel.activeSelf);
     }
     #endregion
-
-    
 
     #region Data Calls
     void CreateOrResetAllBuildableStrings()
@@ -943,11 +995,13 @@ public class Main : MonoBehaviour
         }
         if (!found)
         {
+            Debug.Log("Building a new Level.");
             GameObject obj = Instantiate(planetPrefab, universeTransform);
             LocationManager Ego = obj.GetComponent<LocationManager>();
             planetContainer.Add(Ego);
             activeBrain = Ego;
-            Ego.AssignMain(this);
+            activeBrain.AssignMain(this);
+            activeBrain.SetEnemyNumbers(spawnEnemyRatio, spawnEnemyDensityMin, spawnEnemyDensityMax);
             activeBrain.BuildPlanetData(TryLoadLevel(), universeAdress);
             if (!isInitialized)
             {
@@ -1159,7 +1213,7 @@ public class Main : MonoBehaviour
         GenerateUniverseLocation(currentDepth, index);
         OnGoingToHigherLevel?.Invoke(depthLocations[int.Parse(ar[ar.Length - 1])]);
     }
-    int NormalizeRandom(int minValue, int maxValue) //Normal distribution
+    public static int NormalizeRandom(int minValue, int maxValue) //Normal distribution
     {
         //-4&17 = 12 average
         //-14&16 = 8 average

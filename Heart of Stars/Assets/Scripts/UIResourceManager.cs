@@ -13,7 +13,8 @@ public class UIResourceManager : MonoBehaviour
     HexTileInfo myTile;
 
     public int activeMouseHoverInteractions;
-
+    [SerializeField]
+    public GameObject interactiblesContainer;
     [SerializeField]
     GameObject[] Containers;
     [SerializeField]
@@ -31,13 +32,56 @@ public class UIResourceManager : MonoBehaviour
     int troopCount;
 
     [SerializeField]
+    TMP_Text floatingText;
+    [SerializeField]
+    Slider visualBattleTimer;
+    bool needBattleTimer = false;
+    float battleTime = 0f;
+    float battleTimer = 0f;
+
+    [SerializeField]
     GameObject dependenceButtonPrefab;
     HoverAbleResourceButton[] resourceButtons;
+
+    private void OnEnable()
+    {
+        Main.OnDestroyLevel += TurnAndBurn;
+    }
+
+    private void TurnAndBurn()
+    {
+        Main.OnDestroyLevel -= TurnAndBurn;
+        Destroy(this.gameObject);
+    }
+
+    private void FixedUpdate()
+    {
+        if (needBattleTimer)
+        {           
+            visualBattleTimer.value = battleTimer += Time.fixedDeltaTime;
+            if (battleTimer > battleTime)
+            {
+                needBattleTimer = false;
+                battleTimer = 0f;
+                visualBattleTimer.gameObject.SetActive(false);
+            }
+        }
+    }
+
+    public void SetBattleTimerAndStart(float time)
+    {
+        battleTime = time;
+        visualBattleTimer.gameObject.SetActive(true);
+        visualBattleTimer.maxValue = time;
+        needBattleTimer = true;
+    }
 
     public void SetMyTileAndMain(HexTileInfo tile, Main m)
     {
         myTile = tile;
         main = m;
+
+        myTile.SetFloatingText(floatingText);
     }
     public void CreateResourceButtons()
     {
@@ -69,7 +113,7 @@ public class UIResourceManager : MonoBehaviour
         }
         rotationList.Clear();
 
-        ResetUI();
+        //ResetUI();
     }
     public void ResetUI()
     {
@@ -133,11 +177,11 @@ public class UIResourceManager : MonoBehaviour
     }
     public void ActivateSelf()
     {
-        gameObject.SetActive(true);
+        interactiblesContainer.SetActive(true);
     }
     public void DeactivateSelf()
     {
-        gameObject.SetActive(false);
+        interactiblesContainer.SetActive(false);
         activeMouseHoverInteractions = 0;
     }
 }

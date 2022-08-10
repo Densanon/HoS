@@ -265,7 +265,7 @@ public class CameraController : MonoBehaviour
                 myCamera.orthographicSize = cameraZoomedInSize;
             }
             OnZoomRelocateUI?.Invoke();
-            if(size > 4f)
+            if(size > Main.camCancelUI)
             {
                 OnZoomedOutTurnOffUI?.Invoke();
             }
