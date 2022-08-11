@@ -238,7 +238,7 @@ public class HexTileInfo : MonoBehaviour
     IEnumerator UpdateQue(ResourceData data)
     {
         bool addedNormal = false;
-        myUIManager.SetBattleTimerAndStart(data.craftTime);
+        myUIManager.SetTimerAndStart(data.craftTime);
 
         yield return new WaitForSeconds(data.craftTime);
 
@@ -652,7 +652,7 @@ public class HexTileInfo : MonoBehaviour
         OnResetStateToPreviousFromInteraction?.Invoke();
         float timer =(generalTimerOverride) ? generalTimer : 2f;
         CheckNullFloatingText();
-        myUIManager.SetBattleTimerAndStart(timer);
+        myUIManager.SetTimerAndStart(timer);
 
         yield return new WaitForSeconds(timer);
 
@@ -668,7 +668,7 @@ public class HexTileInfo : MonoBehaviour
         float timer = 2f;
         //create some more interesting timer;
         CheckNullFloatingText();
-        myUIManager.SetBattleTimerAndStart(timer);
+        myUIManager.SetTimerAndStart(timer);
         OnReinstateInteractability?.Invoke();
         OnResetStateToPreviousFromInteraction?.Invoke();
 
