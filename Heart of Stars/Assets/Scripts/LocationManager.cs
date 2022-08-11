@@ -28,6 +28,8 @@ public class LocationManager : MonoBehaviour
     int enemyDensityMin;
     int enemyDensityMax;
 
+    bool isViewing;
+
     #region General
     //enum GeneralState { Moving, Combat, Searching, Stop }
     //GeneralState myGeneralState = GeneralState.Searching;
@@ -350,6 +352,7 @@ public class LocationManager : MonoBehaviour
     }
     private void FirstRegularPlanetaryEncounter(int amount)//will actually need resource names and amounts
     {
+        if (starter == null) return;
         foreach (ResourceData data in starter.myResources)
         {
             if (data.itemName == "soldier")
@@ -359,9 +362,10 @@ public class LocationManager : MonoBehaviour
             }
         }
     }
-    public void BuildPlanetData(string[] hextiles, string address)
+    public void BuildPlanetData(string[] hextiles, string address, bool viewing)
     {
         myAddress = address;
+        isViewing = viewing;
 
         BuildTileBase();
 
@@ -373,7 +377,11 @@ public class LocationManager : MonoBehaviour
 
         OrganizePieces();
 
-        SaveLocationInfo();
+        if (!viewing)
+        {
+            SaveLocationInfo();
+            main.SaveLocationAddressBook();
+        }
     }
     void BuildTileBase()
     {
@@ -444,7 +452,7 @@ public class LocationManager : MonoBehaviour
             while (!suitable)
             {
                 k = UnityEngine.Random.Range(Mathf.RoundToInt(q), Mathf.RoundToInt(f));
-                d = Mathf.FloorToInt(k / locationXBounds);
+                d = Mathf.FloorToInt(k / locationYBounds);
                 r = k % locationYBounds;
                 Vector2 target = tileInfoList[d][r].myPositionInTheArray;
                 if(target.x != 0 && target.x != locationXBounds-1 &&
@@ -464,7 +472,7 @@ public class LocationManager : MonoBehaviour
             foreach(HexTileInfo tile in tileArray)
             {
                 tile.SetNeighbors(FindNeighbors(tile.myPositionInTheArray));
-                if (!start && tile.myTileType == tile.GetResourceSpritesLengthForStartPoint())
+                if (!start && tile.myTileType == tile.GetResourceSpritesLengthForStartPoint() && !isViewing)
                 {
                     tile.SetAsStartingPoint();
                     start = true;
@@ -636,17 +644,22 @@ public class LocationManager : MonoBehaviour
     #region Visibility
     void TurnOffVisibility(bool inOverWorld)
     {
-        if (inOverWorld && gameObject.activeInHierarchy)
+        if (inOverWorld && gameObject.activeInHierarchy) //leaving planet
         {
             gameObject.SetActive(false);
-            SaveLocationInfo();
+            if(starter != null) SaveLocationInfo();
+            return;
         }
+
+        if(starter == null) //comming to a new one and this isn't one we want to keep open.
+            main.RemovePlanetBrainAndDestroy(this);
     }
 
     public void TurnOnVisibility()
     {
         gameObject.SetActive(true);
-        starter.StartLandingSequenceAnimation();
+        if(starter != null)
+            starter.StartLandingSequenceAnimation();
     }
 
     private void CheckNewTileOptions(HexTileInfo tile)
@@ -726,7 +739,6 @@ public class LocationManager : MonoBehaviour
 
             SaveSystem.SaveLocationData();
             SaveSystem.SaveFile("/" + myAddress);
-            main.SaveLocationAddressBook();
         }
     }
 

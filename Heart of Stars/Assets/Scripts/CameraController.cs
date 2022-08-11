@@ -82,7 +82,8 @@ public class CameraController : MonoBehaviour
             CheckZoomIn();
             CheckZoomOut();
             CheckNormalize();
-            if(!atUniverse && Input.mouseScrollDelta.y < 0f && canOverWorldZoom && !isZooming)
+            if(!atUniverse && Input.mouseScrollDelta.y < 0f && canOverWorldZoom && !isZooming &&
+                ((int)Main.currentDepth) > Main.highestLevelOfView)
             {
                 canOverWorldZoom = false;
                 canOverWorldZoomIn = false;

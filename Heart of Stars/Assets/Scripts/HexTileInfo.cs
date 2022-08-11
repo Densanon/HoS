@@ -63,6 +63,7 @@ public class HexTileInfo : MonoBehaviour
 
     bool isInitializingLandingSequence = false;
     bool isInitializingLeavingSequence = false;
+    Vector3 truePosition;
     Vector3 startPosition;
     Vector3 endPosition;
     float spaceshipSequenceTimer;
@@ -422,6 +423,7 @@ public class HexTileInfo : MonoBehaviour
     }
     public void SetAsStartingPoint()
     {
+        truePosition = myRenderers[4].transform.position;
         isStartingPoint = true;
         myRenderers[0].material.mainTexture = tileTextures[3];
         myState = TileStates.Conquered;
@@ -433,11 +435,6 @@ public class HexTileInfo : MonoBehaviour
         OnTakeover -= CheckForPlayability;
         OnTakeover?.Invoke(myPositionInTheArray);
         StartLandingSequenceAnimation();
-
-        //foreach(ResourceData data in myResources)
-        //{
-        //    Debug.Log($"Checking all resources: {data.itemName}");
-        //}
     }
     private bool CheckIfResourceIsInMyArray(string itemName)
     {
@@ -480,7 +477,7 @@ public class HexTileInfo : MonoBehaviour
         SpriteRenderer rend = myRenderers[4].GetComponent<SpriteRenderer>();
         rend.enabled = true;
         rend.sprite = armySprites[armySprites.Length - 1];
-        endPosition = spaceship.position;
+        endPosition = truePosition;
         startPosition = new Vector3(endPosition.x, endPosition.y + 6f, endPosition.z);
         spaceshipSequenceTimer = 0;
         spaceshipSequenceDesiredTime = 6f;

@@ -5,6 +5,7 @@ using UnityEngine;
 public class Depthinteraction : MonoBehaviour
 {
     public static Action<GameObject> SpaceInteractionHover = delegate { };
+    public static Action<GameObject> CheckIfCanZoomToPlanetaryLevel = delegate { };
     public static Action OnDeactivate = delegate { };
 
     [SerializeField]
@@ -53,8 +54,11 @@ public class Depthinteraction : MonoBehaviour
 
     private void OnMouseDown()
     {
-        if (isInteractable)
+        Debug.Log("Mouse was pressed on a space object.");
+        CheckIfCanZoomToPlanetaryLevel?.Invoke(transform.parent.gameObject);
+        if (isInteractable && (Main.isVisitedPlanet || Main.canSeeIntoPlanets))
         {
+            Debug.Log("I am interactable and either visited or can see.");
             SpaceInteractionHover?.Invoke(transform.parent.gameObject);
             OnDeactivate?.Invoke();
         }

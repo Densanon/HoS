@@ -14,7 +14,7 @@ public class Main : MonoBehaviour
     public static Action<int> OnInitializeRegularFirstPlanetaryInteraction = delegate { };
 
     public enum UniverseDepth {Universe, SuperCluster, Galaxy, Nebula, GlobularCluster, StarCluster, Constellation, SolarSystem, PlanetMoon, Planet, Moon}
-    static UniverseDepth currentDepth = UniverseDepth.Universe;
+    public static UniverseDepth currentDepth = UniverseDepth.Universe;
 
     [SerializeField]
     TMP_Text areaText;
@@ -63,7 +63,11 @@ public class Main : MonoBehaviour
     public GameObject BuildableResourceButtonPrefab;
     public GameObject Canvas;
 
-    int buttonsCreated = 0;
+    public static int highestLevelOfView = 7; //0 = universe 8 = planet/moon
+    public static bool canSeeIntoPlanets = false;
+    public static bool isVisitedPlanet = false;
+    public static bool isViewingPlanetOnly = false;
+
     public string searchInputField = "";
     static bool needResetAllBuildables = false;
 
@@ -115,6 +119,16 @@ public class Main : MonoBehaviour
     #endregion
     
     #region Debugging
+    public void ToggleCanSeeInPlanets()
+    {
+        canSeeIntoPlanets = !canSeeIntoPlanets;
+    }
+    public void SetHighestLevelOfView()
+    {
+        highestLevelOfView = int.Parse(debugField);
+        Debug.Log($"Highest Level Access Set To: {highestLevelOfView}");
+        Debug.Log($"Current level: {(int)currentDepth}");
+    }
     public void UpdateDebugField(string s)
     {
         debugField = s;
@@ -269,6 +283,14 @@ public class Main : MonoBehaviour
     {
         activeBrain.CreateAGeneral();
     }
+    public void GenerateMapLocation()
+    {
+        //42,7,1,1,2,7,10,2,8,0  Current working planet
+        fromMemoryOfLocation = true;
+        universeAdress = debugField;
+        OnWorldMap?.Invoke(true);
+        GenerateUniverseLocation(UniverseDepth.Planet, 42);
+    }
     #endregion
 
     #region Unity Methods
@@ -306,16 +328,15 @@ public class Main : MonoBehaviour
         DontDestroyOnLoad(this.gameObject);
 
         Depthinteraction.SpaceInteractionHover += CheckForSpaceObject;
+        Depthinteraction.CheckIfCanZoomToPlanetaryLevel += CheckIfWeCanZoomToPlanet;
         CameraController.OnCameraZoomContinue += SetZoomContinueTrue;
         CameraController.OnNeedZoomInfo += GoBackAStep;
         CameraController.SaveCameraState += SaveCamState;
         HexTileInfo.OnLeaving += GoBackAStep;
     }
+
     private void Start()
     {
-        //Get Daily message from online
-        //OnSendMessage?.Invoke("Welcome!", "Thank you for starting the game and participating in all the fun!");
-
         GenerateUniverseLocation(UniverseDepth.Universe, 42);
 
         LoadCamState();
@@ -621,6 +642,7 @@ public class Main : MonoBehaviour
         string s = "";
         for(int i = 0; i < LocationAddresses.Count; i++)
         {
+            Debug.Log($"Adding {LocationAddresses[i]}");
             if(i == LocationAddresses.Count-1)
             {
                 s += LocationAddresses[i];
@@ -979,9 +1001,11 @@ public class Main : MonoBehaviour
     private void SetUpPlanetaryEncounter()
     {
         bool isBrandNew = false;
-        if (!LocationAddresses.Contains(universeAdress)) {
+        isViewingPlanetOnly = isInitialized;
+        if (!LocationAddresses.Contains(universeAdress) && !isViewingPlanetOnly) {
             LocationAddresses.Add(universeAdress);
             isBrandNew = true;
+            Debug.Log("Never seen this planet before.");
         }
         
         if (planetContainer == null) planetContainer = new List<LocationManager>();
@@ -989,8 +1013,10 @@ public class Main : MonoBehaviour
         bool found = false;
         foreach (LocationManager brain in planetContainer)
         {
+            Debug.Log($"Looking through address book at {universeAdress} for {brain.myAddress}.");
             if (brain.myAddress == universeAdress)
             {
+                Debug.Log("Looking at an already active brain.");
                 activeBrain = brain;
                 found = true;
                 activeBrain.TurnOnVisibility();
@@ -1006,10 +1032,11 @@ public class Main : MonoBehaviour
             activeBrain = Ego;
             activeBrain.AssignMain(this);
             activeBrain.SetEnemyNumbers(spawnEnemyRatio, spawnEnemyDensityMin, spawnEnemyDensityMax);
-            activeBrain.BuildPlanetData(TryLoadLevel(), universeAdress);
+            activeBrain.BuildPlanetData(TryLoadLevel(), universeAdress,isViewingPlanetOnly);
             if (!isInitialized)
             {
                 Debug.Log("Setting up very first encounter.");
+                isInitialized = true;
                 PlayerPrefs.SetInt("Initialized", 1);
                 OnInitializeVeryFirstInteraction?.Invoke();
             }else if (isBrandNew && isInitialized)
@@ -1098,24 +1125,65 @@ public class Main : MonoBehaviour
     void CheckForSpaceObject(GameObject obj)
     {
         areaText.text = "";
-        for(int i = 0; i < depthLocations.Length; i++)
+        StartCoroutine(ZoomWait(GetSpaceObjectIndex(obj))) ;
+    }
+    private void CheckIfWeCanZoomToPlanet(GameObject obj)
+    {
+        Debug.Log("Checking for zoom.");
+        CheckIfVisitedPlanet(GetSpaceObjectIndex(obj));
+    }
+    private int GetSpaceObjectIndex(GameObject obj)
+    {
+        for (int i = 0; i < depthLocations.Length; i++)
         {
-            if(ReferenceEquals(obj,depthLocations[i]))
+            if (ReferenceEquals(obj, depthLocations[i]))
             {
-                if(currentDepth == UniverseDepth.PlanetMoon) isPlanet = (i == 0);
-
-                StartCoroutine(ZoomWait(i));
-                break;
+                return i;
             }
         }
+
+        Debug.Log("Object wasn't in the array");
+        return 0;
+    }
+    public void RemovePlanetBrainAndDestroy(LocationManager brain)
+    {
+        planetContainer.Remove(brain);
+        Destroy(brain.gameObject);
     }
     IEnumerator ZoomWait(int index)
     {
+        if (currentDepth == UniverseDepth.PlanetMoon)
+        {
+            isPlanet = (index == 0);
+            if (!canSeeIntoPlanets && !isVisitedPlanet)
+            {
+                Debug.Log("Can't see and haven't visited.");
+                yield break;
+            }
+        }
+
         yield return new WaitUntil(() => canZoomContinue);
+
         canZoomContinue = false;
         DeeperIntoUniverseLocationDepth();
         GenerateUniverseLocation(currentDepth, index);
     }
+
+    private void CheckIfVisitedPlanet(int index)
+    {
+        Debug.Log("Checking if we have been here before.");
+        isVisitedPlanet = false;
+        string s = universeAdress + $",{index}";
+        foreach(string str in LocationAddresses)
+        {
+            if(str == s)
+            {
+                isVisitedPlanet = true;
+                return;
+            }
+        }
+    }
+
     private void SetZoomContinueTrue()
     {
         canZoomContinue = true;
