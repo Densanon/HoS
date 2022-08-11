@@ -651,7 +651,7 @@ public class LocationManager : MonoBehaviour
 
     private void CheckNewTileOptions(HexTileInfo tile)
     {
-        UIResourceManager res = tile.myResourceManager;
+        UIResourceManager res = tile.myUIManager;
         if (activeManager == null) activeManager = res;
         if (res != activeManager && activeManager.activeMouseHoverInteractions == 0)
         {

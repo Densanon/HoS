@@ -65,7 +65,7 @@ public class Main : MonoBehaviour
 
     int buttonsCreated = 0;
     public string searchInputField = "";
-    bool needResetAllBuildables = false;
+    static bool needResetAllBuildables = false;
 
     bool isInitialized = false;
 
@@ -102,6 +102,7 @@ public class Main : MonoBehaviour
     public static bool usingGeneral;
     public static bool cantLose;
     public static bool canSeeAllEnemies;
+    public static bool needCompareForUpdatedValues;
 
     [SerializeField]
     TMP_Text ResourceName;
@@ -354,10 +355,10 @@ public class Main : MonoBehaviour
         }
         needResetAllBuildables = false;
     }
-    void CompareIndividualResourceValues(ResourceData data)
+    public static void CompareIndividualResourceValues(Main main, ResourceData data)
     {
         if (data == null) return;
-        foreach(string[] ar in SheetData)
+        foreach(string[] ar in main.SheetData)
         {
             if (ar[0] == data.itemName)
             {
@@ -667,7 +668,10 @@ public class Main : MonoBehaviour
                 try
                 {
                     if (SheetData[j][14] == "TRUE")
-                        CompareIndividualResourceValues(ResourceLibrary[j]);
+                    {
+                        needCompareForUpdatedValues = true;
+                        CompareIndividualResourceValues(this,ResourceLibrary[j]);
+                    }
                 }
                 catch (IndexOutOfRangeException e) { }
 
@@ -760,40 +764,42 @@ public class Main : MonoBehaviour
                         SheetData[j][6], SheetData[j][7], SheetData[j][11], SheetData[j][12],
                         SheetData[j][13], 0, "");
     }
-    void LoadAndBuildGameStats(string[] resources)
-    {
-        LoadedData = new List<string[]>();
-        itemNames = new List<string>();
+    #region Potention Unuse
+    //void LoadAndBuildGameStats(string[] resources)
+    //{
+    //    LoadedData = new List<string[]>();
+    //    itemNames = new List<string>();
 
-        if(resources != null)
-        {
-            BuildLoadedData(resources);
-        }
-        else
-        {
-            BuildLoadedData(SaveSystem.LoadFile("/resource_shalom"));
-        }
+    //    if(resources != null)
+    //    {
+    //        BuildLoadedData(resources);
+    //    }
+    //    else
+    //    {
+    //        BuildLoadedData(SaveSystem.LoadFile("/resource_shalom"));
+    //    }
 
-        for (int j = 0; j < SheetData.Count; j++)
-        {
-            //Load data from previous data on drive
-            if (itemNames.Contains(SheetData[j][0]))
-            {
-                BuildResourceLibraryFromMemoryAtGivenIndex(j);
+    //    for (int j = 0; j < SheetData.Count; j++)
+    //    {
+    //        //Load data from previous data on drive
+    //        if (itemNames.Contains(SheetData[j][0]))
+    //        {
+    //            BuildResourceLibraryFromMemoryAtGivenIndex(j);
 
-                try
-                {
-                    if(SheetData[j][14] == "TRUE")
-                        CompareIndividualResourceValues(LocationResources[j]);
-                }
-                catch (IndexOutOfRangeException e){}
+    //            try
+    //            {
+    //                if(SheetData[j][14] == "TRUE")
+    //                    CompareIndividualResourceValues(LocationResources[j]);
+    //            }
+    //            catch (IndexOutOfRangeException e){}
                 
-                continue;
-            }
-        }
+    //            continue;
+    //        }
+    //    }
 
-        CreateOrResetAllBuildableStrings();
-    }
+    //    CreateOrResetAllBuildableStrings();
+    //}
+    #endregion
     void LoadDataFromSave(string[] resource)
     {
         LoadedData = new List<string[]>();

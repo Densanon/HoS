@@ -68,7 +68,7 @@ public class UIResourceManager : MonoBehaviour
         }
     }
 
-    public void SetBattleTimerAndStart(float time)
+    public void SetTimerAndStart(float time)
     {
         battleTime = time;
         battleTimer = 0f;

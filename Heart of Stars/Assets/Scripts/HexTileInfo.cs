@@ -18,13 +18,6 @@ public class HexTileInfo : MonoBehaviour
     public static Action<Vector2, string, int> OnTradeWithPartnerTile = delegate { };
 
     [SerializeField]
-    GameObject BattleObject;
-    [SerializeField]
-    int enemyCount;
-    [SerializeField]
-    TMP_Text FloatingText;
-
-    [SerializeField]
     Texture2D[] tileTextures;
     [SerializeField]
     Sprite[] resourceSprites;
@@ -35,12 +28,14 @@ public class HexTileInfo : MonoBehaviour
     [SerializeField]
     Renderer[] myRenderers;
     Transform spaceship;
-    [SerializeField]
     Vector2[] myNeighbors;
     public ResourceData[] myResources;
     ResourceData soldiers;
     public ResourceData enemies;
-    
+    int enemyCount;
+    [SerializeField]
+    TMP_Text FloatingText;
+
     [SerializeField]
     GameObject dependenceButtonPrefab;
 
@@ -62,7 +57,7 @@ public class HexTileInfo : MonoBehaviour
     Main main;
     Camera camera;
 
-    public UIResourceManager myResourceManager;
+    public UIResourceManager myUIManager;
     int[] QuedResourceAmount;
     string[] ResourceNameReferenceIndex;
 
@@ -209,16 +204,44 @@ public class HexTileInfo : MonoBehaviour
     #endregion
 
     #region Qeue
+    public void CreateQueElements()
+    {
+        QuedResourceAmount = new int[myResources.Length];
+        ResourceNameReferenceIndex = new string[myResources.Length];
+        
+        for(int i = 0; i < myResources.Length; i++)
+        {
+            ResourceNameReferenceIndex[i] = myResources[i].displayName;
+        }
+    }
     public void StartQueUpdate(ResourceData data)
     {
         Debug.Log($"I have been told to start the que for {data.displayName}");
         StartCoroutine(UpdateQue(data));
     }
+    public void AddToQue(ResourceData data, int amount)
+    {
+        if (data == null || !data.visible)
+        {
+            Debug.Log("Didn't get a legitamate resource.");
+            return;
+        }
+
+        Debug.Log($"I have been told to add {amount} to the {data.displayName} que");
+        Debug.Log($"{data.displayName} before que addition: {QuedResourceAmount[System.Array.IndexOf(ResourceNameReferenceIndex, data.displayName)]}");
+        QuedResourceAmount[System.Array.IndexOf(ResourceNameReferenceIndex, data.displayName)] += amount;
+        Debug.Log($"{data.displayName} after que addition: {QuedResourceAmount[System.Array.IndexOf(ResourceNameReferenceIndex, data.displayName)]}");
+
+        if(QuedResourceAmount[System.Array.IndexOf(ResourceNameReferenceIndex, data.displayName)] == 1)
+        StartQueUpdate(data);
+    }
     IEnumerator UpdateQue(ResourceData data)
     {
         bool addedNormal = false;
+        myUIManager.SetBattleTimerAndStart(data.craftTime);
+
         yield return new WaitForSeconds(data.craftTime);
-        Debug.Log($"Created: {data.itemName}");
+
         if (QuedResourceAmount[System.Array.IndexOf(ResourceNameReferenceIndex, data.displayName)] > 0 || data.autoAmount > 0)
         {
             Debug.Log($"Starting {data.displayName} Que Update process.");
@@ -240,24 +263,12 @@ public class HexTileInfo : MonoBehaviour
                 Debug.Log($"Adding {data.displayName} sinlge que.");
             }
 
-            StartCoroutine(UpdateQue(data));
-        }
-    }
-    public void AddToQue(ResourceData data, int amount)
-    {
-        if (data == null || !data.visible)
-        {
-            Debug.Log("Didn't get a legitamate resource.");
-            return;
-        }
+            if (data.itemName == "soldier") myUIManager.ResetTroopText();
 
-        Debug.Log($"I have been told to add {amount} to the {data.displayName} que");
-        Debug.Log($"{data.displayName} before que addition: {QuedResourceAmount[System.Array.IndexOf(ResourceNameReferenceIndex, data.displayName)]}");
-        QuedResourceAmount[System.Array.IndexOf(ResourceNameReferenceIndex, data.displayName)] += amount;
-        Debug.Log($"{data.displayName} after que addition: {QuedResourceAmount[System.Array.IndexOf(ResourceNameReferenceIndex, data.displayName)]}");
-
-        StartQueUpdate(data);
-    }
+            if (QuedResourceAmount[System.Array.IndexOf(ResourceNameReferenceIndex, data.displayName)] > 0 || data.autoAmount > 0)
+                StartCoroutine(UpdateQue(data));
+        }
+    }   
     #endregion
 
     #region Initial Setup Methods
@@ -359,6 +370,16 @@ public class HexTileInfo : MonoBehaviour
             tempToPermanent.Add(new ResourceData(locationTypeOptionList[UnityEngine.Random.Range(0, locationTypeOptionList.Count)]));
         
         myResources = tempToPermanent.ToArray();
+
+        if (Main.needCompareForUpdatedValues)
+        {
+            foreach(ResourceData data in myResources)
+            {
+                Main.CompareIndividualResourceValues(main, data);
+            }
+        }
+
+        CreateQueElements();
     }
     void TrySpawnEnemy()
     {
@@ -472,8 +493,7 @@ public class HexTileInfo : MonoBehaviour
         isInitializingLeavingSequence = true;
     }
     #endregion
-    #endregion
-
+   
     #region Setup Tiles From Memory
     public void SetAllTileInfoFromMemory(string state, int tileType, string neighbors, bool isStart, string resources)
     {
@@ -506,7 +526,9 @@ public class HexTileInfo : MonoBehaviour
             myResources = temp.ToArray();
             foreach(ResourceData data in myResources)
             {
-                if(data.itemName == "soldier")
+                if (Main.needCompareForUpdatedValues) Main.CompareIndividualResourceValues(main, data);
+
+                if (data.itemName == "soldier")
                 {
                     //Debug.Log($"Soldiers: {data.currentAmount} on {myPositionInTheArray}");
                     soldiers = data;
@@ -523,6 +545,8 @@ public class HexTileInfo : MonoBehaviour
                 }
             }
         }
+
+        CreateQueElements();
 
         if (isStart) SetAsStartingPoint();
     }
@@ -567,6 +591,7 @@ public class HexTileInfo : MonoBehaviour
                 break;
         }
     }
+    #endregion
     #endregion
 
     #region Mouse Interactions
@@ -627,7 +652,7 @@ public class HexTileInfo : MonoBehaviour
         OnResetStateToPreviousFromInteraction?.Invoke();
         float timer =(generalTimerOverride) ? generalTimer : 2f;
         CheckNullFloatingText();
-        myResourceManager.SetBattleTimerAndStart(timer);
+        myUIManager.SetBattleTimerAndStart(timer);
 
         yield return new WaitForSeconds(timer);
 
@@ -643,7 +668,7 @@ public class HexTileInfo : MonoBehaviour
         float timer = 2f;
         //create some more interesting timer;
         CheckNullFloatingText();
-        myResourceManager.SetBattleTimerAndStart(timer);
+        myUIManager.SetBattleTimerAndStart(timer);
         OnReinstateInteractability?.Invoke();
         OnResetStateToPreviousFromInteraction?.Invoke();
 
@@ -688,7 +713,7 @@ public class HexTileInfo : MonoBehaviour
         if (FloatingText == null)
         {
             ActivateTileOptions();
-            myResourceManager.DeactivateSelf();
+            myUIManager.DeactivateSelf();
         }
     }
     private void ShowEnemyOnTile()
@@ -756,9 +781,9 @@ public class HexTileInfo : MonoBehaviour
         myCanvasContainer = GameObject.Find("Canvas").transform;
         GameObject obj = Instantiate(canvasContainerPrefab, myCanvasContainer);
         myCanvasContainer = obj.transform;
-        myResourceManager = obj.GetComponent<UIResourceManager>();
-        myResourceManager.SetMyTileAndMain(this, main);
-        myResourceManager.CreateResourceButtons();
+        myUIManager = obj.GetComponent<UIResourceManager>();
+        myUIManager.SetMyTileAndMain(this, main);
+        myUIManager.CreateResourceButtons();
         SetButtonsOnScreenPosition();
     }
 
@@ -788,7 +813,7 @@ public class HexTileInfo : MonoBehaviour
             rend.enabled = true;
             rend.sprite = armySprites[0];
 
-        }else if (soldiers.currentAmount == 0 && myRenderers[4].enabled)
+        }else if (soldiers.currentAmount == 0 && myRenderers[4].enabled && !isStartingPoint)
         {
             myRenderers[4].enabled = false;
         }
@@ -847,9 +872,9 @@ public class HexTileInfo : MonoBehaviour
 
     void DeactivateTileOptions()
     {
-        if (myResourceManager != null)
+        if (myUIManager != null)
         {
-           myResourceManager.DeactivateSelf();
+           myUIManager.DeactivateSelf();
         }
     }
 

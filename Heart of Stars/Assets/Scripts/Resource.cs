@@ -288,7 +288,6 @@ public class Resource : MonoBehaviour
     {
         myResource.AdjustVisibility(true);
         tile.StartQueUpdate(myResource);
-
     }
 
     IEnumerator UpdateMyInformation()
