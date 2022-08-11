@@ -6,9 +6,7 @@ public class General : MonoBehaviour
 {
     LocationManager myManager;
 
-    [SerializeField]
     public string Name { private set; get; }
-    public string name;
 
     public enum GeneralType { Basic, NonBasic }
     public GeneralType myType { private set; get; }
@@ -37,7 +35,7 @@ public class General : MonoBehaviour
     public void ActivateGeneral()
     {
         Debug.Log($"General {Name} trying to be activated.");
-        if (myLocation == null)
+        if (myLocation == null || myManager.tileInfoList[Mathf.RoundToInt(myLocation.x)][Mathf.RoundToInt(myLocation.y)].GetSoldierCount() < 1)
         {
             Main.PushMessage($"General {Name}", "The General you are accessing does not have a troop to use. You will need to set" +
              " the troop location before you can use them.");
@@ -50,6 +48,7 @@ public class General : MonoBehaviour
         myManager = manager;
         myType = type;
         Name = "";
+        generalSwitchStateTime = 4f;
     }
     public void SetManager(LocationManager man)
     {
@@ -80,6 +79,7 @@ public class General : MonoBehaviour
     }
     void GetNewDirection()
     {
+        Debug.Log($"{Name} is getting new direction.");
         int x = directionsAvailable[rand.Next(0, directionsAvailable.Count)];
         switch (x)
         {
@@ -111,6 +111,7 @@ public class General : MonoBehaviour
     }
     void CheckDirectionIsPlayable()
     {
+        Debug.Log($"{Name} checking Direction Playable.");
         switch (generalDirection)
         {
             case Direction.North:
@@ -178,6 +179,7 @@ public class General : MonoBehaviour
             case GeneralState.Searching:
                 if (!isSearching)
                 {
+                    Debug.Log($"{Name} is searching.");
                     isSearching = true;
                     directionIsPlayable = false;
                     ResetDirectionsAvailable();
@@ -191,6 +193,7 @@ public class General : MonoBehaviour
             case GeneralState.Moving:
                 if (!isMoving)
                 {
+                    Debug.Log($"{Name} is Moving to {targetLocation} from {myLocation}.");
                     isMoving = true;
                     HexTileInfo current = myManager.tileInfoList[Mathf.RoundToInt(myLocation.x)][Mathf.RoundToInt(myLocation.y)];
                     int soldierAmount = current.GetSoldierCount();
@@ -203,6 +206,7 @@ public class General : MonoBehaviour
             case GeneralState.Combat:
                 if (!isFighting)
                 {
+                    Debug.Log($"{Name} is Fighting at {targetLocation} from {myLocation}.");
                     isFighting = true;
                     HexTileInfo current = myManager.tileInfoList[Mathf.RoundToInt(myLocation.x)][Mathf.RoundToInt(myLocation.y)];
                     int soldierAmount = current.GetSoldierCount();
@@ -210,13 +214,15 @@ public class General : MonoBehaviour
                     HexTileInfo target = myManager.tileInfoList[Mathf.RoundToInt(targetLocation.x)][Mathf.RoundToInt(targetLocation.y)];
                     target.potentialAmountToReceive = soldierAmount;
                     target.SetResourceTradingBuddy(myLocation);
-                    if (target.enemies.currentAmount - soldierAmount < 0)
+                    Debug.Log($"Enemies:{target.enemies.currentAmount} - Soldiers{soldierAmount} = {target.enemies.currentAmount - soldierAmount}");
+                    if (target.enemies.currentAmount - soldierAmount <= 0)
                     {
                         myLocation = targetLocation;
                         StartCoroutine(SwitchGeneralState());
                     }
                     else
                     {
+                        Debug.Log($"{Name} either tied or lost.");
                         myGeneralState = GeneralState.Stop;
                         if (Main.cantLose)
                         {
@@ -229,6 +235,7 @@ public class General : MonoBehaviour
             case GeneralState.Stop:
                 if (!isStopped)
                 {
+                    Debug.Log($"{Name} has Stopped.");
                     isStopped = true;
                 }
                 break;
