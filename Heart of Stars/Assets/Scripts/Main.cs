@@ -39,6 +39,8 @@ public class Main : MonoBehaviour
     [SerializeField]
     LocationManager activeBrain;
     int amountOfResourcesToStartWith = 0;
+    [SerializeField]
+    GeneralsContainerManager generalManager;
 
     [SerializeField]
     HexTileInfo[] tileInfoList;
@@ -101,8 +103,6 @@ public class Main : MonoBehaviour
     public string debugField = "";
     int amount;
 
-    public static bool isBlockingMapInteractions;
-    public static bool isDebugging;
     public static bool usingGeneral;
     public static bool cantLose;
     public static bool canSeeAllEnemies;
@@ -266,22 +266,22 @@ public class Main : MonoBehaviour
     public void ToggleGeneral()
     {
         usingGeneral = !usingGeneral;
-        activeBrain.StartGeneral();
+        generalManager.StartActiveGeneral();
     }
     public void SubmitGeneralStart()
     {
         string[] s = debugField.Split(",");
         Vector2 tile = new Vector2(float.Parse(s[0]), float.Parse(s[1]));
-        activeBrain.SetGeneralLocation(tile);
+        generalManager.SetGeneralLocation(tile);
     }
     public void SubmitGeneralName()
     {
         Debug.Log("Sending name submition.");
-        activeBrain.GiveAnUnNamedGeneralAName(debugField);
+        generalManager.SetActiveGeneralName(debugField);
     }
     public void CreateGeneral()
     {
-        activeBrain.CreateAGeneral();
+        generalManager.CreateAGeneral();
     }
     public void GenerateMapLocation()
     {
@@ -334,7 +334,6 @@ public class Main : MonoBehaviour
         CameraController.SaveCameraState += SaveCamState;
         HexTileInfo.OnLeaving += GoBackAStep;
     }
-
     private void Start()
     {
         GenerateUniverseLocation(UniverseDepth.Universe, 42);
@@ -345,7 +344,6 @@ public class Main : MonoBehaviour
     {
         if (Input.GetKeyDown(KeyCode.Escape))
         {
-            isDebugging = !isDebugging;
             debugPanel.SetActive(!debugPanel.activeSelf);
             debugPanel.transform.SetAsLastSibling();
         }
@@ -642,7 +640,7 @@ public class Main : MonoBehaviour
         string s = "";
         for(int i = 0; i < LocationAddresses.Count; i++)
         {
-            Debug.Log($"Adding {LocationAddresses[i]}");
+            //Debug.Log($"Adding {LocationAddresses[i]}");
             if(i == LocationAddresses.Count-1)
             {
                 s += LocationAddresses[i];
@@ -881,7 +879,7 @@ public class Main : MonoBehaviour
         }
         else
         {
-            Debug.Log($"UniverseAddress being set up from memory: {universeAdress}");
+            //Debug.Log($"UniverseAddress being set up from memory: {universeAdress}");
 
             UnityEngine.Random.InitState(universeAdress.GetHashCode());
 
@@ -1001,7 +999,8 @@ public class Main : MonoBehaviour
     private void SetUpPlanetaryEncounter()
     {
         bool isBrandNew = false;
-        isViewingPlanetOnly = isInitialized;
+        isViewingPlanetOnly = !CheckIfVisitedPlanet(); //need a better check system
+        if (!isInitialized) isViewingPlanetOnly = false;
         if (!LocationAddresses.Contains(universeAdress) && !isViewingPlanetOnly) {
             LocationAddresses.Add(universeAdress);
             isBrandNew = true;
@@ -1130,7 +1129,7 @@ public class Main : MonoBehaviour
     private void CheckIfWeCanZoomToPlanet(GameObject obj)
     {
         Debug.Log("Checking for zoom.");
-        CheckIfVisitedPlanet(GetSpaceObjectIndex(obj));
+        isVisitedPlanet = CheckIfVisitedPlanet(GetSpaceObjectIndex(obj));
     }
     private int GetSpaceObjectIndex(GameObject obj)
     {
@@ -1169,19 +1168,15 @@ public class Main : MonoBehaviour
         GenerateUniverseLocation(currentDepth, index);
     }
 
-    private void CheckIfVisitedPlanet(int index)
+    private bool CheckIfVisitedPlanet(int index)
     {
         Debug.Log("Checking if we have been here before.");
-        isVisitedPlanet = false;
-        string s = universeAdress + $",{index}";
-        foreach(string str in LocationAddresses)
-        {
-            if(str == s)
-            {
-                isVisitedPlanet = true;
-                return;
-            }
-        }
+        return LocationAddresses.Contains(universeAdress + $",{index}");
+    }
+    private bool CheckIfVisitedPlanet()
+    {
+        Debug.Log("Checking if we have been here before.");
+        return LocationAddresses.Contains(universeAdress);
     }
 
     private void SetZoomContinueTrue()
@@ -1305,6 +1300,10 @@ public class Main : MonoBehaviour
     {
         return ResourceLibrary;
     }
+    public LocationManager GetActiveLocation()
+    {
+        return activeBrain;
+    }
     #endregion
 
     #region Misc
@@ -1317,10 +1316,6 @@ public class Main : MonoBehaviour
             FindResourceFromString(ar[0]).AdjustCurrentAmount(int.Parse(ar[1]));
         }
     }
-    public static void ToggleIsBlockingMapInteractions()
-    {
-        isBlockingMapInteractions = !isBlockingMapInteractions;
-    }
     public IEnumerator PushMessage(string type, string message, float delay)
     {
         Debug.Log("Pushing message wait.");
@@ -1330,7 +1325,6 @@ public class Main : MonoBehaviour
     }
     public static void PushMessage(string type, string message)
     {
-        ToggleIsBlockingMapInteractions();
         OnSendMessage?.Invoke(type, message);
     }
     #endregion

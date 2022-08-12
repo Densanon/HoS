@@ -16,6 +16,7 @@ public class HexTileInfo : MonoBehaviour
     public static Action OnResetStateToPreviousFromInteraction = delegate { };
     public static Action OnReinstateInteractability = delegate { };
     public static Action<Vector2, string, int> OnTradeWithPartnerTile = delegate { };
+    public static Action<Vector2> OnReturnPositionToGeneralManager = delegate { };
 
     [SerializeField]
     Texture2D[] tileTextures;
@@ -47,13 +48,13 @@ public class HexTileInfo : MonoBehaviour
 
     public float frequencyOfLandDistribution;
 
-    public enum TileStates { UnClickable, Clickable, Conquered, UnPlayable, Pickable}
+    public enum TileStates { UnClickable, Clickable, Conquered, UnPlayable, Pickable, ReturnTile}
     [SerializeField]
     public TileStates myState = TileStates.UnPlayable;
     TileStates previousState = TileStates.UnPlayable;
 
     public int myTileType = 0;
-    LocationManager myManager;
+    LocationManager myLocationManager;
     Main main;
     Camera camera;
 
@@ -63,9 +64,11 @@ public class HexTileInfo : MonoBehaviour
 
     bool isInitializingLandingSequence = false;
     bool isInitializingLeavingSequence = false;
-    Vector3 truePosition;
-    Vector3 startPosition;
-    Vector3 endPosition;
+    Vector3 shipTruePosition;
+    Vector3 shipStartPosition;
+    Vector3 shipEndPosition;
+    Vector3 tileTruePosition;
+    bool mainToggleMirror;
     float spaceshipSequenceTimer;
     float spaceshipSequenceDesiredTime;
     public bool isStartingPoint;
@@ -141,54 +144,65 @@ public class HexTileInfo : MonoBehaviour
         TypeTransform += TryToTransformToLand;
         OnReinstateInteractability += ReinstateInteractability;
         OnLeaving += TurnOffAllFloatingText;
+        OnReturnPositionToGeneralManager += ResetFromGeneralsInteraction;
         CameraController.OnZoomRelocateUI += SetButtonsOnScreenPosition;
         CameraController.OnZoomedOutTurnOffUI += DeactivateTileOptions;
         UIResourceManager.OnTilePickInteraction += CheckTileInteratability;
+        GeneralsContainerManager.OnNeedTileForGeneral += PrepareForReturnTileLocation;
 
         Main.OnRevealTileLocations += RevealTileLocation;
         Main.OnRevealTileSpecificInformation += RevealTileInfoInConsole;
         Main.OnRevealEnemies += RevealEnemies;
     }
+
     private void OnDisable()
     {
         OnTakeover -= CheckForPlayability;
         TypeTransform -= TryToTransformToLand;
         OnReinstateInteractability -= ReinstateInteractability;
         OnLeaving -= TurnOffAllFloatingText;
+        OnReturnPositionToGeneralManager -= ResetFromGeneralsInteraction;
         CameraController.OnZoomRelocateUI -= SetButtonsOnScreenPosition;
         CameraController.OnZoomedOutTurnOffUI -= DeactivateTileOptions;
         UIResourceManager.OnTilePickInteraction -= CheckTileInteratability;
+        GeneralsContainerManager.OnNeedTileForGeneral -= PrepareForReturnTileLocation;
 
         Main.OnRevealTileLocations -= RevealTileLocation;
         Main.OnRevealTileSpecificInformation -= RevealTileInfoInConsole;
         Main.OnRevealEnemies -= RevealEnemies;
     }
+
     private void Update()
     {
         if (isInitializingLandingSequence)
         {
-            spaceship.position = Vector3.Lerp(startPosition, endPosition, spaceshipSequenceTimer/spaceshipSequenceDesiredTime);
+            spaceship.position = Vector3.Lerp(shipStartPosition, shipEndPosition, spaceshipSequenceTimer/spaceshipSequenceDesiredTime);
 
             spaceshipSequenceTimer += Time.deltaTime;
             if(spaceshipSequenceTimer > spaceshipSequenceDesiredTime)
             {
                 isInitializingLandingSequence = false;
-                spaceship.position = endPosition;
+                spaceship.position = shipEndPosition;
                 OnLanded?.Invoke();
             }
         }
         if (isInitializingLeavingSequence)
         {
-            spaceship.position = Vector3.Lerp(endPosition, startPosition, spaceshipSequenceTimer / spaceshipSequenceDesiredTime);
+            spaceship.position = Vector3.Lerp(shipEndPosition, shipStartPosition, spaceshipSequenceTimer / spaceshipSequenceDesiredTime);
 
             spaceshipSequenceTimer += Time.deltaTime;
             if (spaceshipSequenceTimer > spaceshipSequenceDesiredTime)
             {
                 isInitializingLeavingSequence = false;
                 OnLeaving?.Invoke();
-                spaceship.position = endPosition;
+                spaceship.position = shipEndPosition;
             }
-        }       
+        }
+
+        if(UIOverrideListener.isOverUI && transform.position != tileTruePosition)
+        {
+            transform.position = tileTruePosition;
+        }
     }
     private void FixedUpdate()
     {
@@ -277,14 +291,16 @@ public class HexTileInfo : MonoBehaviour
     {
         myPositionInTheArray = new Vector2(column, row);
 
-        if(myPositionInTheArray.x == 0 || myPositionInTheArray.x == myManager.locationXBounds-1 ||
-           myPositionInTheArray.y == 0 || myPositionInTheArray.y == myManager.locationYBounds-1)
+        if(myPositionInTheArray.x == 0 || myPositionInTheArray.x == myLocationManager.locationXBounds-1 ||
+           myPositionInTheArray.y == 0 || myPositionInTheArray.y == myLocationManager.locationYBounds-1)
         {
             TypeTransform -= TryToTransformToLand;
         }
 
         DeactivateDetailLayers();
         camera = Camera.main;
+        tileTruePosition = transform.position;
+        Debug.Log($"TruePosition: {tileTruePosition} for {myPositionInTheArray}");
     }
     public void SetNeighbors(Vector2[] locations)
     {
@@ -398,7 +414,7 @@ public class HexTileInfo : MonoBehaviour
     }
     public void SetManager(LocationManager manager)
     {
-        myManager = manager;
+        myLocationManager = manager;
     }
     public void SetFloatingText(TMP_Text text)
     {
@@ -423,7 +439,7 @@ public class HexTileInfo : MonoBehaviour
     }
     public void SetAsStartingPoint()
     {
-        truePosition = myRenderers[4].transform.position;
+        shipTruePosition = myRenderers[4].transform.position;
         isStartingPoint = true;
         myRenderers[0].material.mainTexture = tileTextures[3];
         myState = TileStates.Conquered;
@@ -477,8 +493,8 @@ public class HexTileInfo : MonoBehaviour
         SpriteRenderer rend = myRenderers[4].GetComponent<SpriteRenderer>();
         rend.enabled = true;
         rend.sprite = armySprites[armySprites.Length - 1];
-        endPosition = truePosition;
-        startPosition = new Vector3(endPosition.x, endPosition.y + 6f, endPosition.z);
+        shipEndPosition = shipTruePosition;
+        shipStartPosition = new Vector3(shipEndPosition.x, shipEndPosition.y + 6f, shipEndPosition.z);
         spaceshipSequenceTimer = 0;
         spaceshipSequenceDesiredTime = 6f;
         isInitializingLandingSequence = true;
@@ -594,7 +610,7 @@ public class HexTileInfo : MonoBehaviour
     #region Mouse Interactions
     private void OnMouseDown()
     {
-        if (isMousePresent && isInteractable && !Main.isDebugging && !Main.isBlockingMapInteractions)
+        if (isMousePresent && isInteractable && !UIOverrideListener.isOverUI)
         {
             if(myState == TileStates.Conquered && camera.orthographicSize < 4.25f)
             {
@@ -610,35 +626,41 @@ public class HexTileInfo : MonoBehaviour
                     return;
                 }
                 StartCoroutine(BattleSequence());
+            }else if(myState == TileStates.ReturnTile)
+            {
+                OnReturnPositionToGeneralManager?.Invoke(myPositionInTheArray);
             }
         }
     }
     public void OnMouseEnter()
     {
-        if (!Main.isDebugging && !Main.isBlockingMapInteractions)
+        if (!UIOverrideListener.isOverUI) 
         {
             isMousePresent = true;
             Vector3 v = transform.position;
             v.y += .1f;
             transform.position = v;
-            //if (myState == TileStates.Conquered) return;
             if (myState == TileStates.UnClickable) return;
         }
     }
     private void OnMouseExit()
     {
-        if (!Main.isDebugging && !Main.isBlockingMapInteractions)
-        {
-            isMousePresent = false;
-            Vector3 v = transform.position;
-            v.y -= .1f;
-            transform.position = v;
-            //if (myState == TileStates.Conquered) return;
-            if (myState == TileStates.UnClickable) return;
-        }
+        isMousePresent = false;
+        if(transform.position != tileTruePosition) transform.position = tileTruePosition;
     }
     #endregion
 
+    private void PrepareForReturnTileLocation()
+    {
+        previousState = myState;
+        myState = TileStates.ReturnTile;
+        myRenderers[0].material.color = Color.blue;
+    }
+    private void ResetFromGeneralsInteraction(Vector2 tile)
+    {
+        myState = previousState;
+        myRenderers[0].material.color = Color.white;
+    }
     public void SetResourceTradingBuddy(Vector2 tile)
     {
         resourceTradingBuddy = tile;
@@ -922,6 +944,8 @@ public class HexTileInfo : MonoBehaviour
 
     public string DigitizeForSerialization()
     {
+        if (myState == TileStates.ReturnTile) ResetFromGeneralsInteraction(myPositionInTheArray);
+
         string s = "";
         bool first = true;
         foreach(Vector2 vec in myNeighbors)

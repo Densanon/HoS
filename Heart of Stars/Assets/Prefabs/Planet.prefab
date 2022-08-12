@@ -50,4 +50,4 @@ MonoBehaviour:
   tilePrefab: {fileID: 4744813338005404904, guid: 790721e2f4e2719499c5b222984d7b22, type: 3}
   locationXBounds: 0
   locationYBounds: 0
-  GeneralPrefab: {fileID: 44450134641008688, guid: b306f15c19c1a4d4eb051ff8cb88b7c5, type: 3}
+  GeneralPrefab: {fileID: 8419703647201846493, guid: 14dea5f6ee8716d4aab2828cde96e030, type: 3}

@@ -5,6 +5,9 @@ using UnityEngine;
 
 public class LocationManager : MonoBehaviour
 {
+    public static Action<LocationManager> OnGreetGeneralManager = delegate { };
+    public static Action<LocationManager> OnTurnActiveManagerForGenerals = delegate { };
+
     Main main;
     UIResourceManager activeManager;
     Transform canvas;
@@ -29,258 +32,6 @@ public class LocationManager : MonoBehaviour
     int enemyDensityMax;
 
     bool isViewing;
-
-    #region General
-    //enum GeneralState { Moving, Combat, Searching, Stop }
-    //GeneralState myGeneralState = GeneralState.Searching;
-    //enum Direction { North, NorthEast, SouthEast, South, SouthWest, NorthWest }
-    //Direction generalDirection = Direction.North;
-    //bool isSearching, isMoving, isFighting,directionIsPlayable,needCombat,isStopped;
-    //bool northAvailable, northEastAvailable, southEastAvailable, southAvailable, southWestAvailable, northWestAvailable;
-    //float generalSwitchStateTime = 4f;
-    //Vector2 generalsTile;
-    //Vector2 targetTile;
-    //System.Random rand = new System.Random();
-    //List<int> directionsAvailable;
-
-    //void ResetDirectionsAvailable()
-    //{
-    //    if(directionsAvailable == null) directionsAvailable = new List<int>();
-    //    directionsAvailable.Clear();
-    //    for (int i = 0; i < 6; i++)
-    //    {
-    //        directionsAvailable.Add(i);
-    //    }
-    //}
-    //void GetNewDirection()
-    //{
-    //    Debug.Log("Getting a new direction.");
-    //    foreach(int i in directionsAvailable)
-    //    {
-    //        Debug.Log($"Directions still available to check {i}");
-    //    }
-    //    int x = directionsAvailable[rand.Next(0, directionsAvailable.Count)];
-    //    switch (x)
-    //    {
-    //        case 0:
-    //            Debug.Log("General is Picking North.");
-    //            generalDirection = Direction.North;
-    //            directionsAvailable.Remove(0);
-    //            break;
-    //        case 1:
-    //            Debug.Log("General is Picking NorthEast.");
-    //            generalDirection = Direction.NorthEast;
-    //            directionsAvailable.Remove(1);
-    //            break;
-    //        case 2:
-    //            Debug.Log("General is Picking SouthEast.");
-    //            generalDirection = Direction.SouthEast;
-    //            directionsAvailable.Remove(2);
-    //            break;
-    //        case 3:
-    //            Debug.Log("General is Picking South.");
-    //            generalDirection = Direction.South;
-    //            directionsAvailable.Remove(3);
-    //            break;
-    //        case 4:
-    //            Debug.Log("General is Picking SouthWest.");
-    //            generalDirection = Direction.SouthWest;
-    //            directionsAvailable.Remove(4);
-    //            break;
-    //        case 5:
-    //            Debug.Log("General is Picking NorthWest.");
-    //            generalDirection = Direction.NorthWest;
-    //            directionsAvailable.Remove(5);
-    //            break;
-    //    }
-    //}
-    //void CheckDirectionIsPlayable()
-    //{
-    //    Debug.Log("Checking if the direction is playable.");
-    //    switch (generalDirection)
-    //    {
-    //        case Direction.North:
-    //            northAvailable = directionIsPlayable = CheckIfTileIsInNeedOfConquering(CheckUpLocation(generalsTile));
-    //            Debug.Log($"North isPlayable = {northAvailable}");
-    //            break;
-    //        case Direction.NorthEast:
-    //            if (generalsTile.x % 2 == 1)
-    //            {
-    //                northEastAvailable = directionIsPlayable = CheckIfTileIsInNeedOfConquering(CheckRightUpLocation(generalsTile));
-    //                Debug.Log($"NorthEast isPlayable = {northEastAvailable}");
-    //                break;
-    //            }
-    //            northEastAvailable = directionIsPlayable = CheckIfTileIsInNeedOfConquering(CheckRightEqualLocation(generalsTile));
-    //            Debug.Log($"NorthEast isPlayable = {northEastAvailable}");
-    //            break;
-    //        case Direction.SouthEast:
-    //            if (generalsTile.x % 2 == 1)
-    //            {
-    //                southEastAvailable = directionIsPlayable = CheckIfTileIsInNeedOfConquering(CheckRightEqualLocation(generalsTile));
-    //                Debug.Log($"SouthEast isPlayable = {southEastAvailable}");
-    //                break;
-    //            }
-    //            southEastAvailable = directionIsPlayable = CheckIfTileIsInNeedOfConquering(CheckRightDownLocation(generalsTile));
-    //            Debug.Log($"SouthEast isPlayable = {southEastAvailable}");
-    //            break;
-    //        case Direction.South:
-    //            southAvailable = directionIsPlayable = CheckIfTileIsInNeedOfConquering(CheckDownLocation(generalsTile));
-    //            Debug.Log($"South isPlayable = {southAvailable}");
-    //            break;
-    //        case Direction.SouthWest:
-    //            if (generalsTile.x % 2 == 1)
-    //            {
-    //                southWestAvailable = directionIsPlayable = CheckIfTileIsInNeedOfConquering(CheckLeftEqualLocation(generalsTile));
-    //                Debug.Log($"Southwest isPlayable = {southWestAvailable}");
-    //                break;
-    //            }
-    //            southWestAvailable = directionIsPlayable = CheckIfTileIsInNeedOfConquering(CheckLeftDownLocation(generalsTile));
-    //            Debug.Log($"Southwest isPlayable = {southWestAvailable}");
-    //            break;
-    //        case Direction.NorthWest:
-    //            if (generalsTile.x % 2 == 1)
-    //            {
-    //                northWestAvailable = directionIsPlayable = CheckIfTileIsInNeedOfConquering(CheckLeftUpLocation(generalsTile));
-    //                Debug.Log($"Northwest isPlayable = {northWestAvailable}");
-    //                break;
-    //            }
-    //            northWestAvailable = directionIsPlayable = CheckIfTileIsInNeedOfConquering(CheckLeftEqualLocation(generalsTile));
-    //            Debug.Log($"Northwest isPlayable = {northWestAvailable}");
-    //            break;
-    //    }
-
-    //    if (directionIsPlayable) StartCoroutine(SwitchGeneralState());
-
-    //    if (!directionIsPlayable && directionsAvailable.Count == 0)
-    //    {
-    //        Debug.Log("General found a dead end.");
-    //        main.PushMessage("General", "I have run out of places around me that aren't conquered. You shoud" +
-    //            " continue on without me, or move the troops where I may start again.");
-    //        directionIsPlayable = true;
-    //        myGeneralState = GeneralState.Stop;
-    //    }
-    //}
-    //bool CheckIfTileIsInNeedOfConquering(Vector2 tile)
-    //{
-    //    if (tile.x == -1) return false;
-    //    targetTile = tile;
-    //    HexTileInfo info = tileInfoList[Mathf.RoundToInt(tile.x)][Mathf.RoundToInt(tile.y)];
-    //    needCombat = info.enemies.currentAmount > 0;
-    //    return info.myState == HexTileInfo.TileStates.Clickable;
-    //}
-    //void ResetDirectionAvailabilityBools()
-    //{
-    //    northAvailable = true;
-    //    northEastAvailable = true;
-    //    southEastAvailable = true;
-    //    southAvailable = true;
-    //    southWestAvailable = true;
-    //    northWestAvailable = true;
-    //}
-    //void ExecuteGeneralState()
-    //{
-    //    switch (myGeneralState)
-    //    {
-    //        case GeneralState.Searching:
-    //            if (!isSearching)
-    //            {
-    //                isSearching = true;
-    //                directionIsPlayable = false;
-    //                ResetDirectionAvailabilityBools();
-    //                ResetDirectionsAvailable();
-    //                while (!directionIsPlayable)
-    //                {
-    //                    GetNewDirection();
-    //                    CheckDirectionIsPlayable();
-    //                }
-    //            }
-    //            break;
-    //        case GeneralState.Moving:
-    //            if (!isMoving)
-    //            {
-    //                isMoving = true;
-    //                HexTileInfo current = tileInfoList[Mathf.RoundToInt(generalsTile.x)][Mathf.RoundToInt(generalsTile.y)];
-    //                int soldierAmount = current.GetSoldierCount();
-    //                current.AdjustSoldiers(soldierAmount * -1);
-    //                HexTileInfo target = tileInfoList[Mathf.RoundToInt(targetTile.x)][Mathf.RoundToInt(targetTile.y)];
-    //                target.ReceiveGeneralMove(soldierAmount, generalSwitchStateTime);
-    //                StartCoroutine(SwitchGeneralState());
-    //            }
-    //            break;
-    //        case GeneralState.Combat:
-    //            if (!isFighting)
-    //            {
-    //                isFighting = true;
-    //                HexTileInfo current = tileInfoList[Mathf.RoundToInt(generalsTile.x)][Mathf.RoundToInt(generalsTile.y)];
-    //                int soldierAmount = current.GetSoldierCount();
-    //                Debug.Log($"I have {soldierAmount} soldiers. On {generalsTile}");
-    //                current.AdjustSoldiers(soldierAmount * -1);
-    //                Debug.Log($"There are now {current.GetSoldierCount()} soldiers. On {generalsTile}");
-    //                HexTileInfo target = tileInfoList[Mathf.RoundToInt(targetTile.x)][Mathf.RoundToInt(targetTile.y)];
-    //                target.potentialAmountToReceive = soldierAmount;
-    //                Debug.Log($"I will be facing {target.enemies.currentAmount}");
-    //                if (target.enemies.currentAmount - soldierAmount < 0)
-    //                {
-    //                    Debug.Log("I will overcome the new direction.");
-    //                    generalsTile = targetTile;
-    //                    StartCoroutine(SwitchGeneralState());
-    //                }
-    //                else
-    //                {
-    //                    Debug.Log("I either tied or died.");
-    //                    myGeneralState = GeneralState.Stop;
-    //                }
-    //                target.StartCoroutine(target.BattleSequence());
-    //            }
-    //            break;
-    //        case GeneralState.Stop:
-    //            if (!isStopped)
-    //            {
-    //                isStopped = true;
-    //                Debug.Log("Stopped.");
-    //            }
-    //            break;
-    //    }
-    //}
-    //IEnumerator SwitchGeneralState()
-    //{
-    //    Debug.Log($"Switching state and waiting {generalSwitchStateTime}");
-
-    //    yield return new WaitForSeconds(generalSwitchStateTime);
-
-    //    Debug.Log("Made it through the wait.");
-
-    //    if (myGeneralState == GeneralState.Searching)
-    //    {
-    //        if (needCombat)
-    //        {
-    //            Debug.Log("Switching from searching to Combat.");
-    //            isFighting = false;
-    //            myGeneralState = GeneralState.Combat;
-    //        }
-    //        else
-    //        {
-    //            Debug.Log("Switching from searching to Moving.");
-    //            isMoving = false;
-    //            myGeneralState = GeneralState.Moving;
-    //        }
-    //    }
-    //    else if (myGeneralState == GeneralState.Moving)
-    //    {
-    //        Debug.Log("Switching from Moving to Searching.");
-    //        generalsTile = targetTile;
-    //        isSearching = false;
-    //        myGeneralState = GeneralState.Searching;
-
-    //    }
-    //    else if (myGeneralState == GeneralState.Combat)
-    //    {
-    //        Debug.Log("Switching from Combat to Searching.");
-    //        isSearching = false;
-    //        myGeneralState = GeneralState.Searching;
-    //    }
-    //}
-    #endregion
 
     public void SetEnemyNumbers(float ratio, int densityMin, int densityMax)
     {
@@ -364,6 +115,7 @@ public class LocationManager : MonoBehaviour
     }
     public void BuildPlanetData(string[] hextiles, string address, bool viewing)
     {
+        //Debug.Log($"Is viewing only: {viewing}");
         myAddress = address;
         isViewing = viewing;
 
@@ -379,8 +131,10 @@ public class LocationManager : MonoBehaviour
 
         if (!viewing)
         {
+            //Debug.Log("Not viewing.");
             SaveLocationInfo();
             main.SaveLocationAddressBook();
+            OnGreetGeneralManager?.Invoke(this);
         }
     }
     void BuildTileBase()
@@ -439,6 +193,8 @@ public class LocationManager : MonoBehaviour
             }
             y++;
         }
+
+        OnGreetGeneralManager?.Invoke(this);
     }
     public void OrganizePieces()
     {
@@ -474,6 +230,7 @@ public class LocationManager : MonoBehaviour
                 tile.SetNeighbors(FindNeighbors(tile.myPositionInTheArray));
                 if (!start && tile.myTileType == tile.GetResourceSpritesLengthForStartPoint() && !isViewing)
                 {
+                    //Debug.Log("Setting a starting point.");
                     tile.SetAsStartingPoint();
                     start = true;
                     starter = tile;
@@ -651,12 +408,13 @@ public class LocationManager : MonoBehaviour
             return;
         }
 
-        if(starter == null) //comming to a new one and this isn't one we want to keep open.
-            main.RemovePlanetBrainAndDestroy(this);
+        if (starter == null)//comming to a new one and this isn't one we want to keep open.
+            main.RemovePlanetBrainAndDestroy(this);       
     }
 
     public void TurnOnVisibility()
     {
+        OnTurnActiveManagerForGenerals?.Invoke(this);
         gameObject.SetActive(true);
         if(starter != null)
             starter.StartLandingSequenceAnimation();
@@ -684,40 +442,6 @@ public class LocationManager : MonoBehaviour
             activeManager.ResetUI();
         }
         activeManager.transform.SetSiblingIndex(canvas.childCount-1); //Ensures that it is the highest in the hierarchy
-    }
-    #endregion
-
-    #region GeneralManagement
-    public void CreateAGeneral()
-    {
-        GameObject go = Instantiate(GeneralPrefab, transform);
-        General g = go.GetComponent<General>();
-        g.BasicSetup(this, General.GeneralType.Basic);
-        myGenerals.Add(g);
-        Main.PushMessage("Hurray!", "You have a new general that can work for you! Give it a name and a troop location to start!");
-    }
-    public void GiveAnUnNamedGeneralAName(string name)
-    {
-        foreach(General g in myGenerals)
-        {
-            if(g.Name == "")
-            {
-                g.SetGeneralName(name);
-                Main.PushMessage($"General {name}", "Reporting for duty! Make sure I have a troop location otherwise I won't know what to do.");
-                return;
-            }
-        }
-    }
-    public void StartGeneral()
-    {
-        foreach(General g in myGenerals)
-        {
-            g.ActivateGeneral();
-        }
-    }
-    public void SetGeneralLocation(Vector2 location)
-    {
-        myGenerals[0].SetGeneralTroopLocation(location);
     }
     #endregion
 
