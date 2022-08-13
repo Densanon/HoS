@@ -8,38 +8,26 @@ public class LocationManager : MonoBehaviour
     public static Action<LocationManager> OnGreetGeneralManager = delegate { };
     public static Action<LocationManager> OnTurnActiveManagerForGenerals = delegate { };
 
+    [SerializeField]
+    GameObject GeneralPrefab;
+    public GameObject tilePrefab;
+
     Main main;
     UIResourceManager activeManager;
     Transform canvas;
 
     public string myAddress;
-    public float frequencyForLandSpawning; //set in inspector
-    public int landStartingPointsForSpawning; //set in inspector
-    public GameObject tilePrefab;
     public HexTileInfo[][] tileInfoList;
     HexTileInfo starter;
     Vector2[] TileLocations;
     public int locationXBounds;
     public int locationYBounds;
-
-    List<General> myGenerals;
-    [SerializeField]
-    GameObject GeneralPrefab;
-
-    #region Debugging
+    public int landStartingPointsForSpawning; //set in inspector
+    public float frequencyForLandSpawning; //set in inspector
     float enemyRatio;
     int enemyDensityMin;
     int enemyDensityMax;
-
     bool isViewing;
-
-    public void SetEnemyNumbers(float ratio, int densityMin, int densityMax)
-    {
-        enemyRatio = ratio;
-        enemyDensityMin = densityMin;
-        enemyDensityMax = densityMax;
-    }
-    #endregion
 
     #region Unity Methods
     private void Awake()
@@ -48,19 +36,15 @@ public class LocationManager : MonoBehaviour
         Main.OnInitializeVeryFirstInteraction += VeryFirstEncounterSetup;
         Main.OnInitializeRegularFirstPlanetaryInteraction += FirstRegularPlanetaryEncounter;
         canvas = GameObject.Find("Canvas").transform;
-        myGenerals = new List<General>();
     }
-
     private void OnEnable()
     {
         HexTileInfo.OnNeedUIElementsForTile += CheckNewTileOptions;
     }
-
     private void OnDisable()
     {
         HexTileInfo.OnNeedUIElementsForTile -= CheckNewTileOptions;
     }
-
     private void OnDestroy()
     {
         Main.OnWorldMap -= TurnOffVisibility;
@@ -74,9 +58,14 @@ public class LocationManager : MonoBehaviour
     {
         main = m;
     }
+    public void SetEnemyNumbers(float ratio, int densityMin, int densityMax)
+    {
+        enemyRatio = ratio;
+        enemyDensityMin = densityMin;
+        enemyDensityMax = densityMax;
+    }
     private void VeryFirstEncounterSetup()
     {
-        //Do some stuff for the firstencounter.
         foreach(ResourceData data in starter.myResources)
         {
             if(data.itemName == "enemy")
@@ -115,7 +104,6 @@ public class LocationManager : MonoBehaviour
     }
     public void BuildPlanetData(string[] hextiles, string address, bool viewing)
     {
-        //Debug.Log($"Is viewing only: {viewing}");
         myAddress = address;
         isViewing = viewing;
 
@@ -131,7 +119,6 @@ public class LocationManager : MonoBehaviour
 
         if (!viewing)
         {
-            //Debug.Log("Not viewing.");
             SaveLocationInfo();
             main.SaveLocationAddressBook();
             OnGreetGeneralManager?.Invoke(this);
@@ -139,8 +126,6 @@ public class LocationManager : MonoBehaviour
     }
     void BuildTileBase()
     {
-        Debug.Log($"Building with Ration: {enemyRatio}; Min: {enemyDensityMin}, Max: {enemyDensityMax}");
-
         List<HexTileInfo[]> mainTemp = new List<HexTileInfo[]>();
         List<Vector2> locs = new List<Vector2>();
 
@@ -176,7 +161,6 @@ public class LocationManager : MonoBehaviour
     }
     private void SetHexTileInformationFromMemory(string[] hextileslist)
     {
-        Debug.Log("Using memory to build level.");
         int x = 0, y = 0;
         foreach(string s in hextileslist)
         {
@@ -187,50 +171,23 @@ public class LocationManager : MonoBehaviour
             }
             string[] ar = s.Split(":");
             tileInfoList[x][y].SetAllTileInfoFromMemory(ar[0], int.Parse(ar[1]), ar[2], (ar[3] == "True"), ar[4]);
-            if (ar[3] == "True")
-            {
-                starter = tileInfoList[x][y];
-            }
+            if (ar[3] == "True") starter = tileInfoList[x][y];
             y++;
         }
-
         OnGreetGeneralManager?.Invoke(this);
     }
     public void OrganizePieces()
     {
-        for (int p = 0; p < landStartingPointsForSpawning; p++)
-        {
-            float l = locationXBounds*locationYBounds;
-            float q = (float)p / (float)landStartingPointsForSpawning * l;
-            float f = (float)(p + 1) / (float)landStartingPointsForSpawning * l;
-            int k = 0,d = 0, r = 0;
-            bool suitable = false;
-            while (!suitable)
-            {
-                k = UnityEngine.Random.Range(Mathf.RoundToInt(q), Mathf.RoundToInt(f));
-                d = Mathf.FloorToInt(k / locationYBounds);
-                r = k % locationYBounds;
-                Vector2 target = tileInfoList[d][r].myPositionInTheArray;
-                if(target.x != 0 && target.x != locationXBounds-1 &&
-                   target.y != 0 && target.y != locationYBounds - 1 &&
-                   tileInfoList[d][r].myTileType == 0)
-                {
-                    suitable = true;
-                }
-            }
-
-            tileInfoList[d][r].TurnLand();
-        }
+        PickStartingLandPoints();
 
         bool start = false;
-        foreach(HexTileInfo[] tileArray in tileInfoList)
+        foreach (HexTileInfo[] tileArray in tileInfoList)
         {
-            foreach(HexTileInfo tile in tileArray)
+            foreach (HexTileInfo tile in tileArray)
             {
                 tile.SetNeighbors(FindNeighbors(tile.myPositionInTheArray));
                 if (!start && tile.myTileType == tile.GetResourceSpritesLengthForStartPoint() && !isViewing)
                 {
-                    //Debug.Log("Setting a starting point.");
                     tile.SetAsStartingPoint();
                     start = true;
                     starter = tile;
@@ -238,163 +195,118 @@ public class LocationManager : MonoBehaviour
             }
         }
     }
-    public void StartLeaveSequence()
+    private void PickStartingLandPoints()
     {
-        foreach(HexTileInfo[] ar in tileInfoList)
+        for (int p = 0; p < landStartingPointsForSpawning; p++)
         {
-            foreach(HexTileInfo tile in ar)
-            {
-                if (tile.isStartingPoint)
-                {
-                    tile.StartLeavingSequenceAnimation();
-                    return;
-                }
-            }
+            FindSuitableLandPiece(p);
         }
     }
+    private void FindSuitableLandPiece(int point)
+    {
+        float l = locationXBounds * locationYBounds;
+        float q = (float)point / (float)landStartingPointsForSpawning * l;
+        float f = (float)(point + 1) / (float)landStartingPointsForSpawning * l;
+        int k = 0, d = 0, r = 0;
+        bool suitable = false;
+        while (!suitable)
+        {
+            k = UnityEngine.Random.Range(Mathf.RoundToInt(q), Mathf.RoundToInt(f));
+            d = Mathf.FloorToInt(k / locationYBounds);
+            r = k % locationYBounds;
+            Vector2 target = tileInfoList[d][r].myPositionInTheArray;
+            if (target.x != 0 && target.x != locationXBounds - 1 &&
+               target.y != 0 && target.y != locationYBounds - 1 &&
+               tileInfoList[d][r].myTileType == 0)
+            {
+                suitable = true;
+            }
+        }
+
+        tileInfoList[d][r].TurnLand();
+    }  
     #endregion
 
     #region Location Checks For Neighbors
     private Vector2[] FindNeighbors(Vector2 location)
     {
         List<Vector2> neg = new List<Vector2>();
-
         Vector2 vectorNull = new Vector2(-1, -1);
+
         Vector2 v = CheckUpLocation(location);
-        if(v != vectorNull)
-        {
-            neg.Add(v);
-        }
+        if(v != vectorNull) neg.Add(v);
+
         v = CheckDownLocation(location);
-        if (v != vectorNull)
-        {
-            neg.Add(v);
-        }
+        if (v != vectorNull) neg.Add(v);
+
         v = CheckLeftEqualLocation(location);
-        if (v != vectorNull)
-        {
-            neg.Add(v);
-        }
+        if (v != vectorNull) neg.Add(v);
+
         v = CheckRightEqualLocation(location);
-        if (v != vectorNull)
-        {
-            neg.Add(v);
-        }
+        if (v != vectorNull) neg.Add(v);
+
         if(location.x % 2 == 1)
         {
             v = CheckLeftUpLocation(location);
-            if (v != vectorNull)
-            {
-                neg.Add(v);
-            }
+            if (v != vectorNull) neg.Add(v);
+
             v = CheckRightUpLocation(location);
-            if (v != vectorNull)
-            {
-                neg.Add(v);
-            }
+            if (v != vectorNull) neg.Add(v);
+
         }
         else
         {
             v = CheckLeftDownLocation(location);
-            if (v != vectorNull)
-            {
-                neg.Add(v);
-            }
-            v = CheckRightDownLocation(location);
-            if (v != vectorNull)
-            {
-                neg.Add(v);
-            }
-        }
+            if (v != vectorNull) neg.Add(v);
 
+            v = CheckRightDownLocation(location);
+            if (v != vectorNull) neg.Add(v);
+        }
         return neg.ToArray();
     }
-
     public Vector2 CheckLeftDownLocation(Vector2 location)
     {
         Vector2 v = new Vector2(location.x - 1, location.y - 1);
-        if (CheckLocationMatch(v))
-        {
-            return v;
-        }
-        return new Vector2(-1, -1);
+        return (CheckLocationMatch(v)) ? v : new Vector2(-1, -1);
     }
-
     public Vector2 CheckLeftUpLocation(Vector2 location)
     {
         Vector2 v = new Vector2(location.x - 1, location.y + 1);
-        if (CheckLocationMatch(v))
-        {
-            return v;
-        }
-        return new Vector2(-1, -1);
+        return (CheckLocationMatch(v)) ? v : new Vector2(-1, -1);
     }
-
     public Vector2 CheckLeftEqualLocation(Vector2 location)
     {
         Vector2 v = new Vector2(location.x - 1, location.y);
-        if (CheckLocationMatch(v))
-        {
-            return v;
-        }
-        return new Vector2(-1, -1);
+        return (CheckLocationMatch(v)) ? v : new Vector2(-1, -1);
     }
-
     public Vector2 CheckRightDownLocation(Vector2 location)
     {
         Vector2 v = new Vector2(location.x + 1, location.y - 1);
-        if (CheckLocationMatch(v))
-        {
-            return v;
-        }
-        return new Vector2(-1, -1);
+        return (CheckLocationMatch(v)) ? v : new Vector2(-1, -1);
     }
-
     public Vector2 CheckRightUpLocation(Vector2 location)
     {
         Vector2 v = new Vector2(location.x + 1, location.y + 1);
-        if (CheckLocationMatch(v))
-        {
-            return v;
-        }
-        return new Vector2(-1, -1);
+        return (CheckLocationMatch(v)) ? v : new Vector2(-1, -1);
     }
-
     public Vector2 CheckRightEqualLocation(Vector2 location)
     {
         Vector2 v = new Vector2(location.x + 1, location.y);
-        if (CheckLocationMatch(v))
-        {
-            return v;
-        }
-        return new Vector2(-1, -1);
+        return (CheckLocationMatch(v)) ? v : new Vector2(-1, -1);
     }
-
     public Vector2 CheckUpLocation(Vector2 location)
     {
         Vector2 v = new Vector2(location.x, location.y + 1);
-        if (CheckLocationMatch(v)){
-            return v;
-        }
-        return new Vector2(-1, -1);
+        return (CheckLocationMatch(v)) ? v : new Vector2(-1, -1);
     }
-
     public Vector2 CheckDownLocation(Vector2 location)
     {
         Vector2 v = new Vector2(location.x, location.y - 1);
-        if (CheckLocationMatch(v)){
-            return v;
-        }
-        return new Vector2(-1, -1);
+        return (CheckLocationMatch(v)) ? v : new Vector2(-1, -1);
     }
-
     bool CheckLocationMatch(Vector2 location)
     {
-        if (Array.Exists(TileLocations, loc => loc.x == location.x && loc.y == location.y))
-        {
-            return true;
-        }
-        return false;
+        return (Array.Exists(TileLocations, loc => loc.x == location.x && loc.y == location.y)) ? true : false;
     }
     #endregion
 
@@ -411,7 +323,6 @@ public class LocationManager : MonoBehaviour
         if (starter == null)//comming to a new one and this isn't one we want to keep open.
             main.RemovePlanetBrainAndDestroy(this);       
     }
-
     public void TurnOnVisibility()
     {
         OnTurnActiveManagerForGenerals?.Invoke(this);
@@ -419,21 +330,19 @@ public class LocationManager : MonoBehaviour
         if(starter != null)
             starter.StartLandingSequenceAnimation();
     }
-
     private void CheckNewTileOptions(HexTileInfo tile)
     {
         UIResourceManager res = tile.myUIManager;
         if (activeManager == null) activeManager = res;
-        if (res != activeManager && activeManager.activeMouseHoverInteractions == 0)
+        if (res != activeManager)
         {
-            activeManager.activeMouseHoverInteractions = 0;
             activeManager.ResetUI();
             activeManager.DeactivateSelf();
             activeManager = res;
             activeManager.ActivateSelf();
             activeManager.ResetUI();
         }
-        else if (res != activeManager && activeManager.activeMouseHoverInteractions > 0)
+        else if (res != activeManager)
         {
             res.DeactivateSelf();
         }else if (res == activeManager && !activeManager.interactiblesContainer.activeInHierarchy)
@@ -445,6 +354,11 @@ public class LocationManager : MonoBehaviour
     }
     #endregion
 
+    #region Life Cycle
+    public void StartLeaveSequence()
+    {
+        starter.StartLeavingSequenceAnimation();
+    }
     void SaveLocationInfo()
     {
         SaveSystem.WipeString();
@@ -465,9 +379,9 @@ public class LocationManager : MonoBehaviour
             SaveSystem.SaveFile("/" + myAddress);
         }
     }
-
     private void OnApplicationQuit()
     {
         SaveLocationInfo();
     }
+    #endregion
 }

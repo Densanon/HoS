@@ -18,6 +18,17 @@ public class HexTileInfo : MonoBehaviour
     public static Action<Vector2, string, int> OnTradeWithPartnerTile = delegate { };
     public static Action<Vector2> OnReturnPositionToGeneralManager = delegate { };
 
+    public enum TileStates { UnClickable, Clickable, Conquered, UnPlayable, Pickable, ReturnTile}
+    public TileStates myState = TileStates.UnPlayable;
+    TileStates previousState = TileStates.UnPlayable;
+
+    // References
+    LocationManager myLocationManager;
+    Main main;
+    Camera camera;
+    public UIResourceManager myUIManager;
+    
+    // Objects
     [SerializeField]
     Texture2D[] tileTextures;
     [SerializeField]
@@ -28,65 +39,61 @@ public class HexTileInfo : MonoBehaviour
     Sprite[] armySprites;
     [SerializeField]
     Renderer[] myRenderers;
-    Transform spaceship;
+    [SerializeField]
+    TMP_Text FloatingText;
+    [SerializeField]
+    GameObject dependenceButtonPrefab;
+    [SerializeField]
+    LineRenderer lineRenderer;
+    public GameObject canvasContainerPrefab;
+    public Transform myCanvasContainer;
+
+    // Basic Values
+    public int myTileType = 0;
+    public float frequencyOfLandDistribution;
+    public Vector2 myPositionInTheArray;
+    Vector3 tileTruePosition;
+    public bool isStartingPoint;
     Vector2[] myNeighbors;
+
+    // Mouse Interactions
+    public bool isMousePresent;
+    public bool isInteractable = true;
+
+    // Starter Spaceship Values
+    Transform spaceship;
+    Vector3 shipTruePosition;
+    Vector3 shipStartPosition;
+    Vector3 shipEndPosition;
+    float spaceshipSequenceTimer;
+    float spaceshipSequenceDesiredTime;
+    bool isInitializingLandingSequence = false;
+    bool isInitializingLeavingSequence = false;
+
+    // Resource References
     public ResourceData[] myResources;
     ResourceData soldiers;
     public ResourceData enemies;
     int enemyCount;
-    [SerializeField]
-    TMP_Text FloatingText;
 
-    [SerializeField]
-    GameObject dependenceButtonPrefab;
-
-    public GameObject canvasContainerPrefab;
-    public Transform myCanvasContainer;
-
-    public Vector2 myPositionInTheArray;
+    // Trade Information
     public Vector2 resourceTradingBuddy;
+    public int potentialAmountToReceive;
+    
+    // Line
+    bool isDrawingRayForPicking;
 
-    public float frequencyOfLandDistribution;
-
-    public enum TileStates { UnClickable, Clickable, Conquered, UnPlayable, Pickable, ReturnTile}
-    [SerializeField]
-    public TileStates myState = TileStates.UnPlayable;
-    TileStates previousState = TileStates.UnPlayable;
-
-    public int myTileType = 0;
-    LocationManager myLocationManager;
-    Main main;
-    Camera camera;
-
-    public UIResourceManager myUIManager;
+    // Que values
     int[] QuedResourceAmount;
     string[] ResourceNameReferenceIndex;
-
-    bool isInitializingLandingSequence = false;
-    bool isInitializingLeavingSequence = false;
-    Vector3 shipTruePosition;
-    Vector3 shipStartPosition;
-    Vector3 shipEndPosition;
-    Vector3 tileTruePosition;
-    bool mainToggleMirror;
-    float spaceshipSequenceTimer;
-    float spaceshipSequenceDesiredTime;
-    public bool isStartingPoint;
-    public bool isMousePresent;
-    public bool isInteractable = true;
-    public int potentialAmountToReceive;
-
-    [SerializeField]
-    LineRenderer lineRenderer;
-    bool isDrawingRayForPicking;
 
     #region Debugging
     float enemyRatio;
     int enemyDensityMin;
     int enemyDensityMax;
 
-    bool generalTimerOverride;
-    float generalTimer;
+    bool generalsTimerOverride;
+    float generalsTimer;
 
     private void RevealTileInfoInConsole(Vector2 tile)
     {
@@ -94,7 +101,7 @@ public class HexTileInfo : MonoBehaviour
     }
     private void RevealTileLocation()
     {
-        CheckNullFloatingText();
+        CheckNullUIManager();
         if (FloatingText.gameObject.activeInHierarchy)
         {
             FloatingText.gameObject.SetActive(false);
@@ -107,7 +114,7 @@ public class HexTileInfo : MonoBehaviour
     {
         if (CheckEnemyAmount() > 0)
         {
-            CheckNullFloatingText();
+            CheckNullUIManager();
             if (!myRenderers[4].enabled)
             {
                 ShowEnemyOnTile();
@@ -117,23 +124,9 @@ public class HexTileInfo : MonoBehaviour
             FloatingText.gameObject.SetActive(false);
         }        
     }
-    public void SetEnemyNumbers(float ratio, int densityMin, int densityMax)
-    {
-        enemyRatio = ratio;
-        enemyDensityMin = densityMin;
-        enemyDensityMax = densityMax;
-    }
     int CheckEnemyAmount()
     {
         return enemies.currentAmount;
-    }
-
-    public void ReceiveGeneralMove(int troops, float timer)
-    {
-        potentialAmountToReceive = troops;
-        generalTimerOverride = true;
-        generalTimer = timer;
-        StartCoroutine(Move());
     }
     #endregion
 
@@ -143,7 +136,7 @@ public class HexTileInfo : MonoBehaviour
         OnTakeover += CheckForPlayability;
         TypeTransform += TryToTransformToLand;
         OnReinstateInteractability += ReinstateInteractability;
-        OnLeaving += TurnOffAllFloatingText;
+        OnLeaving += TurnOffEnemyFloatingText;
         OnReturnPositionToGeneralManager += ResetFromGeneralsInteraction;
         CameraController.OnZoomRelocateUI += SetButtonsOnScreenPosition;
         CameraController.OnZoomedOutTurnOffUI += DeactivateTileOptions;
@@ -154,13 +147,12 @@ public class HexTileInfo : MonoBehaviour
         Main.OnRevealTileSpecificInformation += RevealTileInfoInConsole;
         Main.OnRevealEnemies += RevealEnemies;
     }
-
     private void OnDisable()
     {
         OnTakeover -= CheckForPlayability;
         TypeTransform -= TryToTransformToLand;
         OnReinstateInteractability -= ReinstateInteractability;
-        OnLeaving -= TurnOffAllFloatingText;
+        OnLeaving -= TurnOffEnemyFloatingText;
         OnReturnPositionToGeneralManager -= ResetFromGeneralsInteraction;
         CameraController.OnZoomRelocateUI -= SetButtonsOnScreenPosition;
         CameraController.OnZoomedOutTurnOffUI -= DeactivateTileOptions;
@@ -171,122 +163,41 @@ public class HexTileInfo : MonoBehaviour
         Main.OnRevealTileSpecificInformation -= RevealTileInfoInConsole;
         Main.OnRevealEnemies -= RevealEnemies;
     }
-
     private void Update()
     {
         if (isInitializingLandingSequence)
         {
-            spaceship.position = Vector3.Lerp(shipStartPosition, shipEndPosition, spaceshipSequenceTimer/spaceshipSequenceDesiredTime);
-
-            spaceshipSequenceTimer += Time.deltaTime;
-            if(spaceshipSequenceTimer > spaceshipSequenceDesiredTime)
-            {
-                isInitializingLandingSequence = false;
-                spaceship.position = shipEndPosition;
-                OnLanded?.Invoke();
-            }
+            LandShip();
         }
         if (isInitializingLeavingSequence)
         {
-            spaceship.position = Vector3.Lerp(shipEndPosition, shipStartPosition, spaceshipSequenceTimer / spaceshipSequenceDesiredTime);
-
-            spaceshipSequenceTimer += Time.deltaTime;
-            if (spaceshipSequenceTimer > spaceshipSequenceDesiredTime)
-            {
-                isInitializingLeavingSequence = false;
-                OnLeaving?.Invoke();
-                spaceship.position = shipEndPosition;
-            }
+            TakeOffInShip();
         }
-
+        if (isDrawingRayForPicking)
+        {
+            DrawPickingLine();
+        }
         if(UIOverrideListener.isOverUI && transform.position != tileTruePosition)
         {
             transform.position = tileTruePosition;
         }
     }
-    private void FixedUpdate()
-    {
-        if (isDrawingRayForPicking)
-        {
-            //Debug.Log("Drawing.");
-            Vector3 myPos = transform.position;
-            myPos.y += 1f;
-            myPos.z -= 1f;
-            lineRenderer.SetPosition(0, myPos);
-            lineRenderer.SetPosition(1, camera.ScreenToWorldPoint(Input.mousePosition));
-        }
-    }
     #endregion
 
-    #region Qeue
-    public void CreateQueElements()
+    #region Setup
+    #region Basic
+    public void SetMain(Main m)
     {
-        QuedResourceAmount = new int[myResources.Length];
-        ResourceNameReferenceIndex = new string[myResources.Length];
-        
-        for(int i = 0; i < myResources.Length; i++)
-        {
-            ResourceNameReferenceIndex[i] = myResources[i].displayName;
-        }
+        main = m;
     }
-    public void StartQueUpdate(ResourceData data)
+    public void SetManager(LocationManager manager)
     {
-        Debug.Log($"I have been told to start the que for {data.displayName}");
-        StartCoroutine(UpdateQue(data));
+        myLocationManager = manager;
     }
-    public void AddToQue(ResourceData data, int amount)
+    public void SetFloatingText(TMP_Text text)
     {
-        if (data == null || !data.visible)
-        {
-            Debug.Log("Didn't get a legitamate resource.");
-            return;
-        }
-
-        Debug.Log($"I have been told to add {amount} to the {data.displayName} que");
-        Debug.Log($"{data.displayName} before que addition: {QuedResourceAmount[System.Array.IndexOf(ResourceNameReferenceIndex, data.displayName)]}");
-        QuedResourceAmount[System.Array.IndexOf(ResourceNameReferenceIndex, data.displayName)] += amount;
-        Debug.Log($"{data.displayName} after que addition: {QuedResourceAmount[System.Array.IndexOf(ResourceNameReferenceIndex, data.displayName)]}");
-
-        if(QuedResourceAmount[System.Array.IndexOf(ResourceNameReferenceIndex, data.displayName)] == 1)
-        StartQueUpdate(data);
+        FloatingText = text;
     }
-    IEnumerator UpdateQue(ResourceData data)
-    {
-        bool addedNormal = false;
-        myUIManager.SetTimerAndStart(data.craftTime);
-
-        yield return new WaitForSeconds(data.craftTime);
-
-        if (QuedResourceAmount[System.Array.IndexOf(ResourceNameReferenceIndex, data.displayName)] > 0 || data.autoAmount > 0)
-        {
-            Debug.Log($"Starting {data.displayName} Que Update process.");
-            if (QuedResourceAmount[System.Array.IndexOf(ResourceNameReferenceIndex, data.displayName)] > 0)
-            {
-                QuedResourceAmount[System.Array.IndexOf(ResourceNameReferenceIndex, data.displayName)] -= 1;
-                addedNormal = true;
-                Debug.Log($"{data.displayName} has something in Que.");
-            }
-
-            if (addedNormal)
-            {
-                data.AdjustCurrentAmount(1 + data.autoAmount);
-                Debug.Log($"Adding {data.displayName} auto amount and que.");
-            }
-            else
-            {
-                data.AdjustCurrentAmount(data.autoAmount);
-                Debug.Log($"Adding {data.displayName} sinlge que.");
-            }
-
-            if (data.itemName == "soldier") myUIManager.ResetTroopText();
-
-            if (QuedResourceAmount[System.Array.IndexOf(ResourceNameReferenceIndex, data.displayName)] > 0 || data.autoAmount > 0)
-                StartCoroutine(UpdateQue(data));
-        }
-    }   
-    #endregion
-
-    #region Initial Setup Methods
     public void SetUpTileLocation(int column, int row)
     {
         myPositionInTheArray = new Vector2(column, row);
@@ -300,12 +211,24 @@ public class HexTileInfo : MonoBehaviour
         DeactivateDetailLayers();
         camera = Camera.main;
         tileTruePosition = transform.position;
-        Debug.Log($"TruePosition: {tileTruePosition} for {myPositionInTheArray}");
     }
     public void SetNeighbors(Vector2[] locations)
     {
         myNeighbors = locations;
     }
+    public int GetResourceSpritesLengthForStartPoint()
+    {
+        return resourceSprites.Length + 1;
+    }
+    public void SetEnemyNumbers(float ratio, int densityMin, int densityMax)
+    {
+        enemyRatio = ratio;
+        enemyDensityMin = densityMin;
+        enemyDensityMax = densityMax;
+    }
+    #endregion
+
+    #region Build Tiles
     private void TryToTransformToLand(Vector2 pos)
     {
         if ((myState == TileStates.UnPlayable && pos.x == myPositionInTheArray.x && (pos.y + 1 == myPositionInTheArray.y || pos.y - 1 == myPositionInTheArray.y)) || //Same column +- row
@@ -333,12 +256,10 @@ public class HexTileInfo : MonoBehaviour
             myRenderers[2].enabled = true;
             myRenderers[2].GetComponent<SpriteRenderer>().sprite = resourceSprites[myTileType-1];
             CreateResources();
-            //TrySpawnEnemy();
             return;
         }
-        myTileType = resourceSprites.Length+1; // blank space
+        myTileType = resourceSprites.Length+1; // ensures blank space is always more than sprites
         CreateResources();
-        //TrySpawnEnemy();
         ///1 mountain
         ///2 tree
         ///3 mine
@@ -350,91 +271,13 @@ public class HexTileInfo : MonoBehaviour
         /// guy
         /// robot spider
     }
-    void CreateResources()
-    {
-        //Debug.Log($"Creating Resource List For: {myPositionInTheArray}");
-        List<ResourceData> tempToPermanent = new List<ResourceData>();
-        List<ResourceData> locationTypeOptionList = new List<ResourceData>();
-
-        foreach(ResourceData data in main.GetResourceLibrary())
-        {
-            if (data.itemName == "soldier") //UniversalResource
-            {
-                soldiers = new ResourceData(data);
-                tempToPermanent.Add(soldiers);
-                continue;
-            }
-            if(myTileType == 1 && data.groups == "metal")
-            {
-                locationTypeOptionList.Add(new ResourceData(data));
-                continue;
-            }
-            if(myTileType == 2 && data.itemName == "food")
-            {
-                locationTypeOptionList.Add(new ResourceData(data));
-                continue;
-            }
-            if(data.itemName == "enemy" && myTileType != 0)
-            {
-                enemies = new ResourceData(data);
-                tempToPermanent.Add(enemies);
-                TrySpawnEnemy();
-                continue;
-            }
-        }
-
-        if(locationTypeOptionList.Count > 0)
-            tempToPermanent.Add(new ResourceData(locationTypeOptionList[UnityEngine.Random.Range(0, locationTypeOptionList.Count)]));
-        
-        myResources = tempToPermanent.ToArray();
-
-        if (Main.needCompareForUpdatedValues)
-        {
-            foreach(ResourceData data in myResources)
-            {
-                Main.CompareIndividualResourceValues(main, data);
-            }
-        }
-
-        CreateQueElements();
-    }
     void TrySpawnEnemy()
     {
         if(UnityEngine.Random.Range(0,1f) > 1 - enemyRatio)
         {
-
             int x = Main.NormalizeRandom(enemyDensityMin, enemyDensityMax);
             enemies.SetCurrentAmount(x);
             enemyCount = x;
-        }
-    }
-    public void SetMain(Main m)
-    {
-        main = m;
-    }
-    public void SetManager(LocationManager manager)
-    {
-        myLocationManager = manager;
-    }
-    public void SetFloatingText(TMP_Text text)
-    {
-        FloatingText = text;
-    }
-    public int GetResourceSpritesLengthForStartPoint()
-    {
-        return resourceSprites.Length + 1;
-    }
-    private void CheckForPlayability(Vector2 pos)
-    {
-        if((myState == TileStates.UnClickable && pos.x == myPositionInTheArray.x && (pos.y +1 == myPositionInTheArray.y || pos.y - 1 == myPositionInTheArray.y)) || //Same column +- row
-            (myState == TileStates.UnClickable && pos.x % 2 == 0 && pos.x + 1 == myPositionInTheArray.x && (pos.y == myPositionInTheArray.y || pos.y - 1 == myPositionInTheArray.y)) || //Even +Column +=row
-            (myState == TileStates.UnClickable && pos.x % 2 == 1 && pos.x + 1 == myPositionInTheArray.x && (pos.y == myPositionInTheArray.y || pos.y + 1 == myPositionInTheArray.y)) || //Odd +Column -=row 
-            (myState == TileStates.UnClickable && pos.x % 2 == 0 && pos.x - 1 == myPositionInTheArray.x && (pos.y == myPositionInTheArray.y || pos.y - 1 == myPositionInTheArray.y)) || //Even -Column +=row 
-            (myState == TileStates.UnClickable && pos.x % 2 == 1 && pos.x - 1 == myPositionInTheArray.x && (pos.y == myPositionInTheArray.y || pos.y + 1 == myPositionInTheArray.y))) //Odd -Column -=row 
-        {
-            myState = TileStates.Clickable;
-            myRenderers[0].material.mainTexture = tileTextures[2];
-            OnTakeover -= CheckForPlayability;
         }
     }
     public void SetAsStartingPoint()
@@ -484,103 +327,71 @@ public class HexTileInfo : MonoBehaviour
 
         myResources = temp.ToArray();
     }
+    void CreateResources()
+    {
+        List<ResourceData> tempToPermanent = new List<ResourceData>();
+        List<ResourceData> locationTypeOptionList = new List<ResourceData>();
 
-    #region TileShipAnimation
-    public void StartLandingSequenceAnimation()
-    {
-        spaceship = myRenderers[4].transform;
-        OnStartingTile?.Invoke(spaceship);
-        SpriteRenderer rend = myRenderers[4].GetComponent<SpriteRenderer>();
-        rend.enabled = true;
-        rend.sprite = armySprites[armySprites.Length - 1];
-        shipEndPosition = shipTruePosition;
-        shipStartPosition = new Vector3(shipEndPosition.x, shipEndPosition.y + 6f, shipEndPosition.z);
-        spaceshipSequenceTimer = 0;
-        spaceshipSequenceDesiredTime = 6f;
-        isInitializingLandingSequence = true;
-    }
-    public void StartLeavingSequenceAnimation()
-    {
-        spaceshipSequenceTimer = 0;
-        spaceshipSequenceDesiredTime = 6f;
-        isInitializingLeavingSequence = true;
+        foreach(ResourceData data in main.GetResourceLibrary())
+        {
+            if(myTileType == 1 && data.groups == "metal") //Mountain resources
+            {
+                locationTypeOptionList.Add(new ResourceData(data));
+                continue;
+            }
+            if(myTileType == 2 && data.itemName == "food") //Forest resource
+            {
+                locationTypeOptionList.Add(new ResourceData(data));
+                continue;
+            }
+            if (data.itemName == "soldier") //UniversalResource
+            {
+                soldiers = new ResourceData(data);
+                tempToPermanent.Add(soldiers);
+                continue;
+            }
+            if(data.itemName == "enemy" && myTileType != 0) //UniversalResource
+            {
+                enemies = new ResourceData(data);
+                tempToPermanent.Add(enemies);
+                TrySpawnEnemy();
+                continue;
+            }
+        }
+
+        if(locationTypeOptionList.Count > 0)//Getting a random resource that we can have.
+            tempToPermanent.Add(new ResourceData(locationTypeOptionList[UnityEngine.Random.Range(0, locationTypeOptionList.Count)]));
+        
+        myResources = tempToPermanent.ToArray();
+
+        if (Main.needCompareForUpdatedValues)
+        {
+            foreach(ResourceData data in myResources)
+            {
+                Main.CompareIndividualResourceValues(main, data);
+            }
+        }
+
+        CreateQueElements();
     }
     #endregion
-   
+
     #region Setup Tiles From Memory
     public void SetAllTileInfoFromMemory(string state, int tileType, string neighbors, bool isStart, string resources)
     {
         SetTileStateFromString(state);
 
-        myTileType = tileType;
-        if(myTileType < 5 && myTileType != 0)
-        {
-            myRenderers[2].GetComponent<SpriteRenderer>().sprite = resourceSprites[myTileType-1];
-            myRenderers[2].enabled = true;
-        }
+        SetTileType(tileType);
 
         SetNeighborsFromString(neighbors);
 
-        if(resources != "")
-        {
-            List<ResourceData> temp = new List<ResourceData>();
-            string[] ar = resources.Split(";");
-            foreach(string s in ar)
-            {
-                string[] st = s.Split(",");
-                //string name, string display, string dis, string gr, string eType, string reqs, string nonReqs, bool vis, int cur, int autoA, float craft,
-                //string created, string coms, string createComs, string im, string snd, string ach, int mos, string build
-                temp.Add(new ResourceData(st[0], st[1], st[2], st[3], st[4], st[5], st[6],
-                        (st[7] == "True") ? true : false, int.Parse(st[8]), int.Parse(st[9]), 
-                        float.Parse(st[10]), st[11], st[12],st[13], st[14], st[15], st[16], 
-                        int.Parse(st[17]), st[18]));
-            }
-
-            myResources = temp.ToArray();
-            foreach(ResourceData data in myResources)
-            {
-                if (Main.needCompareForUpdatedValues) Main.CompareIndividualResourceValues(main, data);
-
-                if (data.itemName == "soldier")
-                {
-                    //Debug.Log($"Soldiers: {data.currentAmount} on {myPositionInTheArray}");
-                    soldiers = data;
-                    if(data.currentAmount > 0)
-                    {
-                        myRenderers[4].enabled = true;
-                    }
-                    continue;
-                }
-                if(data.itemName == "enemy")
-                {
-                    enemies = data;
-                    enemyCount = enemies.currentAmount;
-                }
-            }
-        }
+        BuildResourcesFromMemory(resources);
 
         CreateQueElements();
 
         if (isStart) SetAsStartingPoint();
     }
-    private void SetNeighborsFromString(string neighbors)
-    {
-        List<Vector2> temp = new List<Vector2>();
-        string[] ar = neighbors.Split("'");
-        foreach (string s in ar)
-        {
-            string[] st = s.Split(",");
-            Vector2 v = new Vector2(float.Parse(st[0]), float.Parse(st[1].Remove(0, 1)));
-            temp.Add(v);
-        }
-
-        myNeighbors = new Vector2[temp.Count];
-        for (int i = 0; i < myNeighbors.Length; i++)
-        {
-            myNeighbors[i] = temp[i];
-        }
-    }
-    private void SetTileStateFromString(string state)
+    void SetTileStateFromString(string state)
     {
         switch (state)
         {
@@ -604,22 +415,205 @@ public class HexTileInfo : MonoBehaviour
                 break;
         }
     }
+    void SetTileType(int tileType)
+    {
+        myTileType = tileType;
+        if (myTileType < 5 && myTileType != 0)
+        {
+            myRenderers[2].GetComponent<SpriteRenderer>().sprite = resourceSprites[myTileType - 1];
+            myRenderers[2].enabled = true;
+        }
+    }
+    void SetNeighborsFromString(string neighbors)
+    {
+        List<Vector2> temp = new List<Vector2>();
+        string[] ar = neighbors.Split("'");
+        foreach (string s in ar)
+        {
+            string[] st = s.Split(",");
+            Vector2 v = new Vector2(float.Parse(st[0]), float.Parse(st[1].Remove(0, 1)));
+            temp.Add(v);
+        }
+
+        myNeighbors = new Vector2[temp.Count];
+        for (int i = 0; i < myNeighbors.Length; i++)
+        {
+            myNeighbors[i] = temp[i];
+        }
+    }
+    void BuildResourcesFromMemory(string resources)
+    {
+        if (resources != "")
+        {
+            List<ResourceData> temp = new List<ResourceData>();
+            string[] ar = resources.Split(";");
+            foreach (string s in ar)
+            {
+                string[] st = s.Split(",");
+                //string name, string display, string dis, string gr, string eType, string reqs, string nonReqs, bool vis, int cur, int autoA, float craft,
+                //string created, string coms, string createComs, string im, string snd, string ach, int mos, string build
+                temp.Add(new ResourceData(st[0], st[1], st[2], st[3], st[4], st[5], st[6],
+                        (st[7] == "True") ? true : false, int.Parse(st[8]), int.Parse(st[9]),
+                        float.Parse(st[10]), st[11], st[12], st[13], st[14], st[15], st[16],
+                        int.Parse(st[17]), st[18]));
+            }
+
+            myResources = temp.ToArray();
+            foreach (ResourceData data in myResources)
+            {
+                if (Main.needCompareForUpdatedValues) Main.CompareIndividualResourceValues(main, data);
+
+                if (data.itemName == "soldier")
+                {
+                    soldiers = data;
+                    if (data.currentAmount > 0)
+                    {
+                        myRenderers[4].enabled = true;
+                    }
+                    continue;
+                }
+                if (data.itemName == "enemy")
+                {
+                    enemies = data;
+                    enemyCount = enemies.currentAmount;
+                }
+            }
+        }
+    }
     #endregion
     #endregion
 
+    #region Animations
+    public void StartLandingSequenceAnimation()
+    {
+        spaceship = myRenderers[4].transform;
+        OnStartingTile?.Invoke(spaceship);
+        SpriteRenderer rend = myRenderers[4].GetComponent<SpriteRenderer>();
+        rend.enabled = true;
+        rend.sprite = armySprites[armySprites.Length - 1];
+        shipEndPosition = shipTruePosition;
+        shipStartPosition = new Vector3(shipEndPosition.x, shipEndPosition.y + 6f, shipEndPosition.z);
+        spaceshipSequenceTimer = 0;
+        spaceshipSequenceDesiredTime = 6f;
+        isInitializingLandingSequence = true;
+    }
+    void LandShip()
+    {
+        spaceship.position = Vector3.Lerp(shipStartPosition, shipEndPosition, spaceshipSequenceTimer / spaceshipSequenceDesiredTime);
+
+        spaceshipSequenceTimer += Time.deltaTime;
+        if (spaceshipSequenceTimer > spaceshipSequenceDesiredTime)
+        {
+            isInitializingLandingSequence = false;
+            spaceship.position = shipEndPosition;
+            OnLanded?.Invoke();
+        }
+    }
+    public void StartLeavingSequenceAnimation()
+    {
+        spaceshipSequenceTimer = 0;
+        spaceshipSequenceDesiredTime = 6f;
+        isInitializingLeavingSequence = true;
+    }
+    void TakeOffInShip()
+    {
+        spaceship.position = Vector3.Lerp(shipEndPosition, shipStartPosition, spaceshipSequenceTimer / spaceshipSequenceDesiredTime);
+
+        spaceshipSequenceTimer += Time.deltaTime;
+        if (spaceshipSequenceTimer > spaceshipSequenceDesiredTime)
+        {
+            isInitializingLeavingSequence = false;
+            OnLeaving?.Invoke();
+            spaceship.position = shipEndPosition;
+        }
+    }
+    void DrawPickingLine()
+    {
+        Vector3 myPos = transform.position;
+        myPos.y += 1f;
+        myPos.z -= 1f;
+        lineRenderer.SetPosition(0, myPos);
+        lineRenderer.SetPosition(1, camera.ScreenToWorldPoint(Input.mousePosition));
+    }
+    #endregion
+
+    #region Qeue
+    public void CreateQueElements()
+    {
+        QuedResourceAmount = new int[myResources.Length];
+        ResourceNameReferenceIndex = new string[myResources.Length];
+        
+        for(int i = 0; i < myResources.Length; i++)
+        {
+            ResourceNameReferenceIndex[i] = myResources[i].displayName;
+        }
+    }
+    public void AddToQue(ResourceData data, int amount)
+    {
+        if (data == null || !data.visible) return;
+
+        QuedResourceAmount[System.Array.IndexOf(ResourceNameReferenceIndex, data.displayName)] += amount;
+
+        if(QuedResourceAmount[System.Array.IndexOf(ResourceNameReferenceIndex, data.displayName)] == 1)
+            StartQueUpdate(data);
+    }
+    public void StartQueUpdate(ResourceData data)
+    {
+        StartCoroutine(UpdateQue(data));
+    }
+    IEnumerator UpdateQue(ResourceData data)
+    {
+        bool addedNormal = false;
+        myUIManager.SetTimerAndStart(data.craftTime);
+
+        yield return new WaitForSeconds(data.craftTime);
+
+        int queIndex = System.Array.IndexOf(ResourceNameReferenceIndex, data.displayName);
+        int queAmount = QuedResourceAmount[queIndex];
+        if (queAmount > 0 || data.autoAmount > 0)
+        {
+            if (queAmount > 0)
+            {
+                QuedResourceAmount[queIndex] -= 1;
+                addedNormal = true;
+            }
+
+            data.AdjustCurrentAmount(addedNormal ? 1 + data.autoAmount : data.autoAmount);
+
+            if (data.itemName == "soldier") myUIManager.ResetTroopText();
+
+            if (QuedResourceAmount[queIndex] > 0 || data.autoAmount > 0)
+                StartCoroutine(UpdateQue(data));
+        }
+    }
+    #endregion
+
     #region Mouse Interactions
+    public void OnMouseEnter()
+    {
+        if (!UIOverrideListener.isOverUI) 
+        {
+            isMousePresent = true;
+            Vector3 v = transform.position;
+            v.y += .1f;
+            transform.position = v;
+        }
+    }
+    private void OnMouseExit()
+    {
+        isMousePresent = false;
+        if(transform.position != tileTruePosition) transform.position = tileTruePosition;
+    }
     private void OnMouseDown()
     {
         if (isMousePresent && isInteractable && !UIOverrideListener.isOverUI)
         {
             if(myState == TileStates.Conquered && camera.orthographicSize < 4.25f)
             {
-                ActivateTileOptions();
-                //Debug.Log("Clicked on a Conquered location.");
+                CheckCanvasContainerAndCreateTileOptions();
                 OnNeedUIElementsForTile?.Invoke(this);
             }else if(myState == TileStates.Pickable)
             {
-                //Debug.Log($"{myPositionInTheArray} has been chosen.");
                 if(enemies.currentAmount == 0)
                 {
                     StartCoroutine(Move());
@@ -632,50 +626,49 @@ public class HexTileInfo : MonoBehaviour
             }
         }
     }
-    public void OnMouseEnter()
-    {
-        if (!UIOverrideListener.isOverUI) 
-        {
-            isMousePresent = true;
-            Vector3 v = transform.position;
-            v.y += .1f;
-            transform.position = v;
-            if (myState == TileStates.UnClickable) return;
-        }
-    }
-    private void OnMouseExit()
-    {
-        isMousePresent = false;
-        if(transform.position != tileTruePosition) transform.position = tileTruePosition;
-    }
     #endregion
 
-    private void PrepareForReturnTileLocation()
+    #region Troop Management
+    public void AdjustSoldiers(int amount)
     {
-        previousState = myState;
-        myState = TileStates.ReturnTile;
-        myRenderers[0].material.color = Color.blue;
+        if(soldiers.currentAmount + amount <= 0)
+        {
+            soldiers.SetCurrentAmount(0);
+        }
+        else
+        {
+            soldiers.AdjustCurrentAmount(amount);
+        }
+        CheckSoldierVisual();
     }
-    private void ResetFromGeneralsInteraction(Vector2 tile)
+    void CheckSoldierVisual()
     {
-        myState = previousState;
-        myRenderers[0].material.color = Color.white;
+        if(soldiers.currentAmount > 0 && !myRenderers[4].enabled)
+        {
+            SpriteRenderer rend = myRenderers[4].GetComponent<SpriteRenderer>();
+            rend.enabled = true;
+            rend.sprite = armySprites[0];
+
+        }else if (soldiers.currentAmount == 0 && myRenderers[4].enabled && !isStartingPoint)
+        {
+            myRenderers[4].enabled = false;
+        }
     }
-    public void SetResourceTradingBuddy(Vector2 tile)
+    public int GetSoldierCount()
     {
-        resourceTradingBuddy = tile;
+        return soldiers.currentAmount;
     }
     public IEnumerator Move()
     {
         OnReinstateInteractability?.Invoke();
         OnResetStateToPreviousFromInteraction?.Invoke();
-        float timer =(generalTimerOverride) ? generalTimer : 2f;
-        CheckNullFloatingText();
+        float timer =(generalsTimerOverride) ? generalsTimer : 2f;
+        CheckNullUIManager();
         myUIManager.SetTimerAndStart(timer);
 
         yield return new WaitForSeconds(timer);
 
-        generalTimerOverride = false;
+        generalsTimerOverride = false;
         AdjustSoldiers(potentialAmountToReceive);
         myRenderers[0].material.mainTexture = tileTextures[3];
         OnTakeover -= CheckForPlayability;
@@ -686,8 +679,7 @@ public class HexTileInfo : MonoBehaviour
     {
         float timer = 2f;
         //create some more interesting timer;
-        CheckNullFloatingText();
-        myUIManager.SetTimerAndStart(timer);
+        SetTimerAndStart(timer);
         OnReinstateInteractability?.Invoke();
         OnResetStateToPreviousFromInteraction?.Invoke();
 
@@ -696,7 +688,6 @@ public class HexTileInfo : MonoBehaviour
         int difference = enemyCount - potentialAmountToReceive;
         if (difference < 0)
         {
-            //Debug.Log($"Potential Amount: {potentialAmountToReceive}");
             AdjustSoldiers(potentialAmountToReceive);
             enemies.SetCurrentAmount(0);
             enemyCount = 0;
@@ -704,50 +695,54 @@ public class HexTileInfo : MonoBehaviour
             OnTakeover -= CheckForPlayability;
             OnTakeover?.Invoke(myPositionInTheArray);
             myState = TileStates.Conquered;
-            CheckNullFloatingText();
+            CheckNullUIManager();
             FloatingText.gameObject.SetActive(false);
-            //Debug.Log("Soldiers current: " + soldiers.currentAmount);
-            //Debug.Log("I won!");
             potentialAmountToReceive = 0;
         }
         else if (difference == 0)
         {
             OnTradeWithPartnerTile?.Invoke(resourceTradingBuddy, "soldier", potentialAmountToReceive);
             ShowEnemyOnTile();
-            //Debug.Log("We Tied!");
         }else if (difference > 0)
         {
-            if (Main.cantLose)
-            {
-                Debug.Log("Can't Lose is on.");
-                OnTradeWithPartnerTile?.Invoke(resourceTradingBuddy, "soldier", potentialAmountToReceive);
-            }
+            if (Main.cantLose) OnTradeWithPartnerTile?.Invoke(resourceTradingBuddy, "soldier", potentialAmountToReceive);
             ShowEnemyOnTile();
-            //Debug.Log("I lost.");
         }
 
     }
-    private void CheckNullFloatingText()
+    void CheckTileInteratability(string type, Vector2 tile, int amount)
     {
-        if (FloatingText == null)
+        potentialAmountToReceive = amount;
+
+        if((myState == TileStates.Clickable || myState == TileStates.Conquered) && type == "soldier" && CheckForNeighbor(tile))
         {
-            ActivateTileOptions();
-            myUIManager.DeactivateSelf();
+            myRenderers[0].material.color = Color.red;
+            isInteractable = true;
+            previousState = myState;
+            myState = TileStates.Pickable;
+            OnResetStateToPreviousFromInteraction += ResetTileStateFromInteraction;
+            resourceTradingBuddy = tile;
+            return;
         }
+        //Otherwise don't let them interact
+        isInteractable = false;
     }
-    private void ShowEnemyOnTile()
+    bool CheckForNeighbor(Vector2 pos)
     {
-        CheckNullFloatingText();
-        FloatingText.gameObject.SetActive(true);
-        FloatingText.text = enemyCount.ToString();
-        SpriteRenderer rend = myRenderers[4].GetComponent<SpriteRenderer>();
-        rend.enabled = true;
-        rend.sprite = armySprites[1];
+        foreach(Vector2 v in myNeighbors)
+        {
+            if (v == pos) return true;
+        }
+        return false;
     }
-    private void ReceiveResourcesFromTrade(Vector2 tile, string resource, int amount)
+    public void SetupReceivingOfTroopsForOriginator()
     {
-        Debug.Log($"{myPositionInTheArray} receiving {resource}:{amount} from {tile}");
+        OnTradeWithPartnerTile += ReceiveResourcesFromTrade;
+    }
+    void ReceiveResourcesFromTrade(Vector2 tile, string resource, int amount)
+    {
         if (tile != myPositionInTheArray) return;
+
         OnTradeWithPartnerTile -= ReceiveResourcesFromTrade; 
 
         foreach(ResourceData data in myResources)
@@ -779,23 +774,84 @@ public class HexTileInfo : MonoBehaviour
             }
         }
     }
-    private void ActivateTileOptions()
+
+    #region Generals Management
+    private void PrepareForReturnTileLocation()
     {
-        if (myCanvasContainer == null)
+        previousState = myState;
+        myState = TileStates.ReturnTile;
+        myRenderers[0].material.color = Color.blue;
+    }
+    private void ResetFromGeneralsInteraction(Vector2 tile)
+    {
+        myState = previousState;
+        myRenderers[0].material.color = Color.white;
+    }
+    public void ReceiveGeneralMove(int troops, float timer)
+    {
+        potentialAmountToReceive = troops;
+        generalsTimerOverride = true;
+        generalsTimer = timer;
+        StartCoroutine(Move());
+    }
+    public void SetResourceTradingBuddy(Vector2 tile)
+    {
+        resourceTradingBuddy = tile;
+    }
+    #endregion
+    #endregion
+
+    #region Resource Specific Methods
+    public ResourceData CheckIfAndUseOwnResources(ResourceData item)
+    {
+        foreach(ResourceData data in myResources)
         {
-            CreateTileOptions();
-            return;
+            if(data != item && data.itemName == item.itemName) return data;
+        }
+        return item;
+    }
+    public ResourceData GetResourceByString(string itemName)
+    {
+        foreach(ResourceData data in myResources)
+        {
+            if(itemName == data.itemName) return data;
+        }
+        return null;
+    }
+    #endregion
+
+    #region UI Management
+    void CheckForPlayability(Vector2 pos)
+    {
+        if((myState == TileStates.UnClickable && pos.x == myPositionInTheArray.x && (pos.y +1 == myPositionInTheArray.y || pos.y - 1 == myPositionInTheArray.y)) || //Same column +- row
+            (myState == TileStates.UnClickable && pos.x % 2 == 0 && pos.x + 1 == myPositionInTheArray.x && (pos.y == myPositionInTheArray.y || pos.y - 1 == myPositionInTheArray.y)) || //Even +Column +=row
+            (myState == TileStates.UnClickable && pos.x % 2 == 1 && pos.x + 1 == myPositionInTheArray.x && (pos.y == myPositionInTheArray.y || pos.y + 1 == myPositionInTheArray.y)) || //Odd +Column -=row 
+            (myState == TileStates.UnClickable && pos.x % 2 == 0 && pos.x - 1 == myPositionInTheArray.x && (pos.y == myPositionInTheArray.y || pos.y - 1 == myPositionInTheArray.y)) || //Even -Column +=row 
+            (myState == TileStates.UnClickable && pos.x % 2 == 1 && pos.x - 1 == myPositionInTheArray.x && (pos.y == myPositionInTheArray.y || pos.y + 1 == myPositionInTheArray.y))) //Odd -Column -=row 
+        {
+            myState = TileStates.Clickable;
+            myRenderers[0].material.mainTexture = tileTextures[2];
+            OnTakeover -= CheckForPlayability;
         }
     }
-    private void SetButtonsOnScreenPosition()
+    void SetTimerAndStart(float timer)
     {
-        if (myCanvasContainer != null)
+        CheckNullUIManager();
+        myUIManager.SetTimerAndStart(timer);
+    }
+    void CheckNullUIManager()
+    {
+        if (myUIManager == null)
         {
-            myCanvasContainer.position = camera.WorldToScreenPoint(transform.position);
-            myCanvasContainer.localScale = new Vector3(1.75f / camera.orthographicSize, 1.75f / camera.orthographicSize, 1f);
+            CheckCanvasContainerAndCreateTileOptions();
+            myUIManager.DeactivateSelf();
         }
     }
-    private void CreateTileOptions()
+    void CheckCanvasContainerAndCreateTileOptions()
+    {
+        if (myCanvasContainer == null) CreateTileOptions();
+    }
+    void CreateTileOptions()
     {
         myCanvasContainer = GameObject.Find("Canvas").transform;
         GameObject obj = Instantiate(canvasContainerPrefab, myCanvasContainer);
@@ -805,61 +861,30 @@ public class HexTileInfo : MonoBehaviour
         myUIManager.CreateResourceButtons();
         SetButtonsOnScreenPosition();
     }
-
-    public int GetSoldierCount()
+    void TurnOffEnemyFloatingText() //Accessed via action
     {
-        return soldiers.currentAmount;
+        FloatingText.gameObject.SetActive(false);
     }
-    public void AdjustSoldiers(int amount)
+    void ShowEnemyOnTile()
     {
-        if(soldiers.currentAmount + amount <= 0)
-        {
-            //Debug.Log($"{soldiers.currentAmount} + {amount} = {soldiers.currentAmount + amount}");
-            soldiers.SetCurrentAmount(0);
-        }
-        else
-        {
-            soldiers.AdjustCurrentAmount(amount);
-        }
-        CheckSoldierVisual();
+        CheckNullUIManager();
+        FloatingText.gameObject.SetActive(true);
+        FloatingText.text = enemyCount.ToString();
+        SpriteRenderer rend = myRenderers[4].GetComponent<SpriteRenderer>();
+        rend.enabled = true;
+        rend.sprite = armySprites[1];
     }
-
-    void CheckSoldierVisual()
+    void DeactivateTileOptions()
     {
-        if(soldiers.currentAmount > 0 && !myRenderers[4].enabled)
-        {
-            SpriteRenderer rend = myRenderers[4].GetComponent<SpriteRenderer>();
-            rend.enabled = true;
-            rend.sprite = armySprites[0];
-
-        }else if (soldiers.currentAmount == 0 && myRenderers[4].enabled && !isStartingPoint)
-        {
-            myRenderers[4].enabled = false;
-        }
+        if (myUIManager != null) myUIManager.DeactivateSelf();
     }
-    private void CheckTileInteratability(string type, Vector2 tile, int amount)
+    void SetButtonsOnScreenPosition()
     {
-        potentialAmountToReceive = amount;
-
-        if((myState == TileStates.Clickable || myState == TileStates.Conquered) && type == "soldier" && CheckForNeighbor(tile))
+        if (myCanvasContainer != null)
         {
-            //Debug.Log("It is a neighbor.");
-            myRenderers[0].material.color = Color.red;
-            isInteractable = true;
-            previousState = myState;
-            myState = TileStates.Pickable;
-            OnResetStateToPreviousFromInteraction += ResetTileStateFromInteraction;
-            resourceTradingBuddy = tile;
+            myCanvasContainer.position = camera.WorldToScreenPoint(transform.position);
+            myCanvasContainer.localScale = new Vector3(1.75f / camera.orthographicSize, 1.75f / camera.orthographicSize, 1f);
         }
-        else
-        {
-            //Otherwise don't let them interact
-            isInteractable = false;
-        }
-    }
-    public void SetupReceivingOfTroopsForOriginator()
-    {
-        OnTradeWithPartnerTile += ReceiveResourcesFromTrade;
     }
     public void StartDrawingRayForPicking()
     {
@@ -878,56 +903,9 @@ public class HexTileInfo : MonoBehaviour
         lineRenderer.SetPosition(0, Vector3.zero);
         lineRenderer.SetPosition(1, Vector3.zero);
     }
+    #endregion
 
-    bool CheckForNeighbor(Vector2 pos)
-    {
-        foreach(Vector2 v in myNeighbors)
-        {
-            if (v == pos) return true;
-        }
-
-        return false;
-    }
-
-    void DeactivateTileOptions()
-    {
-        if (myUIManager != null)
-        {
-           myUIManager.DeactivateSelf();
-        }
-    }
-
-    public ResourceData CheckIfAndUseOwnResources(ResourceData item)
-    {
-        foreach(ResourceData data in myResources)
-        {
-            if(data != item && data.itemName == item.itemName)
-            {
-                //Debug.Log($"Using local resource: {data.itemName}");
-                return data;
-            }
-        }
-        return item;
-    }
-
-    public ResourceData GetResourceByString(string itemName)
-    {
-        foreach(ResourceData data in myResources)
-        {
-            if(itemName == data.itemName)
-            {
-                return data;
-            }
-        }
-
-        Debug.Log($"No item by the given string: {itemName}");
-        return null;
-    }
-
-    private void TurnOffAllFloatingText()
-    {
-        FloatingText.gameObject.SetActive(false);
-    }
+    #region Life Cycle
     public void DeactivateSelf()
     {
         OnTakeover -= CheckForPlayability;
@@ -941,7 +919,6 @@ public class HexTileInfo : MonoBehaviour
         myRenderers[3].enabled = false;
         myRenderers[4].enabled = false;
     }
-
     public string DigitizeForSerialization()
     {
         if (myState == TileStates.ReturnTile) ResetFromGeneralsInteraction(myPositionInTheArray);
@@ -971,4 +948,5 @@ public class HexTileInfo : MonoBehaviour
         }
         return $"{myState}:{myTileType}:{s}:{isStartingPoint}:{str}|";
     }
+    #endregion
 }

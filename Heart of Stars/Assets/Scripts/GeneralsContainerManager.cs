@@ -19,25 +19,22 @@ public class GeneralsContainerManager : MonoBehaviour
     GameObject generalPanelButton;
 
     Dictionary<string, List<General>> GeneralsDictionary;
-
     List<General> allGenerals;
     List<General> boardGenerals;
     General activeGeneral;
 
-    LocationManager activeLocation;
     List<LocationManager> locations;
+    LocationManager activeLocation;
 
     #region UnityEngine
     private void Awake()
     {
-        //do all the setup
         LocationManager.OnGreetGeneralManager += ReceiveNewLocationManager;
         LocationManager.OnTurnActiveManagerForGenerals += SetActiveManager;
         Main.OnWorldMap += StopAllLocationGenerals;
         HexTileInfo.OnReturnPositionToGeneralManager += SetGeneralLocation;
 
         GeneralsDictionary = new Dictionary<string, List<General>>();
-
         locations = new List<LocationManager>();
         allGenerals = new List<General>();
         boardGenerals = new List<General>();
@@ -50,6 +47,7 @@ public class GeneralsContainerManager : MonoBehaviour
     }
     #endregion
 
+    #region Location Management
     void ReceiveNewLocationManager(LocationManager manager)
     {
         Debug.Log("Introducing managers.");
@@ -62,8 +60,9 @@ public class GeneralsContainerManager : MonoBehaviour
     {
         activeLocation = manager;
     }
+    #endregion
 
-    #region PanelManagement
+    #region UIManagement
     public void TurnOffPanel()
     {
         foreach(General g in boardGenerals)
@@ -108,12 +107,6 @@ public class GeneralsContainerManager : MonoBehaviour
             boardGenerals.Add(g);
         }
     }
-    public void AssignTileToGeneral(General general)
-    {
-        activeGeneral = general;
-        TurnOffPanel();
-        OnNeedTileForGeneral?.Invoke();
-    }
     #endregion
 
     #region GeneralManagement
@@ -129,21 +122,15 @@ public class GeneralsContainerManager : MonoBehaviour
         boardGenerals.Add(g);
         Main.PushMessage("Hurray!", "You have a new general that can work for you! Give it a name and a troop location to start!");
     }
+    public void AssignTileToGeneral(General general)
+    {
+        activeGeneral = general;
+        TurnOffPanel();
+        OnNeedTileForGeneral?.Invoke();
+    }
     public void SetActiveGeneral(General general)
     {
         activeGeneral = general;
-    }
-    public void GiveAnUnNamedGeneralAName(string name)
-    {
-        foreach (General g in GeneralsDictionary[activeLocation.myAddress])
-        {
-            if (g.Name == "")
-            {
-                g.SetGeneralName(name);
-                Main.PushMessage($"General {name}", "Reporting for duty! Make sure I have a troop location otherwise I won't know what to do.");
-                return;
-            }
-        }
     }
     public void SetActiveGeneralName(string name)
     {

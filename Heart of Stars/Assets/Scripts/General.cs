@@ -9,6 +9,7 @@ public class General : MonoBehaviour
     LocationManager myLocationManager;
     GeneralsContainerManager myManager;
 
+    #region UI elements
     [SerializeField]
     TMP_Text nameText;
     [SerializeField]
@@ -19,7 +20,9 @@ public class General : MonoBehaviour
     GameObject myUIContainer;
     [SerializeField]
     Image myUIImage;
+    #endregion
 
+    #region Enumerators
     public enum GeneralType { Basic, NonBasic }
     public GeneralType myType { private set; get; }
 
@@ -28,11 +31,12 @@ public class General : MonoBehaviour
 
     public enum Direction { North, NorthEast, SouthEast, South, SouthWest, NorthWest }
     public Direction generalDirection { private set; get; }
+    #endregion
 
     public string Name { private set; get; }
     public bool Active { private set; get; }
     List<int> directionsAvailable;
-    bool isSearching, isMoving, isFighting, directionIsPlayable, needCombat, isStopped;
+    bool isSearching, isMoving, isFighting, directionIsPlayable, needCombat;
     public Vector2 myLocation { private set; get; }
     public Vector2 targetLocation { private set; get; }
     public float generalSwitchStateTime { private set; get; }
@@ -40,6 +44,7 @@ public class General : MonoBehaviour
     
     System.Random rand = new System.Random();
 
+    #region UnityEngine
     private void Update()
     {
         if (Active)
@@ -47,43 +52,9 @@ public class General : MonoBehaviour
             ExecuteGeneralState();
         }
     }
-    public void BecomeActiveGeneral()
-    {
-        myManager.SetActiveGeneral(this);
-    }
-    public void ActivateGeneral()
-    {
-        Debug.Log($"General {Name} trying to be activated.");
-        if (myLocation == null || myLocationManager.tileInfoList[Mathf.RoundToInt(myLocation.x)][Mathf.RoundToInt(myLocation.y)].GetSoldierCount() < 1)
-        {
-            Main.PushMessage($"General {Name}", "The General you are accessing does not have a troop to use. You will need to set" +
-             " the troop location before you can use them.");
-            return;
-        }
-        isSearching = false;
-        myGeneralState = GeneralState.Searching;
-        if(timeStamp != 0)
-        {
-            CompareTimeStamp();
-        }
-        isStopped = false;
-        Active = true;
-    }
-    public void Stop()
-    {
-        Active = false;
-        myGeneralState = GeneralState.Stop;
-        statusText.text = $"{myGeneralState}";
-    }
-    public void GetTimeStamp()
-    {
-        timeStamp = Time.realtimeSinceStartup;
-    }
-    public void CompareTimeStamp()
-    {
-        float elapsedTIme = Time.realtimeSinceStartup - timeStamp;
-        //Do something for the difference.
-    }
+    #endregion
+
+    #region Setup and Assignment
     public void BasicSetup(GeneralsContainerManager manager, LocationManager locManager, GeneralType type)
     {
         myManager = manager;
@@ -93,44 +64,10 @@ public class General : MonoBehaviour
         generalSwitchStateTime = 4f;
         statusText.text = "Stop";
     }
-    public void SetManager(LocationManager man)
-    {
-        myLocationManager = man;
-    }
-    public void SetGeneralType(GeneralType type)
-    {
-        myType = type;
-    }
-    public void SetGeneralTroopLocation(Vector2 tile)
-    {
-        Debug.Log($"General {Name} location set to {tile}.");
-        myLocation = tile;
-        locationText.text = $"{tile}";
-        statusText.text = $"{myGeneralState}";
-    }
-    public void RequestTroopLocation()
-    {
-        myManager.AssignTileToGeneral(this);
-    }
-    public void SetGeneralName(string name)
-    {
-        Name = name;
-        nameText.text = name;
-    }
-    public void TurnOffUI()
-    {
-        myUIImage.enabled = false;
-        myUIContainer.SetActive(false);
-    }
-    public void TurnOnUI()
-    {
-        myUIImage.enabled = true;
-        myUIContainer.SetActive(true);
-    }
     void SetRandomName()
     {
         System.Random rand = new System.Random();
-        int x = rand.Next(0, 3);
+        int x = rand.Next(0, 4);
         switch (x)
         {
             case 0:
@@ -147,24 +84,195 @@ public class General : MonoBehaviour
                 break;
         }
     }
+    public void SetGeneralName(string name)
+    {
+        Name = name;
+        nameText.text = name;
+    }
+    public void SetGeneralTroopLocation(Vector2 tile)
+    {
+        Debug.Log($"General {Name} location set to {tile}.");
+        myLocation = tile;
+        locationText.text = $"{tile}";
+        statusText.text = $"{myGeneralState}";
+    }
+    public void RequestTroopLocation() //Accessed via button
+    {
+        myManager.AssignTileToGeneral(this);
+    }
+    public void SetGeneralType(GeneralType type) //Not implemented yet
+    {
+        myType = type;
+    }
+    #endregion
+
+    #region External Commands
+    public void Stop()
+    {
+        StopGeneral();
+    }
+    public void Stop(string message)
+    {
+        StopGeneral();
+        Main.PushMessage($"General {Name}", message);
+    }
+    void StopGeneral()
+    {
+        Active = false;
+        myGeneralState = GeneralState.Stop;
+        statusText.text = $"{myGeneralState}";
+    }
+    public void ActivateGeneral()
+    {
+        if (myLocation == null || myLocationManager.tileInfoList[Mathf.RoundToInt(myLocation.x)][Mathf.RoundToInt(myLocation.y)].GetSoldierCount() < 1)
+        {
+            Main.PushMessage($"General {Name}", "The General you are accessing does not have a troop to use. You will need to set" +
+             " the troop location before you can use them.");
+            return;
+        }
+        isSearching = false;
+        myGeneralState = GeneralState.Searching;
+        if(timeStamp != 0)
+        {
+            CompareTimeStamp();
+        }
+        Active = true;
+    }
+    public void BecomeActiveGeneral()// Accessed via button
+    {
+        myManager.SetActiveGeneral(this);
+    } 
+    public void GetTimeStamp()
+    {
+        timeStamp = Time.realtimeSinceStartup;
+    }
+    public void CompareTimeStamp()
+    {
+        float elapsedTIme = Time.realtimeSinceStartup - timeStamp;
+        //Do something for the difference. Not implemented.
+    }
+    #endregion
+
+    #region UI
+    public void TurnOffUI()
+    {
+        myUIImage.enabled = false;
+        myUIContainer.SetActive(false);
+    }
+    public void TurnOnUI()
+    {
+        myUIImage.enabled = true;
+        myUIContainer.SetActive(true);
+    }
+    #endregion
+
+    #region Brain Functions
+    void ExecuteGeneralState()
+    {
+        switch (myGeneralState)
+        {
+            case GeneralState.Searching:
+                if (!isSearching)
+                {
+                    isSearching = true;
+                    directionIsPlayable = false;
+                    ResetDirectionsAvailable();
+                    while (!directionIsPlayable)
+                    {
+                        GetNewDirection();
+                        CheckDirectionIsPlayable();
+                    }
+                }
+                break;
+            case GeneralState.Moving:
+                if (!isMoving)
+                {
+                    isMoving = true;
+                    HexTileInfo current = myLocationManager.tileInfoList[Mathf.RoundToInt(myLocation.x)][Mathf.RoundToInt(myLocation.y)];
+                    int soldierAmount = current.GetSoldierCount();
+                    current.AdjustSoldiers(soldierAmount * -1);
+                    HexTileInfo target = myLocationManager.tileInfoList[Mathf.RoundToInt(targetLocation.x)][Mathf.RoundToInt(targetLocation.y)];
+                    target.ReceiveGeneralMove(soldierAmount, generalSwitchStateTime);
+
+                    StartCoroutine(SwitchGeneralState());
+                }
+                break;
+            case GeneralState.Combat:
+                if (!isFighting)
+                {
+                    isFighting = true;
+                    HexTileInfo current = myLocationManager.tileInfoList[Mathf.RoundToInt(myLocation.x)][Mathf.RoundToInt(myLocation.y)];
+                    int soldierAmount = current.GetSoldierCount();
+                    current.AdjustSoldiers(soldierAmount * -1);
+                    HexTileInfo target = myLocationManager.tileInfoList[Mathf.RoundToInt(targetLocation.x)][Mathf.RoundToInt(targetLocation.y)];
+                    target.potentialAmountToReceive = soldierAmount;
+                    target.SetResourceTradingBuddy(myLocation);
+                    target.StartCoroutine(target.BattleSequence());
+                    if (target.enemies.currentAmount - soldierAmount <= 0)
+                    {
+                        myLocation = targetLocation;
+                        locationText.text = $"{myLocation}";
+                        StartCoroutine(SwitchGeneralState());
+                        return;
+                    }
+
+                    Stop("I have run into a  worthy adversary who has bested my efforts. Please, let me know what you would have me do.");
+                }
+                break;
+        }
+    }
+    IEnumerator SwitchGeneralState()
+    {
+        if (myGeneralState == GeneralState.Stop) yield break;
+        statusText.text = "Deciding";
+
+        yield return new WaitForSeconds(generalSwitchStateTime);
+
+        if (myGeneralState == GeneralState.Searching)
+        {
+            if (needCombat)
+            {
+                isFighting = false;
+                myGeneralState = GeneralState.Combat;
+            }
+            else
+            {
+                isMoving = false;
+                myGeneralState = GeneralState.Moving;
+            }
+        }
+        else if (myGeneralState == GeneralState.Moving)
+        {
+            myLocation = targetLocation;
+            locationText.text = $"{myLocation}";
+            isSearching = false;
+            myGeneralState = GeneralState.Searching;
+        }
+        else if (myGeneralState == GeneralState.Combat)
+        {
+            isSearching = false;
+            myGeneralState = GeneralState.Searching;
+        }
+        statusText.text = $"{myGeneralState}";
+    }
     void ResetDirectionsAvailable()
     {
         if (directionsAvailable == null) directionsAvailable = new List<int>();
         directionsAvailable.Clear();
         for (int i = 0; i < 6; i++)
         {
+            //Setting an integer value 0-5 to associate with a direction
             directionsAvailable.Add(i);
         }
     }
     void GetNewDirection()
     {
-        Debug.Log($"{Name} is getting new direction.");
         int x = directionsAvailable[rand.Next(0, directionsAvailable.Count)];
         switch (x)
         {
             case 0:
                 generalDirection = Direction.North;
-                directionsAvailable.Remove(0);
+                directionsAvailable.Remove(0); //Removing the integer we associate it with from the options to choose from.
                 break;
             case 1:
                 generalDirection = Direction.NorthEast;
@@ -190,15 +298,14 @@ public class General : MonoBehaviour
     }
     void CheckDirectionIsPlayable()
     {
-        Debug.Log($"{Name} checking Direction Playable.");
         switch (generalDirection)
         {
             case Direction.North:
                 directionIsPlayable = CheckIfTileIsInNeedOfConquering(myLocationManager.CheckUpLocation(myLocation));
                 break;
             case Direction.NorthEast:
-                if (myLocation.x % 2 == 1)
-                {
+                if (myLocation.x % 2 == 1)//Because of the nature of the hextile, where something looks doesn't always line up with the array position and needs to be picked correctly.
+                {//Basically just checking whether the tile is in an even or odd column.
                     directionIsPlayable = CheckIfTileIsInNeedOfConquering(myLocationManager.CheckRightUpLocation(myLocation));
                     break;
                 }
@@ -232,9 +339,11 @@ public class General : MonoBehaviour
                 directionIsPlayable = CheckIfTileIsInNeedOfConquering(myLocationManager.CheckLeftEqualLocation(myLocation));
                 break;
         }
-        Debug.Log($"Direction was playable: {directionIsPlayable}");
-        Debug.Log($"Directions still to be checked {directionsAvailable.Count}");
-        if (directionIsPlayable) StartCoroutine(SwitchGeneralState());
+        if (directionIsPlayable)
+        {
+            StartCoroutine(SwitchGeneralState());
+            return;
+        }
 
         if (!directionIsPlayable && directionsAvailable.Count == 0)
         {
@@ -244,123 +353,14 @@ public class General : MonoBehaviour
             myGeneralState = GeneralState.Stop;
         }
     }
-    bool CheckIfTileIsInNeedOfConquering(Vector2 tile)
+    bool CheckIfTileIsInNeedOfConquering(Vector2 tile) //Setting target and checking if the tile is in the Clickable state and has troops
     {
-        Debug.Log($"Checking if tile is in need of conquering {tile}");
-        if (tile.x == -1) return false;
+        if (tile.x == -1) return false; //if the tile.x is -1 then the location doesn't exist
+
         targetLocation = tile;
         HexTileInfo info = myLocationManager.tileInfoList[Mathf.RoundToInt(tile.x)][Mathf.RoundToInt(tile.y)];
         needCombat = info.enemies.currentAmount > 0;
         return info.myState == HexTileInfo.TileStates.Clickable;
     }
-    void ExecuteGeneralState()
-    {
-        switch (myGeneralState)
-        {
-            case GeneralState.Searching:
-                if (!isSearching)
-                {
-                    Debug.Log($"{Name} is searching.");
-                    isSearching = true;
-                    directionIsPlayable = false;
-                    ResetDirectionsAvailable();
-                    while (!directionIsPlayable)
-                    {
-                        GetNewDirection();
-                        CheckDirectionIsPlayable();
-                    }
-                }
-                break;
-            case GeneralState.Moving:
-                if (!isMoving)
-                {
-                    Debug.Log($"{Name} is Moving to {targetLocation} from {myLocation}.");
-                    isMoving = true;
-                    HexTileInfo current = myLocationManager.tileInfoList[Mathf.RoundToInt(myLocation.x)][Mathf.RoundToInt(myLocation.y)];
-                    int soldierAmount = current.GetSoldierCount();
-                    current.AdjustSoldiers(soldierAmount * -1);
-                    HexTileInfo target = myLocationManager.tileInfoList[Mathf.RoundToInt(targetLocation.x)][Mathf.RoundToInt(targetLocation.y)];
-                    target.ReceiveGeneralMove(soldierAmount, generalSwitchStateTime);
-                    StartCoroutine(SwitchGeneralState());
-                }
-                break;
-            case GeneralState.Combat:
-                if (!isFighting)
-                {
-                    Debug.Log($"{Name} is Fighting at {targetLocation} from {myLocation}.");
-                    isFighting = true;
-                    HexTileInfo current = myLocationManager.tileInfoList[Mathf.RoundToInt(myLocation.x)][Mathf.RoundToInt(myLocation.y)];
-                    int soldierAmount = current.GetSoldierCount();
-                    current.AdjustSoldiers(soldierAmount * -1);
-                    HexTileInfo target = myLocationManager.tileInfoList[Mathf.RoundToInt(targetLocation.x)][Mathf.RoundToInt(targetLocation.y)];
-                    target.potentialAmountToReceive = soldierAmount;
-                    target.SetResourceTradingBuddy(myLocation);
-                    Debug.Log($"Enemies:{target.enemies.currentAmount} - Soldiers{soldierAmount} = {target.enemies.currentAmount - soldierAmount}");
-                    if (target.enemies.currentAmount - soldierAmount <= 0)
-                    {
-                        myLocation = targetLocation;
-                        locationText.text = $"{myLocation}";
-                        StartCoroutine(SwitchGeneralState());
-                    }
-                    else
-                    {
-                        Debug.Log($"{Name} either tied or lost.");
-                        myGeneralState = GeneralState.Stop;
-                        statusText.text = $"{myGeneralState}";
-                        if (Main.cantLose)
-                        {
-                            StartCoroutine(SwitchGeneralState());
-                        }
-                    }
-                    target.StartCoroutine(target.BattleSequence());
-                }
-                break;
-            case GeneralState.Stop:
-                if (!isStopped)
-                {
-                    Debug.Log($"{Name} has Stopped.");
-                    isStopped = true;
-                    Stop();
-                }
-                break;
-        }
-    }
-    IEnumerator SwitchGeneralState()
-    {
-        Debug.Log($"Switching state from {myGeneralState}");
-        Debug.Log($"Wait time{generalSwitchStateTime}");
-        if (myGeneralState == GeneralState.Stop) yield break;
-        statusText.text = "Deciding";
-
-        yield return new WaitForSeconds(generalSwitchStateTime);
-        Debug.Log($"Wait Over.");
-
-        if (myGeneralState == GeneralState.Searching)
-        {
-            if (needCombat)
-            {
-                isFighting = false;
-                myGeneralState = GeneralState.Combat;
-            }
-            else
-            {
-                isMoving = false;
-                myGeneralState = GeneralState.Moving;
-            }
-        }
-        else if (myGeneralState == GeneralState.Moving)
-        {
-            myLocation = targetLocation;
-            locationText.text = $"{myLocation}";
-            isSearching = false;
-            myGeneralState = GeneralState.Searching;
-        }
-        else if (myGeneralState == GeneralState.Combat)
-        {
-            isSearching = false;
-            myGeneralState = GeneralState.Searching;
-        }
-        Debug.Log($"to {myGeneralState}");
-        statusText.text = $"{myGeneralState}";
-    }
+    #endregion
 }
