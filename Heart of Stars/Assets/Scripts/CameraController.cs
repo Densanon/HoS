@@ -59,7 +59,10 @@ public class CameraController : MonoBehaviour
         HexTileInfo.OnLanded += EndSpaceshipSequence;
         HexTileInfo.OnLeaving += EndSpaceshipSequence;
         Depthinteraction.SpaceInteractionHover += ZoomIntoSpaceobject;
+        LocationManager.OnCameraLookAtStarter += SetPlanetViewStart;
     }
+
+    
 
     private void OnDisable()
     {
@@ -70,6 +73,7 @@ public class CameraController : MonoBehaviour
         HexTileInfo.OnLanded -= EndSpaceshipSequence;
         HexTileInfo.OnLeaving -= EndSpaceshipSequence;
         Depthinteraction.SpaceInteractionHover -= ZoomIntoSpaceobject;
+        LocationManager.OnCameraLookAtStarter -= SetPlanetViewStart;
     }
 
     #endregion
@@ -231,6 +235,13 @@ public class CameraController : MonoBehaviour
         //probably some animated fly around deal
         inSpaceshipSequence = true;
         planetaryCameraIsFrozen = true;
+    }
+    private void SetPlanetViewStart(Transform tran)
+    {
+        Vector3 pos = tran.position;
+        pos.y += 10;
+        pos.z -= 10;
+        myTransform.position = pos;
     }
     private void EndSpaceshipSequence()
     {

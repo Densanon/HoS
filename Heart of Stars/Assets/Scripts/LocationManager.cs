@@ -5,8 +5,9 @@ using UnityEngine;
 
 public class LocationManager : MonoBehaviour
 {
-    public static Action<LocationManager> OnGreetGeneralManager = delegate { };
+    public static Action<LocationManager> OnGreetManagers = delegate { };
     public static Action<LocationManager> OnTurnActiveManagerForGenerals = delegate { };
+    public static Action<Transform> OnCameraLookAtStarter = delegate { };
 
     [SerializeField]
     GameObject GeneralPrefab;
@@ -15,6 +16,7 @@ public class LocationManager : MonoBehaviour
     Main main;
     UIResourceManager activeManager;
     Transform canvas;
+    Spacecraft mySpaceship;
 
     public string myAddress;
     public HexTileInfo[][] tileInfoList;
@@ -33,8 +35,6 @@ public class LocationManager : MonoBehaviour
     private void Awake()
     {
         Main.OnWorldMap += TurnOffVisibility;
-        Main.OnInitializeVeryFirstInteraction += VeryFirstEncounterSetup;
-        Main.OnInitializeRegularFirstPlanetaryInteraction += FirstRegularPlanetaryEncounter;
         canvas = GameObject.Find("Canvas").transform;
     }
     private void OnEnable()
@@ -48,8 +48,6 @@ public class LocationManager : MonoBehaviour
     private void OnDestroy()
     {
         Main.OnWorldMap -= TurnOffVisibility;
-        Main.OnInitializeVeryFirstInteraction -= VeryFirstEncounterSetup;
-        Main.OnInitializeRegularFirstPlanetaryInteraction -= FirstRegularPlanetaryEncounter;
     } 
     #endregion
 
@@ -64,43 +62,9 @@ public class LocationManager : MonoBehaviour
         enemyDensityMin = densityMin;
         enemyDensityMax = densityMax;
     }
-    private void VeryFirstEncounterSetup()
+    public void FirstPlanetaryEncounter(Spacecraft ship)
     {
-        foreach(ResourceData data in starter.myResources)
-        {
-            if(data.itemName == "enemy")
-            {
-                data.SetCurrentAmount(0);
-                continue;
-            }
-            if(data.itemName == "soldier")
-            {
-                data.SetCurrentAmount(100);
-                continue;
-            }
-            if (data.itemName == "food")
-            {
-                data.SetCurrentAmount(100);
-                continue;
-            }
-            if(data.itemName == "barracks")
-            {
-                data.SetCurrentAmount(1);
-                continue;
-            }
-        }
-    }
-    private void FirstRegularPlanetaryEncounter(int amount)//will actually need resource names and amounts
-    {
-        if (starter == null) return;
-        foreach (ResourceData data in starter.myResources)
-        {
-            if (data.itemName == "soldier")
-            {
-                data.SetCurrentAmount(amount);
-                continue;
-            }
-        }
+        mySpaceship = ship;       
     }
     public void BuildPlanetData(string[] hextiles, string address, bool viewing)
     {
@@ -121,7 +85,7 @@ public class LocationManager : MonoBehaviour
         {
             SaveLocationInfo();
             main.SaveLocationAddressBook();
-            OnGreetGeneralManager?.Invoke(this);
+            OnGreetManagers?.Invoke(this);
         }
     }
     void BuildTileBase()
@@ -174,7 +138,7 @@ public class LocationManager : MonoBehaviour
             if (ar[3] == "True") starter = tileInfoList[x][y];
             y++;
         }
-        OnGreetGeneralManager?.Invoke(this);
+        OnGreetManagers?.Invoke(this);
     }
     public void OrganizePieces()
     {
@@ -188,7 +152,7 @@ public class LocationManager : MonoBehaviour
                 tile.SetNeighbors(FindNeighbors(tile.myPositionInTheArray));
                 if (!start && tile.myTileType == tile.GetResourceSpritesLengthForStartPoint() && !isViewing)
                 {
-                    tile.SetAsStartingPoint();
+                    tile.SetAsStartingPoint(mySpaceship);
                     start = true;
                     starter = tile;
                 }
@@ -225,6 +189,10 @@ public class LocationManager : MonoBehaviour
 
         tileInfoList[d][r].TurnLand();
     }  
+    public void GiveATileAShip(Spacecraft ship, Vector2 tile)
+    {
+        tileInfoList[Mathf.RoundToInt(tile.x)][Mathf.RoundToInt(tile.y)].CreateShip(ship);
+    }
     #endregion
 
     #region Location Checks For Neighbors
@@ -327,8 +295,7 @@ public class LocationManager : MonoBehaviour
     {
         OnTurnActiveManagerForGenerals?.Invoke(this);
         gameObject.SetActive(true);
-        if(starter != null)
-            starter.StartLandingSequenceAnimation();
+        OnCameraLookAtStarter?.Invoke(starter.transform);
     }
     private void CheckNewTileOptions(HexTileInfo tile)
     {
@@ -355,10 +322,6 @@ public class LocationManager : MonoBehaviour
     #endregion
 
     #region Life Cycle
-    public void StartLeaveSequence()
-    {
-        starter.StartLeavingSequenceAnimation();
-    }
     void SaveLocationInfo()
     {
         SaveSystem.WipeString();

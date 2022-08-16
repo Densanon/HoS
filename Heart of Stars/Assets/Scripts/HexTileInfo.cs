@@ -27,6 +27,7 @@ public class HexTileInfo : MonoBehaviour
     Main main;
     Camera camera;
     public UIResourceManager myUIManager;
+    public Spacecraft myShip;
     
     // Objects
     [SerializeField]
@@ -69,6 +70,8 @@ public class HexTileInfo : MonoBehaviour
     float spaceshipSequenceDesiredTime;
     bool isInitializingLandingSequence = false;
     bool isInitializingLeavingSequence = false;
+
+    public bool hasShip = false;
 
     // Resource References
     public ResourceData[] myResources;
@@ -171,7 +174,7 @@ public class HexTileInfo : MonoBehaviour
         }
         if (isInitializingLeavingSequence)
         {
-            TakeOffInShip();
+            LaunchShip();
         }
         if (isDrawingRayForPicking)
         {
@@ -211,6 +214,9 @@ public class HexTileInfo : MonoBehaviour
         DeactivateDetailLayers();
         camera = Camera.main;
         tileTruePosition = transform.position;
+        shipTruePosition = myRenderers[4].transform.position;
+        shipEndPosition = shipTruePosition;
+        shipStartPosition = new Vector3(shipEndPosition.x, shipEndPosition.y + 6f, shipEndPosition.z);
     }
     public void SetNeighbors(Vector2[] locations)
     {
@@ -282,18 +288,32 @@ public class HexTileInfo : MonoBehaviour
     }
     public void SetAsStartingPoint()
     {
-        shipTruePosition = myRenderers[4].transform.position;
         isStartingPoint = true;
         myRenderers[0].material.mainTexture = tileTextures[3];
         myState = TileStates.Conquered;
-        if (!CheckIfResourceIsInMyArray("barracks"))
-        {
-            AddResourceToMyResources("barracks");
-            AddResourceToMyResources("food");
-        }
+    }
+    public void SetAsStartingPoint(Spacecraft ship)
+    {
+        myShip = ship;
+        OffLoadResourcesFromShip(ship.myResources);
+        ship.OffloadResources();
+        hasShip = true;
+
+        isStartingPoint = true;
+        myRenderers[0].material.mainTexture = tileTextures[3];
+        myState = TileStates.Conquered;
+        if (!CheckIfResourceIsInMyArray("barracks")) AddResourceToMyResources("barracks");
         OnTakeover -= CheckForPlayability;
         OnTakeover?.Invoke(myPositionInTheArray);
-        StartLandingSequenceAnimation();
+        StartLandingAnimation();
+    }
+    private void OffLoadResourcesFromShip(ResourceData[] resources)
+    {
+        foreach(ResourceData resource in resources)
+        {
+            Debug.Log($"{resource.itemName} on ship {resource.currentAmount}");
+            AddResourceToMyResources(resource);
+        }
     }
     private bool CheckIfResourceIsInMyArray(string itemName)
     {
@@ -308,6 +328,7 @@ public class HexTileInfo : MonoBehaviour
     }
     void AddResourceToMyResources(string itemName)
     {
+        Debug.Log("Setting up resource through string.");
         List<ResourceData> temp = new List<ResourceData>();
         foreach(ResourceData data in myResources)
         {
@@ -324,6 +345,24 @@ public class HexTileInfo : MonoBehaviour
                 break;
             }
         }
+
+        myResources = temp.ToArray();
+    }
+    void AddResourceToMyResources(ResourceData resource)
+    {
+        List<ResourceData> temp = new List<ResourceData>();
+        bool isAlreadyHere = false;
+        foreach (ResourceData data in myResources)
+        {
+            temp.Add(data);
+            if (resource.itemName == data.itemName)
+            {
+                Debug.Log($"Gained {resource.currentAmount} of {resource.itemName}");
+                data.AdjustCurrentAmount(resource.currentAmount);
+                isAlreadyHere = true;
+            }
+        }
+        if (!isAlreadyHere) temp.Add(new ResourceData(resource));
 
         myResources = temp.ToArray();
     }
@@ -348,6 +387,7 @@ public class HexTileInfo : MonoBehaviour
             {
                 soldiers = new ResourceData(data);
                 tempToPermanent.Add(soldiers);
+                //Debug.Log($"{myPositionInTheArray} has {soldiers.currentAmount} as of now.");
                 continue;
             }
             if(data.itemName == "enemy" && myTileType != 0) //UniversalResource
@@ -484,15 +524,11 @@ public class HexTileInfo : MonoBehaviour
     #endregion
 
     #region Animations
-    public void StartLandingSequenceAnimation()
+    public void StartLandingAnimation()
     {
         spaceship = myRenderers[4].transform;
         OnStartingTile?.Invoke(spaceship);
-        SpriteRenderer rend = myRenderers[4].GetComponent<SpriteRenderer>();
-        rend.enabled = true;
-        rend.sprite = armySprites[armySprites.Length - 1];
-        shipEndPosition = shipTruePosition;
-        shipStartPosition = new Vector3(shipEndPosition.x, shipEndPosition.y + 6f, shipEndPosition.z);
+        SpawnAShip();
         spaceshipSequenceTimer = 0;
         spaceshipSequenceDesiredTime = 6f;
         isInitializingLandingSequence = true;
@@ -509,13 +545,13 @@ public class HexTileInfo : MonoBehaviour
             OnLanded?.Invoke();
         }
     }
-    public void StartLeavingSequenceAnimation()
+    public void StartLaunchAnimation()
     {
         spaceshipSequenceTimer = 0;
         spaceshipSequenceDesiredTime = 6f;
         isInitializingLeavingSequence = true;
     }
-    void TakeOffInShip()
+    void LaunchShip()
     {
         spaceship.position = Vector3.Lerp(shipEndPosition, shipStartPosition, spaceshipSequenceTimer / spaceshipSequenceDesiredTime);
 
@@ -523,8 +559,8 @@ public class HexTileInfo : MonoBehaviour
         if (spaceshipSequenceTimer > spaceshipSequenceDesiredTime)
         {
             isInitializingLeavingSequence = false;
-            OnLeaving?.Invoke();
             spaceship.position = shipEndPosition;
+            CheckSoldierVisual();
         }
     }
     void DrawPickingLine()
@@ -534,6 +570,21 @@ public class HexTileInfo : MonoBehaviour
         myPos.z -= 1f;
         lineRenderer.SetPosition(0, myPos);
         lineRenderer.SetPosition(1, camera.ScreenToWorldPoint(Input.mousePosition));
+    }  
+    #endregion
+
+    #region Ship Management
+    public void CreateShip(Spacecraft ship)
+    {
+        myShip = ship;
+        SpawnAShip();
+    }
+    public void SpawnAShip()
+    {
+        SpriteRenderer rend = myRenderers[4].GetComponent<SpriteRenderer>();
+        rend.enabled = true;
+        rend.sprite = armySprites[armySprites.Length - 1];
+        hasShip = true;
     }
     #endregion
 
@@ -643,13 +694,19 @@ public class HexTileInfo : MonoBehaviour
     }
     void CheckSoldierVisual()
     {
-        if(soldiers.currentAmount > 0 && !myRenderers[4].enabled)
+        if (hasShip)
+        {
+            SpriteRenderer rend = myRenderers[4].GetComponent<SpriteRenderer>();
+            rend.enabled = true;
+            rend.sprite = armySprites[armySprites.Length - 1];
+        }
+        else if(soldiers.currentAmount > 0 && !myRenderers[4].enabled)
         {
             SpriteRenderer rend = myRenderers[4].GetComponent<SpriteRenderer>();
             rend.enabled = true;
             rend.sprite = armySprites[0];
 
-        }else if (soldiers.currentAmount == 0 && myRenderers[4].enabled && !isStartingPoint)
+        }else if (soldiers.currentAmount == 0 && myRenderers[4].enabled)
         {
             myRenderers[4].enabled = false;
         }

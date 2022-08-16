@@ -15,6 +15,8 @@ public class UIResourceManager : MonoBehaviour
     [SerializeField]
     GameObject troopActionButton;
     [SerializeField]
+    GameObject shipActionButton;
+    [SerializeField]
     GameObject dependenceButtonPrefab;
     [SerializeField]
     GameObject[] Containers;
@@ -26,6 +28,18 @@ public class UIResourceManager : MonoBehaviour
     [SerializeField]
     Transform resourcePivot;
 
+    [Header("Ship UI")]
+    [SerializeField]    
+    Transform shipContentContainer;
+    [SerializeField]
+    GameObject shipInventoryPrefab;
+    [SerializeField]
+    TMP_Text shipTitleText;
+    [SerializeField]
+    TMP_Text shipStorageAmountsText;
+    GameObject[] inventoryResourcePanels;
+
+    [Header("Troop/Enemy")]
     [SerializeField]
     TMP_Text floatingText;
     [SerializeField]
@@ -40,7 +54,6 @@ public class UIResourceManager : MonoBehaviour
     bool needVisualTimer = false;
     float battleTime = 0f;
     float battleTimer = 0f;
-
 
     #region UnityEngine
     private void OnEnable()
@@ -125,6 +138,7 @@ public class UIResourceManager : MonoBehaviour
     {
         mainFunctionsContainer.gameObject.SetActive(true);
         troopActionButton.SetActive(myTile.GetSoldierCount() > 0);
+        shipActionButton.SetActive(myTile.hasShip);
         foreach(GameObject obj in Containers)
         {
             obj.gameObject.SetActive(false);
@@ -151,6 +165,39 @@ public class UIResourceManager : MonoBehaviour
         myTile.AdjustSoldiers(troopCount * -1);
         DeactivateSelf();
         ResetUI();
+    }
+    public void SetupShipInventory()
+    {
+        if (inventoryResourcePanels != null)
+        {
+            foreach (GameObject obj in inventoryResourcePanels)
+            {
+                Destroy(obj);
+            }
+        }
+
+        Spacecraft ship = myTile.myShip;
+        shipTitleText.text = $"{ship.Name} Inventory";
+        shipStorageAmountsText.text = $"{ship.storageCount}/{ship.storageMax}";
+
+        ResourceData[] ar = ship.myResources;
+        ResourceData[] tileAr = myTile.myResources;
+        inventoryResourcePanels = new GameObject[ar.Length];
+        for(int i = 0; i < ar.Length; i++)
+        {
+            GameObject go = Instantiate(shipInventoryPrefab, shipContentContainer);
+            inventoryResourcePanels[i] = go;
+            ResourceData dat = new ResourceData(ar[1]);
+            foreach(ResourceData d in tileAr)
+            {
+                if(d.itemName == ar[i].itemName)
+                {
+                    dat = new ResourceData(d);
+                }
+            }
+            go.GetComponent<ShipInventoryPanel>().Setup(ar[i], dat);
+        }
+
     }
     #endregion
 

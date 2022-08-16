@@ -54,11 +54,10 @@ public class Depthinteraction : MonoBehaviour
 
     private void OnMouseDown()
     {
-        Debug.Log("Mouse was pressed on a space object.");
         CheckIfCanZoomToPlanetaryLevel?.Invoke(transform.parent.gameObject);
-        if (isInteractable && (Main.isVisitedPlanet || Main.canSeeIntoPlanets))
+        Debug.Log(isInteractable);
+        if (isInteractable && (Main.isVisitedPlanet || Main.canSeeIntoPlanets) || Main.isGettingPlanetLocation || !Main.isInitialized)
         {
-            Debug.Log("I am interactable and either visited or can see.");
             SpaceInteractionHover?.Invoke(transform.parent.gameObject);
             OnDeactivate?.Invoke();
         }

@@ -29,7 +29,7 @@ public class GeneralsContainerManager : MonoBehaviour
     #region UnityEngine
     private void Awake()
     {
-        LocationManager.OnGreetGeneralManager += ReceiveNewLocationManager;
+        LocationManager.OnGreetManagers += ReceiveNewLocationManager;
         LocationManager.OnTurnActiveManagerForGenerals += SetActiveManager;
         Main.OnWorldMap += StopAllLocationGenerals;
         HexTileInfo.OnReturnPositionToGeneralManager += SetGeneralLocation;
@@ -50,7 +50,6 @@ public class GeneralsContainerManager : MonoBehaviour
     #region Location Management
     void ReceiveNewLocationManager(LocationManager manager)
     {
-        Debug.Log("Introducing managers.");
         SetActiveManager(manager);
         if (GeneralsDictionary.ContainsKey(manager.myAddress)) return;
         locations.Add(manager);

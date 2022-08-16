@@ -11,7 +11,9 @@ public class Main : MonoBehaviour
     public static Action<GameObject> OnGoingToHigherLevel = delegate { };
     public static Action<string> SendCameraState = delegate { };
     public static Action OnInitializeVeryFirstInteraction = delegate { };
-    public static Action<int> OnInitializeRegularFirstPlanetaryInteraction = delegate { };
+    public static Action<Spacecraft> OnInitializeRegularFirstPlanetaryInteraction = delegate { };
+    public static Action<string> OnSendPlanetLocationAsTarget = delegate { };
+    public static Action OnPausePlanetFunction = delegate { };
 
     public enum UniverseDepth {Universe, SuperCluster, Galaxy, Nebula, GlobularCluster, StarCluster, Constellation, SolarSystem, PlanetMoon, Planet, Moon}
     public static UniverseDepth currentDepth = UniverseDepth.Universe;
@@ -38,9 +40,11 @@ public class Main : MonoBehaviour
     List<LocationManager> planetContainer;
     [SerializeField]
     LocationManager activeBrain;
-    int amountOfResourcesToStartWith = 0;
     [SerializeField]
     GeneralsContainerManager generalManager;
+    [SerializeField]
+    ShipContainerManager shipsManager;
+    Spacecraft activeSpacecraft;
 
     [SerializeField]
     HexTileInfo[] tileInfoList;
@@ -54,6 +58,7 @@ public class Main : MonoBehaviour
     List<string> LocationAddresses;
 
     public string universeAdress;
+    string activePlanetAddress;
 
     string[] ResourceNameReferenceIndex;
     int[] QuedResourceAmount;
@@ -69,11 +74,12 @@ public class Main : MonoBehaviour
     public static bool canSeeIntoPlanets = false;
     public static bool isVisitedPlanet = false;
     public static bool isViewingPlanetOnly = false;
+    public static bool isGettingPlanetLocation = false;
 
     public string searchInputField = "";
     static bool needResetAllBuildables = false;
 
-    bool isInitialized = false;
+    public static bool isInitialized = false;
 
     WeightedRandomBag<ResourceData> dropTypes = new WeightedRandomBag<ResourceData>();
 
@@ -291,6 +297,12 @@ public class Main : MonoBehaviour
         OnWorldMap?.Invoke(true);
         GenerateUniverseLocation(UniverseDepth.Planet, 42);
     }
+    public void CreateABasicShip()
+    {
+        string[] ar = debugField.Split(",");
+        Vector2 v = new Vector2(float.Parse(ar[0]), float.Parse(ar[1]));
+        shipsManager.BuildABasicShip(v);
+    }
     #endregion
 
     #region Unity Methods
@@ -333,6 +345,8 @@ public class Main : MonoBehaviour
         CameraController.OnNeedZoomInfo += GoBackAStep;
         CameraController.SaveCameraState += SaveCamState;
         HexTileInfo.OnLeaving += GoBackAStep;
+        Spacecraft.OnRequestingShipDestination += StartShipDestinationMode;
+        Spacecraft.OnGoToPlanetForShip += GoToPlanetWithNewSpacecraft;
     }
     private void Start()
     {
@@ -1003,19 +1017,15 @@ public class Main : MonoBehaviour
         if (!isInitialized) isViewingPlanetOnly = false;
         if (!LocationAddresses.Contains(universeAdress) && !isViewingPlanetOnly) {
             LocationAddresses.Add(universeAdress);
-            isBrandNew = true;
-            Debug.Log("Never seen this planet before.");
-        }
+            isBrandNew = true;        }
         
         if (planetContainer == null) planetContainer = new List<LocationManager>();
         
         bool found = false;
         foreach (LocationManager brain in planetContainer)
         {
-            Debug.Log($"Looking through address book at {universeAdress} for {brain.myAddress}.");
             if (brain.myAddress == universeAdress)
             {
-                Debug.Log("Looking at an already active brain.");
                 activeBrain = brain;
                 found = true;
                 activeBrain.TurnOnVisibility();
@@ -1024,26 +1034,24 @@ public class Main : MonoBehaviour
         }
         if (!found)
         {
-            Debug.Log("Building a new Level.");
             GameObject obj = Instantiate(planetPrefab, universeTransform);
             LocationManager Ego = obj.GetComponent<LocationManager>();
             planetContainer.Add(Ego);
             activeBrain = Ego;
             activeBrain.AssignMain(this);
             activeBrain.SetEnemyNumbers(spawnEnemyRatio, spawnEnemyDensityMin, spawnEnemyDensityMax);
-            activeBrain.BuildPlanetData(TryLoadLevel(), universeAdress,isViewingPlanetOnly);
             if (!isInitialized)
             {
                 Debug.Log("Setting up very first encounter.");
                 isInitialized = true;
                 PlayerPrefs.SetInt("Initialized", 1);
-                OnInitializeVeryFirstInteraction?.Invoke();
+                activeBrain.FirstPlanetaryEncounter(shipsManager.GetStarterShip());
             }else if (isBrandNew && isInitialized)
             {
                 Debug.Log("Setting up first encounter.");
-                amountOfResourcesToStartWith = 10;
-                OnInitializeRegularFirstPlanetaryInteraction?.Invoke(amountOfResourcesToStartWith);
+                activeBrain.FirstPlanetaryEncounter(activeSpacecraft);
             }
+            activeBrain.BuildPlanetData(TryLoadLevel(), universeAdress,isViewingPlanetOnly);
         }
 
         #region Diamond Map
@@ -1090,11 +1098,6 @@ public class Main : MonoBehaviour
         }*/
         #endregion
     }
-    public void StartLeaveSequence()
-    {
-        activeBrain.StartLeaveSequence();
-        Camera.main.GetComponent<CameraController>().inSpaceshipSequence = true;
-    }
     private void SetupDepthLocationsArray(List<GameObject> objs)
     {
         depthLocations = new GameObject[objs.Count];
@@ -1123,13 +1126,42 @@ public class Main : MonoBehaviour
     }
     void CheckForSpaceObject(GameObject obj)
     {
+        if (isGettingPlanetLocation && currentDepth == UniverseDepth.PlanetMoon)
+        {
+            OnSendPlanetLocationAsTarget?.Invoke(universeAdress + $",{GetSpaceObjectIndex(obj)}");
+            ReturnToPlanet();
+            isGettingPlanetLocation = false;
+            return;
+        }
         areaText.text = "";
         StartCoroutine(ZoomWait(GetSpaceObjectIndex(obj))) ;
     }
+    IEnumerator ZoomWait(int index)
+    {
+        if (currentDepth == UniverseDepth.PlanetMoon)
+        {
+            isPlanet = (index == 0);
+            if (!canSeeIntoPlanets && !isVisitedPlanet && isInitialized)
+            {
+                Debug.Log("Can't see and haven't visited.");
+                yield break;
+            }
+        }
+
+        yield return new WaitUntil(() => canZoomContinue);
+
+        canZoomContinue = false;
+        DeeperIntoUniverseLocationDepth();
+        GenerateUniverseLocation(currentDepth, index);
+    }
     private void CheckIfWeCanZoomToPlanet(GameObject obj)
     {
-        Debug.Log("Checking for zoom.");
         isVisitedPlanet = CheckIfVisitedPlanet(GetSpaceObjectIndex(obj));
+    }
+    private bool CheckIfVisitedPlanet(int index)
+    {
+        Debug.Log("Checking if we have been here before.");
+        return LocationAddresses.Contains(universeAdress + $",{index}");
     }
     private int GetSpaceObjectIndex(GameObject obj)
     {
@@ -1149,36 +1181,10 @@ public class Main : MonoBehaviour
         planetContainer.Remove(brain);
         Destroy(brain.gameObject);
     }
-    IEnumerator ZoomWait(int index)
-    {
-        if (currentDepth == UniverseDepth.PlanetMoon)
-        {
-            isPlanet = (index == 0);
-            if (!canSeeIntoPlanets && !isVisitedPlanet)
-            {
-                Debug.Log("Can't see and haven't visited.");
-                yield break;
-            }
-        }
-
-        yield return new WaitUntil(() => canZoomContinue);
-
-        canZoomContinue = false;
-        DeeperIntoUniverseLocationDepth();
-        GenerateUniverseLocation(currentDepth, index);
-    }
-
-    private bool CheckIfVisitedPlanet(int index)
-    {
-        Debug.Log("Checking if we have been here before.");
-        return LocationAddresses.Contains(universeAdress + $",{index}");
-    }
     private bool CheckIfVisitedPlanet()
     {
-        Debug.Log("Checking if we have been here before.");
         return LocationAddresses.Contains(universeAdress);
     }
-
     private void SetZoomContinueTrue()
     {
         canZoomContinue = true;
@@ -1303,6 +1309,29 @@ public class Main : MonoBehaviour
     public LocationManager GetActiveLocation()
     {
         return activeBrain;
+    }
+    #endregion
+
+    #region Ship Management
+    private void StartShipDestinationMode(int access)
+    {
+        highestLevelOfView = access;
+        isGettingPlanetLocation = true;
+        activePlanetAddress = universeAdress;
+        GoBackAStep();
+    }
+    private void ReturnToPlanet()
+    {
+        debugField = activePlanetAddress;
+        GenerateMapLocation();
+        shipsManager.TurnOnPanel();
+    }
+    private void GoToPlanetWithNewSpacecraft(Spacecraft ship)
+    {
+        activeSpacecraft = ship;
+        OnPausePlanetFunction?.Invoke();
+        debugField = ship.targetLocation;
+        GenerateMapLocation();
     }
     #endregion
 
