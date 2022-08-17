@@ -37,8 +37,8 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: 67, y: 0}
-  m_SizeDelta: {x: 393.8927, y: 20}
+  m_AnchoredPosition: {x: -9.3903, y: 0}
+  m_SizeDelta: {x: 333.8022, y: 20}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &6709728815311377383
 MonoBehaviour:
@@ -94,7 +94,7 @@ MonoBehaviour:
       - m_Target: {fileID: 1414461076071178340}
         m_TargetAssemblyTypeName: ShipInventoryPanel, Assembly-CSharp
         m_MethodName: ShowUIFromSlider
-        m_Mode: 3
+        m_Mode: 1
         m_Arguments:
           m_ObjectArgument: {fileID: 0}
           m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
@@ -129,7 +129,7 @@ RectTransform:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1049503963928827319}
-  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
@@ -197,9 +197,9 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   resourceNameText: {fileID: 3572266553747677604}
-  shipResourceAmountText: {fileID: 0}
-  tileResourceAmountText: {fileID: 0}
-  resourceSlider: {fileID: 0}
+  shipResourceAmountText: {fileID: 488229214727394948}
+  tileResourceAmountText: {fileID: 1365169887346421819}
+  resourceSlider: {fileID: 6709728815311377383}
 --- !u!1 &1857990034562179424
 GameObject:
   m_ObjectHideFlags: 0
@@ -215,7 +215,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!224 &7518386223889787346
 RectTransform:
   m_ObjectHideFlags: 0
@@ -272,7 +272,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: -273, y: 0}
+  m_AnchoredPosition: {x: 274, y: 0}
   m_SizeDelta: {x: 173.3449, y: 100}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!222 &1070075170744919238
@@ -337,7 +337,7 @@ MonoBehaviour:
   m_fontSizeMin: 18
   m_fontSizeMax: 72
   m_fontStyle: 0
-  m_HorizontalAlignment: 1
+  m_HorizontalAlignment: 2
   m_VerticalAlignment: 512
   m_textAlignment: 65535
   m_characterSpacing: 0
@@ -407,7 +407,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: 407, y: 0}
+  m_AnchoredPosition: {x: -286, y: 0}
   m_SizeDelta: {x: 173.3449, y: 100}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!222 &8875693341759012702
@@ -472,7 +472,7 @@ MonoBehaviour:
   m_fontSizeMin: 18
   m_fontSizeMax: 72
   m_fontStyle: 0
-  m_HorizontalAlignment: 1
+  m_HorizontalAlignment: 2
   m_VerticalAlignment: 512
   m_textAlignment: 65535
   m_characterSpacing: 0

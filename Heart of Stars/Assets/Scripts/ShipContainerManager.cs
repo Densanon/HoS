@@ -20,12 +20,25 @@ public class ShipContainerManager : MonoBehaviour
     Spacecraft activeShip;
     LocationManager activeLocationManager;
 
+    #region Debuging
+    public void SetAllShipSpeeds(float speed)
+    {
+        foreach(Spacecraft ship in ships)
+        {
+            ship.SetShipSpeed(speed);
+        }
+    }
+    #endregion
+
     #region UnityEngine
     private void Awake()
     {
         LocationManager.OnGreetManagers += SetActiveLocationManager;
+        LocationManager.OnTurnActiveManager += SetActiveLocationManager;
 
         ships = new List<Spacecraft>();
+
+        TryLoadShipData();
     }
     private void Start()
     {
@@ -36,6 +49,17 @@ public class ShipContainerManager : MonoBehaviour
     private void SetActiveLocationManager(LocationManager manager)
     {
         activeLocationManager = manager;
+        foreach (Spacecraft ship in ships)
+        {
+            if (activeLocationManager.myAddress == ship.currentPlanetLocation)
+            {
+                activeLocationManager.GiveATileAShip(ship, ship.myTileLocation);
+            }
+        }
+    }
+    public void AssignShipToTile(Spacecraft ship)
+    {
+        activeLocationManager.GiveATileAShip(ship, ship.myTileLocation);
     }
 
     #region Ship Creation
@@ -43,6 +67,16 @@ public class ShipContainerManager : MonoBehaviour
     {
         CreateAShip(Spacecraft.SpaceshipType.Basic, "");
         activeLocationManager.GiveATileAShip(activeShip, location);
+    }
+    public void CreateAShip(string memory)
+    {
+        GameObject go = Instantiate(shipPrefab, contentContainer.transform);
+        Spacecraft sp = go.GetComponent<Spacecraft>();
+        sp.BuildShip(main, this, memory);
+        ships.Add(sp);
+        activeShip = sp;
+        sp.AssignMain(main);
+        shipsPanelButton.SetActive(true);
     }
     public void CreateAShip(Spacecraft.SpaceshipType spaceshipType, string name)
     {
@@ -117,6 +151,49 @@ public class ShipContainerManager : MonoBehaviour
     public void SetAtiveShip(Spacecraft ship)
     {
         activeShip = ship;
+    }
+    public void RemoveAllShips()
+    {
+        foreach(Spacecraft ship in ships)
+        {
+            Destroy(ship.gameObject);
+        }
+        ships.Clear();
+    }
+    #endregion
+
+    #region Life Cycle
+    public void TryLoadShipData()
+    {
+        string s = SaveSystem.LoadFile("/ships_Raah");
+        if(s != null)
+        {
+            string[] ar = s.Split("|");
+            foreach(string str in ar)
+            {
+                CreateAShip(str);
+            }
+        }
+    }
+    public void SaveShipStatus()
+    {
+        SaveSystem.WipeString();
+        string s = "";
+        foreach(Spacecraft ship in ships)
+        {
+            if(ReferenceEquals(ship, ships[ships.Count-1]))
+            {
+                s += ship.DigitizeForSerialization();
+                s = s.Remove(s.Length - 1);
+                continue;
+            }
+            s += ship.DigitizeForSerialization();
+        }
+        SaveSystem.SaveShips(s);
+    }
+    private void OnApplicationQuit()
+    {
+        SaveShipStatus();
     }
     #endregion
 }

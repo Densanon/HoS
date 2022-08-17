@@ -75,6 +75,7 @@ public class Main : MonoBehaviour
     public static bool isVisitedPlanet = false;
     public static bool isViewingPlanetOnly = false;
     public static bool isGettingPlanetLocation = false;
+    bool isLanding = false;
 
     public string searchInputField = "";
     static bool needResetAllBuildables = false;
@@ -107,7 +108,7 @@ public class Main : MonoBehaviour
 
     ResourceData dat;
     public string debugField = "";
-    int amount;
+    int buildLevelAmount = 0;
 
     public static bool usingGeneral;
     public static bool cantLose;
@@ -214,16 +215,6 @@ public class Main : MonoBehaviour
         SaveSystem.SaveFile("/resource_shalom");
         LoadedData.Clear();
     }
-    public void ResetTheInitialEncounter()
-    {
-        isInitialized = false;
-        PlayerPrefs.SetInt("Initialized", 0);
-        SaveSystem.DeleteAllLocationInformation();
-        Destroy(activeBrain.gameObject);
-        activeBrain = null;
-        planetContainer.Clear();
-        LocationAddresses.Clear();
-    }
     public void RevealTileLocation()
     {
         OnRevealTileLocations?.Invoke();
@@ -267,7 +258,23 @@ public class Main : MonoBehaviour
         OnDestroyLevel?.Invoke();
         ResetTheInitialEncounter();
         universeAdress = universeAdress.Remove(universeAdress.Length - 2);
+        foreach(Transform manager in universeTransform)
+        {
+            Destroy(manager.gameObject);
+        }
+        planetContainer.Clear();
         GenerateUniverseLocation(UniverseDepth.Planet, 0);
+    }
+    public void ResetTheInitialEncounter()
+    {
+        isInitialized = false;
+        PlayerPrefs.SetInt("Initialized", 0);
+        shipsManager.RemoveAllShips();
+        SaveSystem.SeriouslyDeleteAllSaveFiles();
+        Destroy(activeBrain.gameObject);
+        activeBrain = null;
+        planetContainer.Clear();
+        LocationAddresses.Clear();
     }
     public void ToggleGeneral()
     {
@@ -302,6 +309,10 @@ public class Main : MonoBehaviour
         string[] ar = debugField.Split(",");
         Vector2 v = new Vector2(float.Parse(ar[0]), float.Parse(ar[1]));
         shipsManager.BuildABasicShip(v);
+    }
+    public void SetAllShipSpeeds()
+    {
+        shipsManager.SetAllShipSpeeds(float.Parse(debugField));
     }
     #endregion
 
@@ -798,42 +809,6 @@ public class Main : MonoBehaviour
                         SheetData[j][6], SheetData[j][7], SheetData[j][11], SheetData[j][12],
                         SheetData[j][13], 0, "");
     }
-    #region Potention Unuse
-    //void LoadAndBuildGameStats(string[] resources)
-    //{
-    //    LoadedData = new List<string[]>();
-    //    itemNames = new List<string>();
-
-    //    if(resources != null)
-    //    {
-    //        BuildLoadedData(resources);
-    //    }
-    //    else
-    //    {
-    //        BuildLoadedData(SaveSystem.LoadFile("/resource_shalom"));
-    //    }
-
-    //    for (int j = 0; j < SheetData.Count; j++)
-    //    {
-    //        //Load data from previous data on drive
-    //        if (itemNames.Contains(SheetData[j][0]))
-    //        {
-    //            BuildResourceLibraryFromMemoryAtGivenIndex(j);
-
-    //            try
-    //            {
-    //                if(SheetData[j][14] == "TRUE")
-    //                    CompareIndividualResourceValues(LocationResources[j]);
-    //            }
-    //            catch (IndexOutOfRangeException e){}
-                
-    //            continue;
-    //        }
-    //    }
-
-    //    CreateOrResetAllBuildableStrings();
-    //}
-    #endregion
     void LoadDataFromSave(string[] resource)
     {
         LoadedData = new List<string[]>();
@@ -862,11 +837,6 @@ public class Main : MonoBehaviour
         //No planetary info was stored so build new stuff
         LoadDataFromSave(null);//This is here if we are offline from when we started
         return null;
-    }
-    private void OnApplicationQuit()
-    {
-        SaveUniverseLocation();
-        SaveLocationAddressBook();
     }
     #endregion
     
@@ -1012,47 +982,50 @@ public class Main : MonoBehaviour
     }
     private void SetUpPlanetaryEncounter()
     {
+        if (buildLevelAmount > 0) return;
         bool isBrandNew = false;
         isViewingPlanetOnly = !CheckIfVisitedPlanet(); //need a better check system
         if (!isInitialized) isViewingPlanetOnly = false;
-        if (!LocationAddresses.Contains(universeAdress) && !isViewingPlanetOnly) {
+        if (!LocationAddresses.Contains(universeAdress) && (isLanding) ? true : !isViewingPlanetOnly) 
+        {
             LocationAddresses.Add(universeAdress);
-            isBrandNew = true;        }
+            isBrandNew = true;        
+        }
         
         if (planetContainer == null) planetContainer = new List<LocationManager>();
-        
-        bool found = false;
         foreach (LocationManager brain in planetContainer)
         {
             if (brain.myAddress == universeAdress)
             {
+                Debug.Log("Accessing a location already made.");
                 activeBrain = brain;
-                found = true;
+                if (isLanding) activeBrain.GiveATileAShip(activeSpacecraft, activeBrain.FindSuitableLandingSpace(), true);
                 activeBrain.TurnOnVisibility();
-                break;
+                return;
             }
         }
-        if (!found)
+
+
+        GameObject obj = Instantiate(planetPrefab, universeTransform);
+        LocationManager Ego = obj.GetComponent<LocationManager>();
+        planetContainer.Add(Ego);
+        activeBrain = Ego;
+        activeBrain.AssignMain(this);
+        activeBrain.SetEnemyNumbers(spawnEnemyRatio, spawnEnemyDensityMin, spawnEnemyDensityMax);
+        if (isBrandNew && isInitialized)
         {
-            GameObject obj = Instantiate(planetPrefab, universeTransform);
-            LocationManager Ego = obj.GetComponent<LocationManager>();
-            planetContainer.Add(Ego);
-            activeBrain = Ego;
-            activeBrain.AssignMain(this);
-            activeBrain.SetEnemyNumbers(spawnEnemyRatio, spawnEnemyDensityMin, spawnEnemyDensityMax);
-            if (!isInitialized)
-            {
-                Debug.Log("Setting up very first encounter.");
-                isInitialized = true;
-                PlayerPrefs.SetInt("Initialized", 1);
-                activeBrain.FirstPlanetaryEncounter(shipsManager.GetStarterShip());
-            }else if (isBrandNew && isInitialized)
-            {
-                Debug.Log("Setting up first encounter.");
-                activeBrain.FirstPlanetaryEncounter(activeSpacecraft);
-            }
-            activeBrain.BuildPlanetData(TryLoadLevel(), universeAdress,isViewingPlanetOnly);
+            Debug.Log("Setting up first encounter.");
+            activeBrain.FirstPlanetaryEncounter(activeSpacecraft);
         }
+        else if (!isInitialized)
+        {
+            Debug.Log("Setting up very first encounter.");
+            isInitialized = true;
+            PlayerPrefs.SetInt("Initialized", 1);
+            activeBrain.FirstPlanetaryEncounter(shipsManager.GetStarterShip());
+        }
+        activeBrain.BuildPlanetData(TryLoadLevel(), universeAdress,(isLanding) ? false:isViewingPlanetOnly);
+        isLanding = false;
 
         #region Diamond Map
         /*float zOffSet = 0f;
@@ -1160,7 +1133,6 @@ public class Main : MonoBehaviour
     }
     private bool CheckIfVisitedPlanet(int index)
     {
-        Debug.Log("Checking if we have been here before.");
         return LocationAddresses.Contains(universeAdress + $",{index}");
     }
     private int GetSpaceObjectIndex(GameObject obj)
@@ -1331,7 +1303,14 @@ public class Main : MonoBehaviour
         activeSpacecraft = ship;
         OnPausePlanetFunction?.Invoke();
         debugField = ship.targetLocation;
+        isLanding = true;
+        buildLevelAmount = 0;
         GenerateMapLocation();
+        activeSpacecraft.SwitchLocationToCurrent();
+    }
+    public void GetShipMenu()
+    {
+        shipsManager.TurnOnPanel();
     }
     #endregion
 
@@ -1355,6 +1334,14 @@ public class Main : MonoBehaviour
     public static void PushMessage(string type, string message)
     {
         OnSendMessage?.Invoke(type, message);
+    }
+    #endregion
+
+    #region Life Cycle
+    private void OnApplicationQuit()
+    {
+        SaveUniverseLocation();
+        SaveLocationAddressBook();
     }
     #endregion
 }

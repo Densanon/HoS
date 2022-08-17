@@ -10,6 +10,7 @@ public class UIResourceManager : MonoBehaviour
 
     Main main;
     HexTileInfo myTile;
+    Spacecraft myShip;
 
     public GameObject interactiblesContainer;
     [SerializeField]
@@ -59,10 +60,13 @@ public class UIResourceManager : MonoBehaviour
     private void OnEnable()
     {
         Main.OnDestroyLevel += TurnAndBurn;
+        ShipInventoryPanel.OnUpdateSliderForShip += UpdateStorageUI;
     }
     private void OnDisable()
     {
         Main.OnDestroyLevel -= TurnAndBurn;
+        ShipInventoryPanel.OnUpdateSliderForShip -= UpdateStorageUI;
+
     }
     private void FixedUpdate()
     {
@@ -138,7 +142,7 @@ public class UIResourceManager : MonoBehaviour
     {
         mainFunctionsContainer.gameObject.SetActive(true);
         troopActionButton.SetActive(myTile.GetSoldierCount() > 0);
-        shipActionButton.SetActive(myTile.hasShip);
+        shipActionButton.SetActive(myTile.hasShip && !myTile.myShip.isTraveling);
         foreach(GameObject obj in Containers)
         {
             obj.gameObject.SetActive(false);
@@ -176,11 +180,11 @@ public class UIResourceManager : MonoBehaviour
             }
         }
 
-        Spacecraft ship = myTile.myShip;
-        shipTitleText.text = $"{ship.Name} Inventory";
-        shipStorageAmountsText.text = $"{ship.storageCount}/{ship.storageMax}";
+        myShip = myTile.myShip;
+        shipTitleText.text = $"{myShip.Name} Inventory";
+        UpdateStorageUI();
 
-        ResourceData[] ar = ship.myResources;
+        ResourceData[] ar = myShip.myResources;
         ResourceData[] tileAr = myTile.myResources;
         inventoryResourcePanels = new GameObject[ar.Length];
         for(int i = 0; i < ar.Length; i++)
@@ -192,13 +196,26 @@ public class UIResourceManager : MonoBehaviour
             {
                 if(d.itemName == ar[i].itemName)
                 {
-                    dat = new ResourceData(d);
+                    dat = d;
                 }
             }
-            go.GetComponent<ShipInventoryPanel>().Setup(ar[i], dat);
+            go.GetComponent<ShipInventoryPanel>().Setup(myShip, ar[i], dat);
         }
 
     }
+    void UpdateStorageUI()
+    {
+        if (myShip == null) myShip = myTile.myShip;
+        shipStorageAmountsText.text = $"{myShip.storageCount} / {myShip.storageMax}";
+    }
+    public void GetShipMenu()
+    {
+        main.GetShipMenu();
+    }//Accessed via button
+    public void GetShipInfo()
+    {
+        myShip.GetShipInfo();
+    }//Accessed via button
     #endregion
 
     #region Life Cycle

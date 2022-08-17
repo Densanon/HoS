@@ -53,6 +53,12 @@ public static class SaveSystem
         }
     }
 
+    public static void SaveShips(string ships)
+    {
+        FileData = ships;
+        SaveFile("/ships_Raah");
+    }
+
     public static void SaveCameraSettings(string camStats)
     {
         FileData = camStats;
@@ -147,7 +153,7 @@ public static class SaveSystem
                 if (File.Exists(path))
                 {
                     File.Delete(path);
-                    Debug.Log("I found the file, and have deleted it.");
+                    Debug.Log("I deleted a location.");
                 }
             }
         }
@@ -156,7 +162,7 @@ public static class SaveSystem
         if (File.Exists(path))
         {
             File.Delete(path);
-            Debug.Log("I found the file, and have deleted it.");
+            Debug.Log("I deleted the address book.");
         }
     }
 
@@ -166,13 +172,19 @@ public static class SaveSystem
         if (File.Exists(path))
         {
             File.Delete(path);
-            Debug.Log("I found the file, and have deleted it.");
+            Debug.Log("I deleted Resources.");
         }
         path = Application.persistentDataPath + "/address_nissi";
         if (File.Exists(path))
         {
             File.Delete(path);
-            Debug.Log("I found the file, and have deleted it.");
+            Debug.Log("I deleted the universe address.");
+        }
+        path = Application.persistentDataPath + "/ships_Raah";
+        if (File.Exists(path))
+        {
+            File.Delete(path);
+            Debug.Log("I deleted Ships.");
         }
 
         DeleteAllLocationInformation();

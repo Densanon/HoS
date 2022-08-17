@@ -6,11 +6,9 @@ using UnityEngine;
 public class LocationManager : MonoBehaviour
 {
     public static Action<LocationManager> OnGreetManagers = delegate { };
-    public static Action<LocationManager> OnTurnActiveManagerForGenerals = delegate { };
+    public static Action<LocationManager> OnTurnActiveManager = delegate { };
     public static Action<Transform> OnCameraLookAtStarter = delegate { };
 
-    [SerializeField]
-    GameObject GeneralPrefab;
     public GameObject tilePrefab;
 
     Main main;
@@ -83,6 +81,7 @@ public class LocationManager : MonoBehaviour
 
         if (!viewing)
         {
+            Debug.Log("Saving Location.");
             SaveLocationInfo();
             main.SaveLocationAddressBook();
             OnGreetManagers?.Invoke(this);
@@ -139,6 +138,7 @@ public class LocationManager : MonoBehaviour
             y++;
         }
         OnGreetManagers?.Invoke(this);
+        OnCameraLookAtStarter?.Invoke(starter.transform);
     }
     public void OrganizePieces()
     {
@@ -191,7 +191,33 @@ public class LocationManager : MonoBehaviour
     }  
     public void GiveATileAShip(Spacecraft ship, Vector2 tile)
     {
+        mySpaceship = ship;
         tileInfoList[Mathf.RoundToInt(tile.x)][Mathf.RoundToInt(tile.y)].CreateShip(ship);
+    }
+    public void GiveATileAShip(Spacecraft ship, Vector2 tile, bool startLanding)
+    {
+        mySpaceship = ship;
+        mySpaceship.AssignTileLocation(tile);
+        HexTileInfo info = tileInfoList[Mathf.RoundToInt(tile.x)][Mathf.RoundToInt(tile.y)];
+        info.CreateShip(ship);
+        info.StartLandingAnimation();
+        
+    }
+    public Vector2 FindSuitableLandingSpace()
+    {
+        foreach(HexTileInfo[] ar in tileInfoList)
+        {
+            foreach(HexTileInfo tile in ar)
+            {
+                if(tile.myTileType == tile.GetBlankTileIndex() && !tile.hasShip && tile.enemies.currentAmount == 0)
+                {
+                    Debug.Log($"{tile.myPositionInTheArray} is a suitable landing place.");
+                    return tile.myPositionInTheArray;
+                }
+            }
+        }
+
+        return  starter.myPositionInTheArray;
     }
     #endregion
 
@@ -293,7 +319,7 @@ public class LocationManager : MonoBehaviour
     }
     public void TurnOnVisibility()
     {
-        OnTurnActiveManagerForGenerals?.Invoke(this);
+        OnTurnActiveManager?.Invoke(this);
         gameObject.SetActive(true);
         OnCameraLookAtStarter?.Invoke(starter.transform);
     }

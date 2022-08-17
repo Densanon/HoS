@@ -70,6 +70,7 @@ public class HexTileInfo : MonoBehaviour
     float spaceshipSequenceDesiredTime;
     bool isInitializingLandingSequence = false;
     bool isInitializingLeavingSequence = false;
+    bool launched = false;
 
     public bool hasShip = false;
 
@@ -145,6 +146,10 @@ public class HexTileInfo : MonoBehaviour
         CameraController.OnZoomedOutTurnOffUI += DeactivateTileOptions;
         UIResourceManager.OnTilePickInteraction += CheckTileInteratability;
         GeneralsContainerManager.OnNeedTileForGeneral += PrepareForReturnTileLocation;
+        Spacecraft.OnLocalLanding += ReceiveLandingShip;
+        Spacecraft.OnRequestingShipDestination += TurnOffEnemyFloatingText;
+        Spacecraft.OnGoToPlanetForShip += TurnOffEnemyFloatingText;
+        if(hasShip) Spacecraft.OnLaunchSpaceCraft += LaunchShip;
 
         Main.OnRevealTileLocations += RevealTileLocation;
         Main.OnRevealTileSpecificInformation += RevealTileInfoInConsole;
@@ -161,6 +166,10 @@ public class HexTileInfo : MonoBehaviour
         CameraController.OnZoomedOutTurnOffUI -= DeactivateTileOptions;
         UIResourceManager.OnTilePickInteraction -= CheckTileInteratability;
         GeneralsContainerManager.OnNeedTileForGeneral -= PrepareForReturnTileLocation;
+        Spacecraft.OnLocalLanding -= ReceiveLandingShip;
+        Spacecraft.OnRequestingShipDestination -= TurnOffEnemyFloatingText;
+        Spacecraft.OnGoToPlanetForShip -= TurnOffEnemyFloatingText;
+        Spacecraft.OnLaunchSpaceCraft -= LaunchShip;
 
         Main.OnRevealTileLocations -= RevealTileLocation;
         Main.OnRevealTileSpecificInformation -= RevealTileInfoInConsole;
@@ -297,6 +306,7 @@ public class HexTileInfo : MonoBehaviour
         myShip = ship;
         OffLoadResourcesFromShip(ship.myResources);
         ship.OffloadResources();
+        ship.AssignTileLocation(myPositionInTheArray);
         hasShip = true;
 
         isStartingPoint = true;
@@ -311,7 +321,6 @@ public class HexTileInfo : MonoBehaviour
     {
         foreach(ResourceData resource in resources)
         {
-            Debug.Log($"{resource.itemName} on ship {resource.currentAmount}");
             AddResourceToMyResources(resource);
         }
     }
@@ -328,7 +337,6 @@ public class HexTileInfo : MonoBehaviour
     }
     void AddResourceToMyResources(string itemName)
     {
-        Debug.Log("Setting up resource through string.");
         List<ResourceData> temp = new List<ResourceData>();
         foreach(ResourceData data in myResources)
         {
@@ -357,7 +365,6 @@ public class HexTileInfo : MonoBehaviour
             temp.Add(data);
             if (resource.itemName == data.itemName)
             {
-                Debug.Log($"Gained {resource.currentAmount} of {resource.itemName}");
                 data.AdjustCurrentAmount(resource.currentAmount);
                 isAlreadyHere = true;
             }
@@ -526,6 +533,7 @@ public class HexTileInfo : MonoBehaviour
     #region Animations
     public void StartLandingAnimation()
     {
+        
         spaceship = myRenderers[4].transform;
         OnStartingTile?.Invoke(spaceship);
         SpawnAShip();
@@ -547,9 +555,12 @@ public class HexTileInfo : MonoBehaviour
     }
     public void StartLaunchAnimation()
     {
+        Debug.Log($"{myPositionInTheArray} Starting a launch!");
+        spaceship = myRenderers[4].transform;
         spaceshipSequenceTimer = 0;
         spaceshipSequenceDesiredTime = 6f;
         isInitializingLeavingSequence = true;
+        Spacecraft.OnGoToPlanetForShip += RemoveShip;
     }
     void LaunchShip()
     {
@@ -559,6 +570,7 @@ public class HexTileInfo : MonoBehaviour
         if (spaceshipSequenceTimer > spaceshipSequenceDesiredTime)
         {
             isInitializingLeavingSequence = false;
+            myRenderers[4].enabled = false;
             spaceship.position = shipEndPosition;
             CheckSoldierVisual();
         }
@@ -581,10 +593,44 @@ public class HexTileInfo : MonoBehaviour
     }
     public void SpawnAShip()
     {
+        Spacecraft.OnLaunchSpaceCraft += LaunchShip;
         SpriteRenderer rend = myRenderers[4].GetComponent<SpriteRenderer>();
         rend.enabled = true;
         rend.sprite = armySprites[armySprites.Length - 1];
         hasShip = true;
+    }
+    void LaunchShip(Vector2 location)
+    {
+        if(location == myPositionInTheArray && !launched)
+        {
+            Debug.Log($"Launching a ship from {myPositionInTheArray}");
+            launched = true;
+            Spacecraft.OnLaunchSpaceCraft -= LaunchShip;
+            StartLaunchAnimation();
+        }
+    }
+    void ReceiveLandingShip(Vector2 location)
+    {
+        if(location == myPositionInTheArray)
+        {
+            StartLandingAnimation();
+            Spacecraft.OnLaunchSpaceCraft += LaunchShip; 
+            OnTakeover -= CheckForPlayability;
+            OnTakeover?.Invoke(myPositionInTheArray);
+        }
+    }
+    private void RemoveShip(Spacecraft ship)
+    {
+        if(ReferenceEquals(ship, myShip))
+        {
+            hasShip = false;
+            myShip = null;
+            Spacecraft.OnGoToPlanetForShip -= RemoveShip;
+        }
+    }
+    public int GetBlankTileIndex()
+    {
+        return resourceSprites.Length + 1;
     }
     #endregion
 
@@ -694,7 +740,7 @@ public class HexTileInfo : MonoBehaviour
     }
     void CheckSoldierVisual()
     {
-        if (hasShip)
+        if (hasShip && !myShip.isTraveling && !myShip.arrived)
         {
             SpriteRenderer rend = myRenderers[4].GetComponent<SpriteRenderer>();
             rend.enabled = true;
@@ -920,6 +966,16 @@ public class HexTileInfo : MonoBehaviour
     }
     void TurnOffEnemyFloatingText() //Accessed via action
     {
+        FloatingText.gameObject.SetActive(false);
+    }
+    void TurnOffEnemyFloatingText(Spacecraft ship)
+    {
+        if(FloatingText != null)
+        FloatingText.gameObject.SetActive(false);
+    }
+    void TurnOffEnemyFloatingText(int access)
+    {
+        if(FloatingText != null)
         FloatingText.gameObject.SetActive(false);
     }
     void ShowEnemyOnTile()

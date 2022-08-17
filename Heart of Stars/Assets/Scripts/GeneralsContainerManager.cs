@@ -30,7 +30,7 @@ public class GeneralsContainerManager : MonoBehaviour
     private void Awake()
     {
         LocationManager.OnGreetManagers += ReceiveNewLocationManager;
-        LocationManager.OnTurnActiveManagerForGenerals += SetActiveManager;
+        LocationManager.OnTurnActiveManager += SetActiveManager;
         Main.OnWorldMap += StopAllLocationGenerals;
         HexTileInfo.OnReturnPositionToGeneralManager += SetGeneralLocation;
 
