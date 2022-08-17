@@ -28,6 +28,7 @@ public class UIResourceManager : MonoBehaviour
     Transform resourceContainer;
     [SerializeField]
     Transform resourcePivot;
+    List<Resource> resourceButtons;
 
     [Header("Ship UI")]
     [SerializeField]    
@@ -108,7 +109,7 @@ public class UIResourceManager : MonoBehaviour
     }
     public void CreateResourceButtons()
     {
-        List<Resource> rotationList = new List<Resource>();
+        if(resourceButtons == null) resourceButtons = new List<Resource>();
         int pivotCount = -1;
         foreach (ResourceData data in myTile.myResources)
         {
@@ -125,15 +126,27 @@ public class UIResourceManager : MonoBehaviour
             Resource r = obs.GetComponent<Resource>();
             r.AssignTile(myTile);
             r.SetUpResource(data, false, main);
-            rotationList.Add(r);
+            resourceButtons.Add(r);
         }
         troopSlider.onValueChanged.AddListener(SetTroopTextForMove);
 
-        foreach(Resource res in rotationList)
+        foreach(Resource res in resourceButtons)
         {
             res.ResetRotation();
         }
-        rotationList.Clear();
+    }
+    public void CheckResourceButtons()
+    {
+        if(resourceButtons.Count != myTile.myResources.Length - 2)
+        {
+            foreach(Resource resource in resourceButtons)
+            {
+                Destroy(resource.gameObject);
+            }
+            resourceButtons.Clear();
+
+            CreateResourceButtons();
+        }
     }
     #endregion
 
@@ -142,7 +155,7 @@ public class UIResourceManager : MonoBehaviour
     {
         mainFunctionsContainer.gameObject.SetActive(true);
         troopActionButton.SetActive(myTile.GetSoldierCount() > 0);
-        shipActionButton.SetActive(myTile.hasShip && !myTile.myShip.isTraveling);
+        shipActionButton.SetActive(myTile.hasShip && myTile.myShip.status == "Waiting");
         foreach(GameObject obj in Containers)
         {
             obj.gameObject.SetActive(false);

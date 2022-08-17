@@ -132,6 +132,17 @@ public class HexTileInfo : MonoBehaviour
     {
         return enemies.currentAmount;
     }
+    public ResourceData GetResource(string itemName)
+    {
+        foreach(ResourceData resource in myResources)
+        {
+            if(resource.itemName == itemName)
+            {
+                return resource;
+            }
+        }
+        return null;
+    }
     #endregion
 
     #region Unity Methods
@@ -317,110 +328,6 @@ public class HexTileInfo : MonoBehaviour
         OnTakeover?.Invoke(myPositionInTheArray);
         StartLandingAnimation();
     }
-    private void OffLoadResourcesFromShip(ResourceData[] resources)
-    {
-        foreach(ResourceData resource in resources)
-        {
-            AddResourceToMyResources(resource);
-        }
-    }
-    private bool CheckIfResourceIsInMyArray(string itemName)
-    {
-        foreach(ResourceData data in myResources)
-        {
-            if(data.itemName == itemName)
-            {
-                return true;
-            }
-        }
-        return false;
-    }
-    void AddResourceToMyResources(string itemName)
-    {
-        List<ResourceData> temp = new List<ResourceData>();
-        foreach(ResourceData data in myResources)
-        {
-            temp.Add(data);
-        }
-
-        foreach(ResourceData dt in main.GetResourceLibrary())
-        {
-            if(itemName == dt.itemName)
-            {
-                ResourceData d = new ResourceData(dt);
-                d.SetCurrentAmount(1);
-                temp.Add(d);
-                break;
-            }
-        }
-
-        myResources = temp.ToArray();
-    }
-    void AddResourceToMyResources(ResourceData resource)
-    {
-        List<ResourceData> temp = new List<ResourceData>();
-        bool isAlreadyHere = false;
-        foreach (ResourceData data in myResources)
-        {
-            temp.Add(data);
-            if (resource.itemName == data.itemName)
-            {
-                data.AdjustCurrentAmount(resource.currentAmount);
-                isAlreadyHere = true;
-            }
-        }
-        if (!isAlreadyHere) temp.Add(new ResourceData(resource));
-
-        myResources = temp.ToArray();
-    }
-    void CreateResources()
-    {
-        List<ResourceData> tempToPermanent = new List<ResourceData>();
-        List<ResourceData> locationTypeOptionList = new List<ResourceData>();
-
-        foreach(ResourceData data in main.GetResourceLibrary())
-        {
-            if(myTileType == 1 && data.groups == "metal") //Mountain resources
-            {
-                locationTypeOptionList.Add(new ResourceData(data));
-                continue;
-            }
-            if(myTileType == 2 && data.itemName == "food") //Forest resource
-            {
-                locationTypeOptionList.Add(new ResourceData(data));
-                continue;
-            }
-            if (data.itemName == "soldier") //UniversalResource
-            {
-                soldiers = new ResourceData(data);
-                tempToPermanent.Add(soldiers);
-                //Debug.Log($"{myPositionInTheArray} has {soldiers.currentAmount} as of now.");
-                continue;
-            }
-            if(data.itemName == "enemy" && myTileType != 0) //UniversalResource
-            {
-                enemies = new ResourceData(data);
-                tempToPermanent.Add(enemies);
-                TrySpawnEnemy();
-                continue;
-            }
-        }
-
-        if(locationTypeOptionList.Count > 0)//Getting a random resource that we can have.
-            tempToPermanent.Add(new ResourceData(locationTypeOptionList[UnityEngine.Random.Range(0, locationTypeOptionList.Count)]));
-        
-        myResources = tempToPermanent.ToArray();
-
-        if (Main.needCompareForUpdatedValues)
-        {
-            foreach(ResourceData data in myResources)
-            {
-                Main.CompareIndividualResourceValues(main, data);
-            }
-        }
-
-        CreateQueElements();
-    }
     #endregion
 
     #region Setup Tiles From Memory
@@ -555,7 +462,6 @@ public class HexTileInfo : MonoBehaviour
     }
     public void StartLaunchAnimation()
     {
-        Debug.Log($"{myPositionInTheArray} Starting a launch!");
         spaceship = myRenderers[4].transform;
         spaceshipSequenceTimer = 0;
         spaceshipSequenceDesiredTime = 6f;
@@ -603,10 +509,10 @@ public class HexTileInfo : MonoBehaviour
     {
         if(location == myPositionInTheArray && !launched)
         {
-            Debug.Log($"Launching a ship from {myPositionInTheArray}");
             launched = true;
             Spacecraft.OnLaunchSpaceCraft -= LaunchShip;
             StartLaunchAnimation();
+            RemoveResourceAndRebuildResources("barracks");
         }
     }
     void ReceiveLandingShip(Vector2 location)
@@ -617,6 +523,7 @@ public class HexTileInfo : MonoBehaviour
             Spacecraft.OnLaunchSpaceCraft += LaunchShip; 
             OnTakeover -= CheckForPlayability;
             OnTakeover?.Invoke(myPositionInTheArray);
+            AddResourceToMyResources("barracks");
         }
     }
     private void RemoveShip(Spacecraft ship)
@@ -746,7 +653,7 @@ public class HexTileInfo : MonoBehaviour
             rend.enabled = true;
             rend.sprite = armySprites[armySprites.Length - 1];
         }
-        else if(soldiers.currentAmount > 0 && !myRenderers[4].enabled)
+        else if(soldiers.currentAmount > 0)
         {
             SpriteRenderer rend = myRenderers[4].GetComponent<SpriteRenderer>();
             rend.enabled = true;
@@ -920,6 +827,120 @@ public class HexTileInfo : MonoBehaviour
             if(itemName == data.itemName) return data;
         }
         return null;
+    }
+    private void OffLoadResourcesFromShip(ResourceData[] resources)
+    {
+        foreach (ResourceData resource in resources)
+        {
+            AddResourceToMyResources(resource);
+        }
+    }
+    private bool CheckIfResourceIsInMyArray(string itemName)
+    {
+        foreach (ResourceData data in myResources)
+        {
+            if (data.itemName == itemName)
+            {
+                return true;
+            }
+        }
+        return false;
+    }
+    void AddResourceToMyResources(string itemName)
+    {
+        List<ResourceData> temp = new List<ResourceData>();
+        foreach (ResourceData data in myResources)
+        {
+            temp.Add(data);
+            if (data.itemName == itemName) return;
+        }
+
+        foreach (ResourceData dt in main.GetResourceLibrary())
+        {
+            if (itemName == dt.itemName)
+            {
+                ResourceData d = new ResourceData(dt);
+                if(itemName == "barracks") d.SetCurrentAmount(1);
+                temp.Add(d);
+                break;
+            }
+        }
+
+        myResources = temp.ToArray();
+    }
+    void AddResourceToMyResources(ResourceData resource)
+    {
+        List<ResourceData> temp = new List<ResourceData>();
+        bool isAlreadyHere = false;
+        foreach (ResourceData data in myResources)
+        {
+            temp.Add(data);
+            if (resource.itemName == data.itemName)
+            {
+                data.AdjustCurrentAmount(resource.currentAmount);
+                isAlreadyHere = true;
+            }
+        }
+        if (!isAlreadyHere) temp.Add(new ResourceData(resource));
+
+        myResources = temp.ToArray();
+    }
+    void CreateResources()
+    {
+        List<ResourceData> tempToPermanent = new List<ResourceData>();
+        List<ResourceData> locationTypeOptionList = new List<ResourceData>();
+
+        foreach (ResourceData data in main.GetResourceLibrary())
+        {
+            if (myTileType == 1 && data.groups == "metal") //Mountain resources
+            {
+                locationTypeOptionList.Add(new ResourceData(data));
+                continue;
+            }
+            if (myTileType == 2 && data.itemName == "food") //Forest resource
+            {
+                locationTypeOptionList.Add(new ResourceData(data));
+                continue;
+            }
+            if (data.itemName == "soldier") //UniversalResource
+            {
+                soldiers = new ResourceData(data);
+                tempToPermanent.Add(soldiers);
+                continue;
+            }
+            if (data.itemName == "enemy" && myTileType != 0) //UniversalResource
+            {
+                enemies = new ResourceData(data);
+                tempToPermanent.Add(enemies);
+                TrySpawnEnemy();
+                continue;
+            }
+        }
+
+        if (locationTypeOptionList.Count > 0)//Getting a random resource that we can have.
+            tempToPermanent.Add(new ResourceData(locationTypeOptionList[UnityEngine.Random.Range(0, locationTypeOptionList.Count)]));
+
+        myResources = tempToPermanent.ToArray();
+
+        if (Main.needCompareForUpdatedValues)
+        {
+            foreach (ResourceData data in myResources)
+            {
+                Main.CompareIndividualResourceValues(main, data);
+            }
+        }
+
+        CreateQueElements();
+    }
+    public void RemoveResourceAndRebuildResources(string itemName)
+    {
+        List<ResourceData> temp = new List<ResourceData>();
+        foreach(ResourceData resource in myResources)
+        {
+            if (resource.itemName == itemName) continue;
+            temp.Add(resource);
+        }
+        myResources = temp.ToArray();
     }
     #endregion
 

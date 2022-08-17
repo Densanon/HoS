@@ -93,6 +93,7 @@ public class Main : MonoBehaviour
     [Header("Debug Values")]
     [SerializeField]
     GameObject debugPanel;
+    HexTileInfo debugTile;
 
     public static float camCancelUI = 4f;
     
@@ -140,6 +141,16 @@ public class Main : MonoBehaviour
     {
         debugField = s;
     }
+    public void SubmitDebugField()
+    {
+        dat = debugTile.GetResource(debugField);
+        if (dat == null)
+        {
+            Debug.Log("Didn't get a legitamate resource.");
+            return;
+        }
+        UpdateCurrentDebugFields();
+    }
     public void UpdateCurrentDebugFields()
     {
         ResourceName.text = dat.displayName;
@@ -147,10 +158,10 @@ public class Main : MonoBehaviour
         ResourceAut.text = dat.autoAmount.ToString();
         ResourceT.text = dat.craftTime.ToString();
     }
-    public void SubmitDebugField()
+    public void SubmitDebugSetTileActive()
     {
-        dat = FindResourceFromString(debugField);
-        UpdateCurrentDebugFields();
+        string[] ar = debugField.Split(",");
+        debugTile = activeBrain.GetTile(new Vector2(float.Parse(ar[0]), float.Parse(ar[1])));
     }
     public void SubmitDebugIncrease()
     {

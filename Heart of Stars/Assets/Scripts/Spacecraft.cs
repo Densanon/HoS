@@ -33,6 +33,7 @@ public class Spacecraft : MonoBehaviour
     public bool isTraveling { private set; get; }
     bool cancel = false;
     public bool arrived = false;
+    public string status;
 
     [SerializeField]
     TMP_Text nameText;
@@ -107,15 +108,15 @@ public class Spacecraft : MonoBehaviour
         cancel = ar[13] == "True";
         if (!isTraveling)
         {
-            statusText.text = "Waiting";
+            SetStatus("Waiting");
         }
         else if (isTraveling && !cancel)
         {
-            statusText.text = "In Transit";
+            SetStatus("In Transit");
         }
         else if (isTraveling && cancel)
         {
-            statusText.text = "Returning";
+            SetStatus("Returning");
         }
 
         foreach(ResourceData resource in myResources)
@@ -157,7 +158,7 @@ public class Spacecraft : MonoBehaviour
         AssignName(name);
         AssignLocation(location);
         isTraveling = false;
-        statusText.text = "Waiting";
+        SetStatus("Waiting");
         targetLocation = "";
     }
     void AssignName(string name)
@@ -469,11 +470,11 @@ public class Spacecraft : MonoBehaviour
         cancelJourneyButton.SetActive(true);
         cancel = false;
         isTraveling = true;
-        statusText.text = "In Transit";
+        SetStatus("In Transit");
     }
     private void ReadyForArrival()
     {
-        statusText.text = "Arrived";
+        SetStatus("Arrived");
         arrived = true;
         LandingPreparation();
     }
@@ -486,7 +487,7 @@ public class Spacecraft : MonoBehaviour
     }
     private void ReturnedToPlanet()
     {
-        statusText.text = "Returned";
+        SetStatus("Returned");
         cancel = false;
         LandingPreparation();
     }
@@ -505,17 +506,17 @@ public class Spacecraft : MonoBehaviour
         journeyButton.SetActive(true);
         myManager.TurnOffPanel();
 
-        if(statusText.text == "Arrived")
+        if(status == "Arrived")
         {
             Debug.Log("Landing on a new planet.");
             OnGoToPlanetForShip?.Invoke(this);
-            statusText.text = "Waiting";
+            SetStatus("Waiting");
             arrived = false;
             return;
         }
         Debug.Log("Landing in a local area.");
         OnLocalLanding?.Invoke(myTileLocation);
-        statusText.text = "Waiting";
+        SetStatus("Waiting");
     }
     public void OffloadResources()
     {
@@ -530,6 +531,11 @@ public class Spacecraft : MonoBehaviour
     {
         currentPlanetLocation = targetLocation;
         currentLocationText.text = currentPlanetLocation;
+    }
+    void SetStatus(string stat)
+    {
+        status = stat;
+        statusText.text = stat;
     }
     #endregion
 

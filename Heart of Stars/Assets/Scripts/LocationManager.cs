@@ -29,6 +29,13 @@ public class LocationManager : MonoBehaviour
     int enemyDensityMax;
     bool isViewing;
 
+    #region Debuging
+    public HexTileInfo GetTile(Vector2 tileLocation)
+    {
+        return tileInfoList[Mathf.RoundToInt(tileLocation.x)][Mathf.RoundToInt(tileLocation.y)];
+    }
+    #endregion
+
     #region Unity Methods
     private void Awake()
     {

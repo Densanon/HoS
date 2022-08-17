@@ -853,7 +853,7 @@ MonoBehaviour:
         m_CallState: 2
       - m_Target: {fileID: 6638926897294592663}
         m_TargetAssemblyTypeName: UIResourceManager, Assembly-CSharp
-        m_MethodName: SubtractMouseHoverInteraction
+        m_MethodName: CheckResourceButtons
         m_Mode: 1
         m_Arguments:
           m_ObjectArgument: {fileID: 0}
