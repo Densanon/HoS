@@ -21,14 +21,12 @@ public class CameraController : MonoBehaviour
     Vector3 cameraNormalPosition;
     Vector3 cameraStartingZoomPosition;
     Vector3 cameraEndingZoomPosition;
-    float journeyLength;
-    float cameraZoomTimeReference;
-    float cameraZoomTime = 1f;
-    float cameraZoomedOutSize = 15f;
-    float cameraZoomedInSize = 1.5f;
-    float cameraNormalZoomSize = 5f;
+    private readonly float cameraZoomTime = 1f;
+    private readonly float cameraZoomedOutSize = 15f;
+    private readonly float cameraZoomedInSize = 1.5f;
+    private readonly float cameraNormalZoomSize = 5f;
+    private readonly float cameraPlanetaryZoomOutBounds = 10f;
     float cameraZoomCurrentTimerTime = 0f;
-    float cameraPlanetaryZoomOutBounds = 10f;
     bool canOverWorldZoom = true;
     bool needsNormalZoom = false;
     bool canOverWorldZoomIn = false;
@@ -40,8 +38,6 @@ public class CameraController : MonoBehaviour
     public float camMoveX;
     public float camMoveY;
 
-
-
     #region Unity Methods
     private void Awake()
     {
@@ -49,26 +45,22 @@ public class CameraController : MonoBehaviour
         myTransform = myCamera.transform;
         cameraNormalPosition = myTransform.position;
     }
-
     private void OnEnable()
     {
         Main.OnWorldMap += TransitionCameraSettings;
         Main.OnGoingToHigherLevel += ZoomFromGivenObject;
-        Main.SendCameraState += LoadCamState;
+        //Main.SendCameraState += LoadCamState;
         HexTileInfo.OnStartingTile += FindStartingPosition;
         HexTileInfo.OnLanded += EndSpaceshipSequence;
         HexTileInfo.OnLeaving += EndSpaceshipSequence;
         Depthinteraction.SpaceInteractionHover += ZoomIntoSpaceobject;
         LocationManager.OnCameraLookAtStarter += SetPlanetViewStart;
     }
-
-    
-
     private void OnDisable()
     {
         Main.OnWorldMap -= TransitionCameraSettings;
         Main.OnGoingToHigherLevel -= ZoomFromGivenObject;
-        Main.SendCameraState -= LoadCamState;
+        //Main.SendCameraState -= LoadCamState;
         HexTileInfo.OnStartingTile -= FindStartingPosition;
         HexTileInfo.OnLanded -= EndSpaceshipSequence;
         HexTileInfo.OnLeaving -= EndSpaceshipSequence;
@@ -170,8 +162,6 @@ public class CameraController : MonoBehaviour
         cameraEndingZoomPosition = targetTransform.position;
         cameraStartingZoomPosition = myTransform.position;
         cameraEndingZoomPosition.z = cameraStartingZoomPosition.z;
-        journeyLength = Vector3.Distance(cameraStartingZoomPosition, cameraEndingZoomPosition);
-        cameraZoomTimeReference = Time.time;
         cameraZoomCurrentTimerTime = 0f;
         isZooming = true;
     }
@@ -182,8 +172,6 @@ public class CameraController : MonoBehaviour
         cameraStartingZoomPosition = targetTransform.position;
         cameraEndingZoomPosition = cameraNormalPosition;
         cameraStartingZoomPosition.z = cameraEndingZoomPosition.z;
-        journeyLength = Vector3.Distance(cameraStartingZoomPosition, cameraEndingZoomPosition);
-        cameraZoomTimeReference = Time.time;
         cameraZoomCurrentTimerTime = 0f;
         needsNormalZoom = true;
     }
@@ -193,8 +181,7 @@ public class CameraController : MonoBehaviour
     {
         if (inOverWorld)
         {
-            myTransform.rotation = Quaternion.identity;
-            myTransform.position = new Vector3(0f, 0f, -.5f);
+            myTransform.SetPositionAndRotation(new Vector3(0f, 0f, -.5f), Quaternion.identity);
             inMap = false;
             return;
         }
@@ -210,11 +197,7 @@ public class CameraController : MonoBehaviour
     {
         if (inMap)
         {
-            if (inSpaceshipSequence)
-            {
-                //Do your thing cam.
-                transform.LookAt(targetTransform);
-            }
+            if (inSpaceshipSequence) transform.LookAt(targetTransform);
 
             CheckMouseWheelPress();
 
@@ -305,36 +288,36 @@ public class CameraController : MonoBehaviour
     }
     #endregion
 
-    string SaveCameraSettings()
-    {
-        return $"{transform.position};{transform.rotation};{myCamera.orthographicSize}";
-    }
+    #region Camera Save Load
+    //string SaveCameraSettings()
+    //{
+    //    return $"{transform.position};{transform.rotation};{myCamera.orthographicSize}";
+    //}
+    //private void LoadCamState(string state)
+    //{
+    //    //(7.82, 10.00, -6.30);(0.38268, 0.00000, 0.00000, 0.92388);5.75
+    //    //(7.82, 10.00, -6.30); (0.70710, 0.00000, 0.00000, 0.70711); 1.5
 
-    private void LoadCamState(string state)
-    {
-        //(7.82, 10.00, -6.30);(0.38268, 0.00000, 0.00000, 0.92388);5.75
-        //(7.82, 10.00, -6.30); (0.70710, 0.00000, 0.00000, 0.70711); 1.5
+    //    if (state != null)
+    //    {
+    //        string[] ar = state.Split(";");
 
-        if (state != null)
-        {
-            string[] ar = state.Split(";");
+    //        string s = ar[0].Remove(0, 1);
+    //        s = s.Remove(s.Length - 1);
+    //        string[] str = s.Split(",");
+    //        transform.position = new Vector3(float.Parse(str[0]), float.Parse(str[1].Remove(0, 1)), float.Parse(str[2].Remove(0, 1)));
 
-            string s = ar[0].Remove(0, 1);
-            s = s.Remove(s.Length - 1);
-            string[] str = s.Split(",");
-            transform.position = new Vector3(float.Parse(str[0]), float.Parse(str[1].Remove(0, 1)), float.Parse(str[2].Remove(0, 1)));
+    //        s = ar[1].Remove(0, 1);
+    //        s = s.Remove(s.Length - 1);
+    //        str = s.Split(",");
+    //        transform.rotation = new Quaternion(float.Parse(str[0]), float.Parse(str[1].Remove(0, 1)), float.Parse(str[2].Remove(0, 1)), float.Parse(str[3].Remove(0, 1)));
 
-            s = ar[1].Remove(0, 1);
-            s = s.Remove(s.Length - 1);
-            str = s.Split(",");
-            transform.rotation = new Quaternion(float.Parse(str[0]), float.Parse(str[1].Remove(0, 1)), float.Parse(str[2].Remove(0, 1)), float.Parse(str[3].Remove(0, 1)));
-
-            myCamera.orthographicSize = float.Parse(ar[2]);
-        }
-    }
-
-    private void OnApplicationQuit()
-    {
-        SaveCameraState?.Invoke(SaveCameraSettings());
-    }
+    //        myCamera.orthographicSize = float.Parse(ar[2]);
+    //    }
+    //}
+    //private void OnApplicationQuit()
+    //{
+    //    SaveCameraState?.Invoke(SaveCameraSettings());
+    //}
+    #endregion
 }

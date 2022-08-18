@@ -17,6 +17,7 @@ public class HexTileInfo : MonoBehaviour
     public static Action OnReinstateInteractability = delegate { };
     public static Action<Vector2, string, int> OnTradeWithPartnerTile = delegate { };
     public static Action<Vector2> OnReturnPositionToGeneralManager = delegate { };
+    public static Action OnLandToConquer = delegate { };
 
     public enum TileStates { UnClickable, Clickable, Conquered, UnPlayable, Pickable, ReturnTile}
     public TileStates myState = TileStates.UnPlayable;
@@ -25,7 +26,7 @@ public class HexTileInfo : MonoBehaviour
     // References
     LocationManager myLocationManager;
     Main main;
-    Camera camera;
+    Camera myCamera;
     public UIItemManager myUIManager;
     public Spacecraft myShip;
     
@@ -51,7 +52,8 @@ public class HexTileInfo : MonoBehaviour
 
     // Basic Values
     public int myTileType = 0;
-    public float frequencyOfLandDistribution;
+    float frequencyOfLandDistribution;
+    int oddsOfTerraFormation; //always 1 in number set
     public Vector2 myPositionInTheArray;
     Vector3 tileTruePosition;
     public bool isStartingPoint;
@@ -91,11 +93,12 @@ public class HexTileInfo : MonoBehaviour
     int[] QuedItemAmount;
     string[] ItemNameReferenceIndex;
 
-    #region Debugging
+    // Enemy Values
     float enemyRatio;
     int enemyDensityMin;
     int enemyDensityMax;
 
+    #region Debugging
     bool generalsTimerOverride;
     float generalsTimer;
 
@@ -143,6 +146,16 @@ public class HexTileInfo : MonoBehaviour
         }
         return null;
     }
+    private void TurnLandConquered(Vector2 tile)
+    {
+        if (myPositionInTheArray != tile && (myState == TileStates.Clickable || myState == TileStates.UnClickable))
+        {
+            myRenderers[0].material.mainTexture = tileTextures[3];
+            myState = TileStates.Conquered;
+            OnTakeover -= CheckForPlayability;
+            OnTakeover(myPositionInTheArray);
+        }
+    }
     #endregion
 
     #region Unity Methods
@@ -165,6 +178,7 @@ public class HexTileInfo : MonoBehaviour
         Main.OnRevealTileLocations += RevealTileLocation;
         Main.OnRevealTileSpecificInformation += RevealTileInfoInConsole;
         Main.OnRevealEnemies += RevealEnemies;
+        LocationManager.OnTurnAllLandConquered += TurnLandConquered;
     }
     private void OnDisable()
     {
@@ -185,6 +199,7 @@ public class HexTileInfo : MonoBehaviour
         Main.OnRevealTileLocations -= RevealTileLocation;
         Main.OnRevealTileSpecificInformation -= RevealTileInfoInConsole;
         Main.OnRevealEnemies -= RevealEnemies;
+        LocationManager.OnTurnAllLandConquered -= TurnLandConquered;
     }
     private void Update()
     {
@@ -233,7 +248,7 @@ public class HexTileInfo : MonoBehaviour
         }
 
         DeactivateDetailLayers();
-        camera = Camera.main;
+        myCamera = Camera.main;
         tileTruePosition = transform.position;
         shipTruePosition = myRenderers[4].transform.position;
         shipEndPosition = shipTruePosition;
@@ -247,8 +262,10 @@ public class HexTileInfo : MonoBehaviour
     {
         return basicItemSprites.Length + 1;
     }
-    public void SetEnemyNumbers(float ratio, int densityMin, int densityMax)
+    public void SetLandConfiguration(float landDistribution, int formationOdds, float ratio, int densityMin, int densityMax)
     {
+        frequencyOfLandDistribution = landDistribution;
+        oddsOfTerraFormation = formationOdds;
         enemyRatio = ratio;
         enemyDensityMin = densityMin;
         enemyDensityMax = densityMax;
@@ -274,12 +291,13 @@ public class HexTileInfo : MonoBehaviour
     {
         TypeTransform -= TryToTransformToLand;
         TypeTransform?.Invoke(myPositionInTheArray);
+        OnLandToConquer?.Invoke();
         myState = TileStates.UnClickable;
         myRenderers[0].material.mainTexture = tileTextures[1];
 
-        if (UnityEngine.Random.Range(0, 4) == 0)
+        if (UnityEngine.Random.Range(0, oddsOfTerraFormation) == 0)//chance to gain terrain formation
         { 
-            myTileType = UnityEngine.Random.Range(1, basicItemSprites.Length+1);
+            myTileType = UnityEngine.Random.Range(1, basicItemSprites.Length+1); // Main.TerrainDictionary.Count+1 Need a sprite for all 31
             myRenderers[2].enabled = true;
             myRenderers[2].GetComponent<SpriteRenderer>().sprite = basicItemSprites[myTileType-1];
             CreateMyItems();
@@ -315,22 +333,31 @@ public class HexTileInfo : MonoBehaviour
     }
     public void SetAsStartingPoint(Spacecraft ship)
     {
-        if(ship != null)
-        {
-            myShip = ship;
-            OffloadItemsFromShip(ship.myItemsData);
-            ship.OffloadItems();
-            ship.AssignTileLocation(myPositionInTheArray);
-            hasShip = true;
-            if (!CheckIfItemIsInMyArray("barracks")) AddItemToMyItems("barracks");
-            StartLandingAnimation();
-        }
-
         isStartingPoint = true;
         myRenderers[0].material.mainTexture = tileTextures[3];
         myState = TileStates.Conquered;
         OnTakeover -= CheckForPlayability;
         OnTakeover?.Invoke(myPositionInTheArray);
+
+        if(ship != null)
+        {
+            myShip = ship;
+            OffloadItemsFromShip(ship.MyItemsData);
+            ship.OffloadItems();
+            ship.AssignTileLocation(myPositionInTheArray);
+            hasShip = true;
+            if (!CheckIfItemIsInMyArray("barracks")) AddItemToMyItems("barracks");
+            StartLandingAnimation();
+            return;
+        }
+        AddItemToMyItems("soldier");
+        foreach(ItemData item in myItemData)
+        {
+            if(item.itemName == "soldier") units = item;
+            else if(item.itemName == "enemy") item.SetCurrentAmount(0);
+        }
+        units.SetCurrentAmount(5);
+        CheckUnitVisual();
     }
     #endregion
 
@@ -360,11 +387,13 @@ public class HexTileInfo : MonoBehaviour
             case "UnClickable":
                 myRenderers[0].material.mainTexture = tileTextures[1];
                 myState = TileStates.UnClickable;
+                OnLandToConquer?.Invoke();
                 break;
             case "Clickable":
                 myRenderers[0].material.mainTexture = tileTextures[2];
                 myState = TileStates.Clickable;
                 OnTakeover -= CheckForPlayability;
+                OnLandToConquer?.Invoke();
                 break;
             case "Conquered":
                 myRenderers[0].material.mainTexture = tileTextures[3];
@@ -384,12 +413,12 @@ public class HexTileInfo : MonoBehaviour
     }
     void SetNeighborsFromString(string neighbors)
     {
-        List<Vector2> temp = new List<Vector2>();
+        List<Vector2> temp = new();
         string[] ar = neighbors.Split("'");
         foreach (string s in ar)
         {
             string[] st = s.Split(",");
-            Vector2 v = new Vector2(float.Parse(st[0]), float.Parse(st[1].Remove(0, 1)));
+            Vector2 v = new(float.Parse(st[0]), float.Parse(st[1].Remove(0, 1)));
             temp.Add(v);
         }
 
@@ -403,7 +432,7 @@ public class HexTileInfo : MonoBehaviour
     {
         if (items != "")
         {
-            List<ItemData> temp = new List<ItemData>();
+            List<ItemData> temp = new();
             string[] ar = items.Split(";");
             foreach (string s in ar)
             {
@@ -411,7 +440,7 @@ public class HexTileInfo : MonoBehaviour
                 //string name, string display, string dis, string gr, string eType, string reqs, string nonReqs, bool vis, int cur, int autoA, float craft,
                 //string created, string coms, string createComs, string im, string snd, string ach, int mos, string build
                 temp.Add(new ItemData(st[0], st[1], st[2], st[3], st[4], st[5], st[6],
-                        (st[7] == "True") ? true : false, int.Parse(st[8]), int.Parse(st[9]),
+                        st[7] == "True", int.Parse(st[8]), int.Parse(st[9]),
                         float.Parse(st[10]), st[11], st[12], st[13], st[14], st[15], st[16],
                         int.Parse(st[17]), st[18]));
             }
@@ -446,7 +475,7 @@ public class HexTileInfo : MonoBehaviour
     {        
         spaceship = myRenderers[4].transform;
         OnStartingTile?.Invoke(spaceship);
-        SpawnAShip();
+        SpawnShipVisual();
         spaceshipSequenceTimer = 0;
         spaceshipSequenceDesiredTime = 6f;
         isInitializingLandingSequence = true;
@@ -490,22 +519,22 @@ public class HexTileInfo : MonoBehaviour
         myPos.y += 1f;
         myPos.z -= 1f;
         lineRenderer.SetPosition(0, myPos);
-        lineRenderer.SetPosition(1, camera.ScreenToWorldPoint(Input.mousePosition));
+        lineRenderer.SetPosition(1, myCamera.ScreenToWorldPoint(Input.mousePosition));
     }  
     #endregion
 
     #region Ship Management
-    public void CreateShip(Spacecraft ship)
+    public void SetShip(Spacecraft ship)
     {
         myShip = ship;
-        SpawnAShip();
+        SpawnShipVisual();
     }
-    public void SpawnAShip()
+    public void SpawnShipVisual()
     {
         Spacecraft.OnLaunchSpaceCraft += LaunchShip;
         SpriteRenderer rend = myRenderers[4].GetComponent<SpriteRenderer>();
         rend.enabled = true;
-        rend.sprite = armySprites[armySprites.Length - 1];
+        rend.sprite = armySprites[^1];
         hasShip = true;
     }
     void LaunchShip(Vector2 location)
@@ -615,7 +644,7 @@ public class HexTileInfo : MonoBehaviour
     {
         if (isMousePresent && isInteractable && !UIOverrideListener.isOverUI)
         {
-            if(myState == TileStates.Conquered && camera.orthographicSize < 4.25f)
+            if(myState == TileStates.Conquered && myCamera.orthographicSize < 4.25f)
             {
                 CheckCanvasContainerAndCreateTileOptions();
                 OnNeedUIElementsForTile?.Invoke(this);
@@ -654,7 +683,7 @@ public class HexTileInfo : MonoBehaviour
         {
             SpriteRenderer rend = myRenderers[4].GetComponent<SpriteRenderer>();
             rend.enabled = true;
-            rend.sprite = armySprites[armySprites.Length - 1];
+            rend.sprite = armySprites[^1];
         }
         else if(units.currentAmount > 0)
         {
@@ -775,12 +804,12 @@ public class HexTileInfo : MonoBehaviour
         {
             if (data.itemName == item)
             {
-                List<ItemData> l = new List<ItemData>();
+                List<ItemData> l = new();
                 foreach(ItemData dt in myItemData)
                 {
                     l.Add(dt);
                 }
-                ItemData d = new ItemData(data);
+                ItemData d = new(data);
                 l.Add(d);
                 myItemData = l.ToArray();
                 return;
@@ -851,7 +880,7 @@ public class HexTileInfo : MonoBehaviour
     }
     void AddItemToMyItems(string itemName)
     {
-        List<ItemData> temp = new List<ItemData>();
+        List<ItemData> temp = new();
         foreach (ItemData item in myItemData)
         {
             temp.Add(item);
@@ -862,7 +891,7 @@ public class HexTileInfo : MonoBehaviour
         {
             if (itemName == item.itemName)
             {
-                ItemData d = new ItemData(item);
+                ItemData d = new(item);
                 if(itemName == "barracks") d.SetCurrentAmount(1);
                 temp.Add(d);
                 break;
@@ -873,7 +902,7 @@ public class HexTileInfo : MonoBehaviour
     }
     void AddItemToMyItems(ItemData item)
     {
-        List<ItemData> temp = new List<ItemData>();
+        List<ItemData> temp = new();
         bool isAlreadyHere = false;
         foreach (ItemData data in myItemData)
         {
@@ -890,28 +919,28 @@ public class HexTileInfo : MonoBehaviour
     }
     void CreateMyItems()
     {
-        List<ItemData> tempToPermanent = new List<ItemData>();
-        List<ItemData> locationTypeOptionList = new List<ItemData>();
+        List<ItemData> tempToPermanent = new();
+        List<ItemData> locationTypeOptionList = new();
 
-        foreach (ItemData item in main.GetItemLibrary())
+        foreach (ItemData item in main.GetItemLibrary()) // Need all terrain types outlined
         {
-            if (myTileType == 1 && item.groups == "metal") //Mountain resources
+            if (myTileType == 1 && item.groups == "metal") //Mountain items
             {
                 locationTypeOptionList.Add(new ItemData(item));
                 continue;
             }
-            if (myTileType == 2 && item.itemName == "food") //Forest resource
+            if (myTileType == 2 && item.itemName == "food") //Forest items
             {
                 locationTypeOptionList.Add(new ItemData(item));
                 continue;
             }
-            if (item.itemName == "soldier") //UniversalResource
+            if (item.itemName == "soldier") //Universal item
             {
                 units = new ItemData(item);
                 tempToPermanent.Add(units);
                 continue;
             }
-            if (item.itemName == "enemy" && myTileType != 0) //UniversalResource
+            if (item.itemName == "enemy" && myTileType != 0) //Universal item
             {
                 enemies = new ItemData(item);
                 tempToPermanent.Add(enemies);
@@ -937,7 +966,7 @@ public class HexTileInfo : MonoBehaviour
     }
     public void RemoveItemAndRebuildItems(string itemName)
     {
-        List<ItemData> temp = new List<ItemData>();
+        List<ItemData> temp = new();
         foreach(ItemData item in myItemData)
         {
             if (item.itemName == itemName) continue;
@@ -1015,12 +1044,12 @@ public class HexTileInfo : MonoBehaviour
     {
         if (myUIManager != null) myUIManager.DeactivateSelf();
     }
-    void SetButtonsOnScreenPosition()
+    public void SetButtonsOnScreenPosition()
     {
         if (myCanvasContainer != null)
         {
-            myCanvasContainer.position = camera.WorldToScreenPoint(transform.position);
-            myCanvasContainer.localScale = new Vector3(1.75f / camera.orthographicSize, 1.75f / camera.orthographicSize, 1f);
+            myCanvasContainer.position = myCamera.WorldToScreenPoint(transform.position);
+            myCanvasContainer.localScale = new Vector3(1.75f / myCamera.orthographicSize, 1.75f / myCamera.orthographicSize, 1f);
         }
     }
     public void StartDrawingRayForPicking()
@@ -1076,8 +1105,8 @@ public class HexTileInfo : MonoBehaviour
         {
             foreach(ItemData item in myItemData)
             {
-                str = str + item.DigitizeForSerialization();
-                if (item == myItemData[myItemData.Length - 1])
+                str += item.DigitizeForSerialization();
+                if (item == myItemData[^1])
                 {
                     str = str.Remove(str.Length - 1);
                 }

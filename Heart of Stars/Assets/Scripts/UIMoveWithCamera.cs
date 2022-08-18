@@ -4,37 +4,31 @@ using UnityEngine;
 
 public class UIMoveWithCamera : MonoBehaviour
 {
-    Camera camera;
+    Camera myCamera;
     CameraController controller;
-    RectTransform myTransform;
+    UIItemManager manager;
 
     bool first = false;
+
+    #region UnityEngine
     private void OnEnable()
     {
         if (!first)
         {
-            camera = Camera.main;
-            controller = camera.GetComponent<CameraController>();
-            myTransform = GetComponent<RectTransform>();
+            myCamera = Camera.main;
+            controller = myCamera.GetComponent<CameraController>();
+            manager = GetComponent<UIItemManager>();
             first = true;
         }
     }
-
     void Update()
     {
         MoveUIOnPlanet();
     }
+    #endregion
 
     private void MoveUIOnPlanet()
     {
-        if (controller.canMoveOnMap && !controller.planetaryCameraIsFrozen)
-        {
-            Vector2 pos = myTransform.anchoredPosition;
-            //pos.y += Input.GetAxis("Mouse Y") * controller.cameraPlanetaryZoomRate * 100;
-            pos.y += 215 * 1.75f * controller.camMoveY / camera.orthographicSize;
-            //pos.x += Input.GetAxis("Mouse X") * controller.cameraPlanetaryZoomRate * 100;
-            pos.x += 310 * 1.75f * controller.camMoveX / camera.orthographicSize;
-            myTransform.anchoredPosition = pos;
-        }
+        if (controller.canMoveOnMap && !controller.planetaryCameraIsFrozen) manager.ResetUILocationOnScreen();
     }
 }

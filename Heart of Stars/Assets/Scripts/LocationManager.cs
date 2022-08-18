@@ -22,17 +22,25 @@ public class LocationManager : MonoBehaviour
     Vector2[] TileLocations;
     public int locationXBounds;
     public int locationYBounds;
-    public int landStartingPointsForSpawning; //set in inspector
-    public float frequencyForLandSpawning; //set in inspector
+    public int landStartingPointsForSpawning;
+    public float frequencyForLandSpawning;
+    public int landFormationOdds;
     float enemyRatio;
     int enemyDensityMin;
     int enemyDensityMax;
     bool isViewing;
+    int landLeftToConquer;
 
     #region Debuging
+    public static Action<Vector2> OnTurnAllLandConquered = delegate { };
+
     public HexTileInfo GetTile(Vector2 tileLocation)
     {
         return tileInfoList[Mathf.RoundToInt(tileLocation.x)][Mathf.RoundToInt(tileLocation.y)];
+    }
+    public void TurnAllLandConqueredButOne(Vector2 tile)
+    {
+        OnTurnAllLandConquered?.Invoke(tile);
     }
     #endregion
 
@@ -45,10 +53,14 @@ public class LocationManager : MonoBehaviour
     private void OnEnable()
     {
         HexTileInfo.OnNeedUIElementsForTile += CheckNewTileOptions;
+        HexTileInfo.OnLandToConquer += AddToLandCount;
+        HexTileInfo.OnTakeover += RemoveLandCount;
     }
     private void OnDisable()
     {
         HexTileInfo.OnNeedUIElementsForTile -= CheckNewTileOptions;
+        HexTileInfo.OnLandToConquer -= AddToLandCount;
+        HexTileInfo.OnTakeover -= RemoveLandCount;
     }
     private void OnDestroy()
     {
@@ -61,12 +73,15 @@ public class LocationManager : MonoBehaviour
     {
         main = m;
     }
-    public void SetEnemyNumbers(float ratio, int densityMin, int densityMax)
+    public void SetLandConfiguration(float landFrequency, int formationFrequency, float ratio, int densityMin, int densityMax)
     {
+        frequencyForLandSpawning = landFrequency;
+        landFormationOdds = formationFrequency;
         enemyRatio = ratio;
         enemyDensityMin = densityMin;
         enemyDensityMax = densityMax;
     }
+
     public void FirstPlanetaryEncounter(Spacecraft ship)
     {
         mySpaceship = ship;
@@ -91,20 +106,21 @@ public class LocationManager : MonoBehaviour
             SaveLocationInfo();
             main.SaveLocationAddressBook();
             OnGreetManagers?.Invoke(this);
+            OnCameraLookAtStarter?.Invoke(starter.transform);
         }
     }
     void BuildTileBase()
     {
-        List<HexTileInfo[]> mainTemp = new List<HexTileInfo[]>();
-        List<Vector2> locs = new List<Vector2>();
+        List<HexTileInfo[]> mainTemp = new();
+        List<Vector2> locs = new();
 
         locationXBounds = UnityEngine.Random.Range(30, 45);
         locationYBounds = UnityEngine.Random.Range(20, 35);
 
         for (int x = 0; x < locationXBounds; x++)
         {
-            List<HexTileInfo> temp = new List<HexTileInfo>();
-            bool odd = (x % 2 == 1) ? true : false;
+            List<HexTileInfo> temp = new();
+            bool odd = x % 2 == 1;
             for (int y = 0; y < locationYBounds; y++)
             {
                 GameObject obj = Instantiate(tilePrefab, new Vector3(x * 0.75f, 0f, (odd) ? y * .87f + .43f : y * .87f), Quaternion.identity, transform);
@@ -112,8 +128,7 @@ public class LocationManager : MonoBehaviour
                 tf.SetManager(this);
                 tf.SetMain(main);
                 tf.SetUpTileLocation(x, y);
-                tf.SetEnemyNumbers(enemyRatio, enemyDensityMin, enemyDensityMax);
-                tf.frequencyOfLandDistribution = frequencyForLandSpawning;
+                tf.SetLandConfiguration(frequencyForLandSpawning, landFormationOdds, enemyRatio, enemyDensityMin, enemyDensityMax);
                 temp.Add(tf);
                 locs.Add(tf.myPositionInTheArray);
             }
@@ -177,11 +192,11 @@ public class LocationManager : MonoBehaviour
         float l = locationXBounds * locationYBounds;
         float q = (float)point / (float)landStartingPointsForSpawning * l;
         float f = (float)(point + 1) / (float)landStartingPointsForSpawning * l;
-        int k = 0, d = 0, r = 0;
+        int d = 0, r = 0;
         bool suitable = false;
         while (!suitable)
         {
-            k = UnityEngine.Random.Range(Mathf.RoundToInt(q), Mathf.RoundToInt(f));
+            int k = UnityEngine.Random.Range(Mathf.RoundToInt(q), Mathf.RoundToInt(f));
             d = Mathf.FloorToInt(k / locationYBounds);
             r = k % locationYBounds;
             Vector2 target = tileInfoList[d][r].myPositionInTheArray;
@@ -195,19 +210,16 @@ public class LocationManager : MonoBehaviour
 
         tileInfoList[d][r].TurnLand();
     }  
-    public void GiveATileAShip(Spacecraft ship, Vector2 tile)
-    {
-        mySpaceship = ship;
-        tileInfoList[Mathf.RoundToInt(tile.x)][Mathf.RoundToInt(tile.y)].CreateShip(ship);
-    }
     public void GiveATileAShip(Spacecraft ship, Vector2 tile, bool startLanding)
     {
         mySpaceship = ship;
-        mySpaceship.AssignTileLocation(tile);
         HexTileInfo info = tileInfoList[Mathf.RoundToInt(tile.x)][Mathf.RoundToInt(tile.y)];
-        info.CreateShip(ship);
-        info.StartLandingAnimation();
-        
+        info.SetShip(ship);
+        if (startLanding)
+        {
+            mySpaceship.AssignTileLocation(tile);
+            info.StartLandingAnimation();
+        } 
     }
     public Vector2 FindSuitableLandingSpace()
     {
@@ -228,8 +240,8 @@ public class LocationManager : MonoBehaviour
     #region Location Checks For Neighbors
     private Vector2[] FindNeighbors(Vector2 location)
     {
-        List<Vector2> neg = new List<Vector2>();
-        Vector2 vectorNull = new Vector2(-1, -1);
+        List<Vector2> neg = new();
+        Vector2 vectorNull = new(-1, -1);
 
         Vector2 v = CheckUpLocation(location);
         if(v != vectorNull) neg.Add(v);
@@ -264,47 +276,47 @@ public class LocationManager : MonoBehaviour
     }
     public Vector2 CheckLeftDownLocation(Vector2 location)
     {
-        Vector2 v = new Vector2(location.x - 1, location.y - 1);
-        return (CheckLocationMatch(v)) ? v : new Vector2(-1, -1);
+        Vector2 v = new(location.x - 1, location.y - 1);
+        return (CheckLocationMatch(v)) ? v : new(-1, -1);
     }
     public Vector2 CheckLeftUpLocation(Vector2 location)
     {
-        Vector2 v = new Vector2(location.x - 1, location.y + 1);
-        return (CheckLocationMatch(v)) ? v : new Vector2(-1, -1);
+        Vector2 v = new(location.x - 1, location.y + 1);
+        return (CheckLocationMatch(v)) ? v : new(-1, -1);
     }
     public Vector2 CheckLeftEqualLocation(Vector2 location)
     {
-        Vector2 v = new Vector2(location.x - 1, location.y);
-        return (CheckLocationMatch(v)) ? v : new Vector2(-1, -1);
+        Vector2 v = new(location.x - 1, location.y);
+        return (CheckLocationMatch(v)) ? v : new(-1, -1);
     }
     public Vector2 CheckRightDownLocation(Vector2 location)
     {
-        Vector2 v = new Vector2(location.x + 1, location.y - 1);
-        return (CheckLocationMatch(v)) ? v : new Vector2(-1, -1);
+        Vector2 v = new(location.x + 1, location.y - 1);
+        return (CheckLocationMatch(v)) ? v : new(-1, -1);
     }
     public Vector2 CheckRightUpLocation(Vector2 location)
     {
-        Vector2 v = new Vector2(location.x + 1, location.y + 1);
-        return (CheckLocationMatch(v)) ? v : new Vector2(-1, -1);
+        Vector2 v = new(location.x + 1, location.y + 1);
+        return (CheckLocationMatch(v)) ? v : new(-1, -1);
     }
     public Vector2 CheckRightEqualLocation(Vector2 location)
     {
-        Vector2 v = new Vector2(location.x + 1, location.y);
-        return (CheckLocationMatch(v)) ? v : new Vector2(-1, -1);
+        Vector2 v = new(location.x + 1, location.y);
+        return (CheckLocationMatch(v)) ? v : new(-1, -1);
     }
     public Vector2 CheckUpLocation(Vector2 location)
     {
-        Vector2 v = new Vector2(location.x, location.y + 1);
-        return (CheckLocationMatch(v)) ? v : new Vector2(-1, -1);
+        Vector2 v = new(location.x, location.y + 1);
+        return (CheckLocationMatch(v)) ? v : new(-1, -1);
     }
     public Vector2 CheckDownLocation(Vector2 location)
     {
-        Vector2 v = new Vector2(location.x, location.y - 1);
-        return (CheckLocationMatch(v)) ? v : new Vector2(-1, -1);
+        Vector2 v = new(location.x, location.y - 1);
+        return (CheckLocationMatch(v)) ? v : new(-1, -1);
     }
     bool CheckLocationMatch(Vector2 location)
     {
-        return (Array.Exists(TileLocations, loc => loc.x == location.x && loc.y == location.y)) ? true : false;
+        return Array.Exists(TileLocations, loc => loc.x == location.x && loc.y == location.y);
     }
     #endregion
 
@@ -352,6 +364,17 @@ public class LocationManager : MonoBehaviour
     #endregion
 
     #region Life Cycle
+    private void RemoveLandCount(Vector2 tile)
+    {
+        landLeftToConquer--;
+        if (landLeftToConquer == 0) Main.PushMessage("Land Conquered!", $"Congradulations you have conquered all of {myAddress}!" +
+            $" There are many more locations out there to conquer.");
+        //We will need to check if the Planet has been named or not and allow naming.
+    }
+    private void AddToLandCount()
+    {
+        landLeftToConquer++;
+    }
     void SaveLocationInfo()
     {
         SaveSystem.WipeString();

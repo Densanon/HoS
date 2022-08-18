@@ -10,10 +10,10 @@ class WeightedRandomBag<T>
         public T item;
     }
 
-    private List<Entry> buildList = new List<Entry>();
+    private readonly List<Entry> buildList = new();
     private Entry[] entries;
     private double accumulatedWeight;
-    private Random rand = new Random();
+    private readonly Random rand = new();
 
     public void AddEntry(T item, double weight)
     {
@@ -37,6 +37,6 @@ class WeightedRandomBag<T>
                 return entry.item;
             }
         }
-        return default(T); //should only happen when there are no entries
+        return default; //should only happen when there are no entries
     }
 }

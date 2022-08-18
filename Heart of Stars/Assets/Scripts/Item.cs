@@ -54,11 +54,11 @@ public class Item : MonoBehaviour
     }
     private void SetUpDependencyLists(ItemData source)
     {
-        myImediateDependence = new List<ItemData>();
+        myImediateDependence = new();
 
-        List<string> tempNames = new List<string>();
-        List<ItemData> temp = new List<ItemData>();
-        List<int> tempIndices = new List<int>();
+        List<string> tempNames = new();
+        List<ItemData> temp = new();
+        List<int> tempIndices = new();
 
         //check for consumable dependencies
         string[] str = source.consumableRequirements.Split("-");
@@ -107,12 +107,12 @@ public class Item : MonoBehaviour
     void GetAllDependencies(List<ItemData> dependencies)
     {
         List<ItemData> extendedList = dependencies;
-        List<ItemData> temp = new List<ItemData>();
+        List<ItemData> temp = new();
         foreach(ItemData r in dependencies)
         {
             temp.Add(r);
         }
-        List<ItemData> dump = new List<ItemData>();
+        List<ItemData> dump = new();
         string[] str;
 
         while (!doneWithDependencyCheck)
@@ -169,7 +169,7 @@ public class Item : MonoBehaviour
     #region Buttons
     void SetupButtonLayout()
     {
-        List<Item> temp = new List<Item>();
+        List<Item> temp = new();
 
         if (isOriginalResource)
         {

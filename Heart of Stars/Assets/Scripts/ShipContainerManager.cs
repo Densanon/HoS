@@ -30,7 +30,7 @@ public class ShipContainerManager : MonoBehaviour
     }
     public void AssignShipToTile(Spacecraft ship)//Accessed via button
     {
-        activeLocationManager.GiveATileAShip(ship, ship.myTileLocation);
+        activeLocationManager.GiveATileAShip(ship, ship.MyTileLocation, false);
     }
     public void RemoveAllShips()
     {
@@ -62,7 +62,7 @@ public class ShipContainerManager : MonoBehaviour
     public void BuildABasicShip(Vector2 location)
     {
         CreateAShip(Spacecraft.SpaceshipType.Basic, "");
-        activeLocationManager.GiveATileAShip(activeShip, location);
+        activeLocationManager.GiveATileAShip(activeShip, location, false);
     }
     public void CreateAShip(string memory)
     {
@@ -70,9 +70,7 @@ public class ShipContainerManager : MonoBehaviour
         Spacecraft sp = go.GetComponent<Spacecraft>();
         sp.BuildShip(main, this, memory);
         ships.Add(sp);
-        activeShip = sp;
-        sp.AssignMain(main);
-        shipsPanelButton.SetActive(true);
+        SimilarSetup(sp);
     }
     public void CreateAShip(Spacecraft.SpaceshipType spaceshipType, string name)
     {
@@ -81,37 +79,14 @@ public class ShipContainerManager : MonoBehaviour
         sp.BuildShip(main,this, spaceshipType, name, main.universeAdress);
         ships.Add(sp);
         SimilarSetup(sp);
-    }
-    public void CreateAShip(Spacecraft.SpaceshipType spaceshipType, string name, bool starter)
-    {
-        GameObject go = Instantiate(shipPrefab, contentContainer.transform);
-        Spacecraft sp = go.GetComponent<Spacecraft>();
-        sp.BuildShip(main, this, spaceshipType, name, main.universeAdress);
-        ships.Add(sp);
-        SimilarSetup(sp, true);
-    }
-    public void CreateAShip(Spacecraft.SpaceshipType spaceshipType, string name, ItemData[] resources)
-    {
-        GameObject go = Instantiate(shipPrefab, contentContainer.transform);
-        Spacecraft sp = go.GetComponent<Spacecraft>();
-        sp.BuildShip(main,this, spaceshipType, name, main.universeAdress, resources);
-        ships.Add(sp);
-        SimilarSetup(sp);
+        Main.PushMessage("Ship Created!", "You have a new ship that you can manage! Check out the ships menu to look at all the " +
+            "ship related information.");
     }
     void SimilarSetup(Spacecraft ship)
     {
         activeShip = ship;
         ship.AssignMain(main);
         shipsPanelButton.SetActive(true);
-        Main.PushMessage("Ship Created!", "You have a new ship that you can manage! Check out the ships menu to look at all the " +
-            "ship related information.");
-    }
-    void SimilarSetup(Spacecraft ship, bool starter)
-    {
-        activeShip = ship;
-        ship.AssignMain(main);
-        mainContainer.SetActive(true);
-        TurnOffPanel();
     }
     #endregion
 
@@ -142,15 +117,8 @@ public class ShipContainerManager : MonoBehaviour
         activeLocationManager = manager;
         foreach (Spacecraft ship in ships)
         {
-            if (activeLocationManager.myAddress == ship.currentPlanetLocation) activeLocationManager.GiveATileAShip(ship, ship.myTileLocation);
+            if (activeLocationManager.myAddress == ship.CurrentPlanetLocation) activeLocationManager.GiveATileAShip(ship, ship.MyTileLocation, false);
         }
-    }
-    public Spacecraft GetStarterShip()
-    {
-        CreateAShip(Spacecraft.SpaceshipType.Basic, "", true);
-        activeShip.LoadShipWithResource("soldier", 20);
-        activeShip.LoadShipWithResource("food", 160);
-        return activeShip;
     }
     public void SetAtiveShip(Spacecraft ship)
     {
@@ -177,7 +145,7 @@ public class ShipContainerManager : MonoBehaviour
         string s = "";
         foreach(Spacecraft ship in ships)
         {
-            if(ReferenceEquals(ship, ships[ships.Count-1]))
+            if(ReferenceEquals(ship, ships[^1]))
             {
                 s += ship.DigitizeForSerialization();
                 s = s.Remove(s.Length - 1);

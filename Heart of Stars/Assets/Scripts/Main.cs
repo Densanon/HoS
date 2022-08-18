@@ -18,12 +18,15 @@ public class Main : MonoBehaviour
     public enum UniverseDepth {Universe, SuperCluster, Galaxy, Nebula, GlobularCluster, StarCluster, Constellation, SolarSystem, PlanetMoon, Planet, Moon}
     public static UniverseDepth currentDepth = UniverseDepth.Universe;
 
+    public enum TerrainType { River, Ocean, Lake, Lava, ToxicSea, Desert, Dune, SaltFlat, Oasis, DriedMud, Soil, Swamp, Grassland, Forest, Jungle, 
+        ConcreteRoad, Road, Mountain, Canyon, Hill, Cliff, Butte, Valley, FloatingIslands, BoulderLaden, Glacier, ArcticTundra, AlpineTundra, Arctic, Snow, Volcano}
+
+    public static Dictionary<TerrainType, List<ItemData>> TerrainDictionary; 
+
+
+
     [SerializeField]
     TMP_Text areaText;
-
-    public int landStartingPointsForSpawning;
-    public float frequencyForLandSpawning;
-
     [SerializeField]
     GameObject[] depthPrefabs;
     [SerializeField]
@@ -33,7 +36,6 @@ public class Main : MonoBehaviour
     bool fromMemoryOfLocation = false;
     bool isPlanet = false;
     bool canZoomContinue = false;
-    int objectIndex = 0;
     [SerializeField]
     GameObject planetPrefab;
     [SerializeField]
@@ -54,14 +56,15 @@ public class Main : MonoBehaviour
     List<string> itemNames;
     [SerializeField]
     ItemData[] ItemLibrary;
-    ItemData[] LocationResources;
     List<string> LocationAddresses;
 
     public string universeAdress;
     string activePlanetAddress;
+    public int landStartingPointsForSpawning;
+    public float frequencyForLandSpawning;
+    public int landFormationOdds;
 
     string[] ItemNameReferenceIndex;
-    int[] QuedItemAmount;
 
     public GameObject ResourePanelPrefab;
     public Transform ItemPanelTransform;
@@ -82,7 +85,7 @@ public class Main : MonoBehaviour
 
     public static bool isInitialized = false;
 
-    WeightedRandomBag<ItemData> dropTypes = new WeightedRandomBag<ItemData>(); //Needs to be implemented for item drops
+    WeightedRandomBag<ItemData> dropTypes = new(); //Needs to be implemented for item drops
 
     #region Debug Values
     public static Action OnRevealTileLocations = delegate { };
@@ -148,6 +151,11 @@ public class Main : MonoBehaviour
     {
         string[] ar = debugField.Split(",");
         debugTile = activeBrain.GetTile(new Vector2(float.Parse(ar[0]), float.Parse(ar[1])));
+    }
+    public void TurnAllLandConqueredButOne() //Takes x,y from Universal Debug Field to be the tile left unconquered
+    {
+        string[] ar = debugField.Split(",");
+        activeBrain.TurnAllLandConqueredButOne(new Vector2(float.Parse(ar[0]), float.Parse(ar[1])));
     }
     public void SubmitDebugField() //With a tile active, when done editting the highest field it attemps to access the tile item by itemName
     {
@@ -230,7 +238,7 @@ public class Main : MonoBehaviour
     public void DebugTileInformation() //Active Tile, in console it gives the tiles save data string in the console
     {
         string[] s = debugField.Split(",");
-        Vector2 v = new Vector2(int.Parse(s[0]), int.Parse(s[1]));
+        Vector2 v = new(int.Parse(s[0]), int.Parse(s[1]));
         OnRevealTileSpecificInformation(v);
     }
     public void ToggleCantLose() //Prevents you or generals from losing any units
@@ -311,7 +319,7 @@ public class Main : MonoBehaviour
     public void SubmitGeneralStart() //Puts the active general at tile location set by Universal Debug Field x,y
     {
         string[] s = debugField.Split(",");
-        Vector2 tile = new Vector2(float.Parse(s[0]), float.Parse(s[1]));
+        Vector2 tile = new(float.Parse(s[0]), float.Parse(s[1]));
         generalManager.SetGeneralLocation(tile);
     }
     public void SubmitGeneralName() //Changes the name of active general set by Universal Debug Field
@@ -325,7 +333,7 @@ public class Main : MonoBehaviour
     }
     public void GenerateMapLocation() //Using the Universal Debug Field type in the universe address and it will create and take you there
     {
-        //42,7,1,1,2,7,10,2,8,0  Current planet working inside of
+        //42,2,5,7,5,8,0,4,4,0  Current planet working inside of
         fromMemoryOfLocation = true;
         universeAdress = debugField;
         OnWorldMap?.Invoke(true);
@@ -334,7 +342,7 @@ public class Main : MonoBehaviour
     public void CreateABasicShip() //Creates a basic ship, this ship must be set with a tile to start by Universal Debug Field x,y
     {
         string[] ar = debugField.Split(",");
-        Vector2 v = new Vector2(float.Parse(ar[0]), float.Parse(ar[1]));
+        Vector2 v = new(float.Parse(ar[0]), float.Parse(ar[1]));
         shipsManager.BuildABasicShip(v);
     }
     public void SetAllShipSpeeds() //Sets all ships flying delays to whatever float value set by Universal Debug Field
@@ -365,6 +373,8 @@ public class Main : MonoBehaviour
         {
             BuildGenericResourceInformationFromMemory();
         }
+
+        BuildTerrainDictionary();
 
         string s = SaveSystem.LoadFile("/address_nissi");
         if (s != null)
@@ -403,6 +413,81 @@ public class Main : MonoBehaviour
     #endregion
 
     #region Data Calls
+    private void BuildTerrainDictionary()
+    {
+        TerrainDictionary.Add(TerrainType.River, new());
+        TerrainDictionary.Add(TerrainType.Ocean, new());
+        TerrainDictionary.Add(TerrainType.Lake, new());
+        TerrainDictionary.Add(TerrainType.Lava, new());
+        TerrainDictionary.Add(TerrainType.ToxicSea, new());
+        TerrainDictionary.Add(TerrainType.Desert, new());
+        TerrainDictionary.Add(TerrainType.Dune, new());
+        TerrainDictionary.Add(TerrainType.SaltFlat, new());
+        TerrainDictionary.Add(TerrainType.Oasis, new());
+        TerrainDictionary.Add(TerrainType.DriedMud, new());
+        TerrainDictionary.Add(TerrainType.Soil, new());
+        TerrainDictionary.Add(TerrainType.Swamp, new());
+        TerrainDictionary.Add(TerrainType.Grassland, new());
+        TerrainDictionary.Add(TerrainType.Forest, new());
+        TerrainDictionary.Add(TerrainType.Jungle, new());
+        TerrainDictionary.Add(TerrainType.ConcreteRoad, new());
+        TerrainDictionary.Add(TerrainType.Road, new());
+        TerrainDictionary.Add(TerrainType.Mountain, new());
+        TerrainDictionary.Add(TerrainType.Canyon, new());
+        TerrainDictionary.Add(TerrainType.Hill, new());
+        TerrainDictionary.Add(TerrainType.Cliff, new());
+        TerrainDictionary.Add(TerrainType.Butte, new());
+        TerrainDictionary.Add(TerrainType.Valley, new());
+        TerrainDictionary.Add(TerrainType.FloatingIslands, new());
+        TerrainDictionary.Add(TerrainType.BoulderLaden, new());
+        TerrainDictionary.Add(TerrainType.Glacier, new());
+        TerrainDictionary.Add(TerrainType.ArcticTundra, new());
+        TerrainDictionary.Add(TerrainType.AlpineTundra, new());
+        TerrainDictionary.Add(TerrainType.Arctic, new());
+        TerrainDictionary.Add(TerrainType.Snow, new());
+        TerrainDictionary.Add(TerrainType.Volcano, new());
+        foreach (ItemData item in ItemLibrary)
+        {
+            if (item.nonConsumableRequirements != "nothing")
+            {
+                string[] ar = item.nonConsumableRequirements.Split(" ");
+                foreach (string s in ar)
+                {
+                    if (s == "River") TerrainDictionary[TerrainType.River].Add(item);
+                    else if (s == "Ocean") TerrainDictionary[TerrainType.Ocean].Add(item);
+                    else if (s == "Lake") TerrainDictionary[TerrainType.Lake].Add(item);
+                    else if (s == "Lava") TerrainDictionary[TerrainType.Lava].Add(item);
+                    else if (s == "ToxicSea") TerrainDictionary[TerrainType.ToxicSea].Add(item);
+                    else if (s == "Desert") TerrainDictionary[TerrainType.Desert].Add(item);
+                    else if (s == "Dune") TerrainDictionary[TerrainType.Dune].Add(item);
+                    else if (s == "SaltFlat") TerrainDictionary[TerrainType.SaltFlat].Add(item);
+                    else if (s == "Oasis") TerrainDictionary[TerrainType.Oasis].Add(item);
+                    else if (s == "DriedMud") TerrainDictionary[TerrainType.DriedMud].Add(item);
+                    else if (s == "Soil") TerrainDictionary[TerrainType.Soil].Add(item);
+                    else if (s == "Swamp") TerrainDictionary[TerrainType.Swamp].Add(item);
+                    else if (s == "Grassland") TerrainDictionary[TerrainType.Grassland].Add(item);
+                    else if (s == "Forest") TerrainDictionary[TerrainType.Forest].Add(item);
+                    else if (s == "Jungle") TerrainDictionary[TerrainType.Jungle].Add(item);
+                    else if (s == "ConcreteRoad") TerrainDictionary[TerrainType.ConcreteRoad].Add(item);
+                    else if (s == "Road") TerrainDictionary[TerrainType.Road].Add(item);
+                    else if (s == "Mountain") TerrainDictionary[TerrainType.Mountain].Add(item);
+                    else if (s == "Canyon") TerrainDictionary[TerrainType.Canyon].Add(item);
+                    else if (s == "Hill") TerrainDictionary[TerrainType.Hill].Add(item);
+                    else if (s == "Cliff") TerrainDictionary[TerrainType.Cliff].Add(item);
+                    else if (s == "Butte") TerrainDictionary[TerrainType.Butte].Add(item);
+                    else if (s == "Valley") TerrainDictionary[TerrainType.Valley].Add(item);
+                    else if (s == "FloatingIslands") TerrainDictionary[TerrainType.FloatingIslands].Add(item);
+                    else if (s == "BoulderLaden") TerrainDictionary[TerrainType.BoulderLaden].Add(item);
+                    else if (s == "Galcier") TerrainDictionary[TerrainType.Glacier].Add(item);
+                    else if (s == "Arctic") TerrainDictionary[TerrainType.Arctic].Add(item);
+                    else if (s == "ArcticTundra") TerrainDictionary[TerrainType.ArcticTundra].Add(item);
+                    else if (s == "AlpineTundra") TerrainDictionary[TerrainType.AlpineTundra].Add(item);
+                    else if (s == "Snow") TerrainDictionary[TerrainType.Snow].Add(item);
+                    else if (s == "Volcano") TerrainDictionary[TerrainType.Volcano].Add(item);
+                }
+            }
+        }
+    }
     void CreateOrResetAllBuildableStrings()
     {
         for (int k = 0; k < ItemLibrary.Length; k++)
@@ -474,7 +559,7 @@ public class Main : MonoBehaviour
     }
     public ItemData[] FindBuildablesForItem(ItemData item)
     {
-        List<ItemData> temp = new List<ItemData>();
+        List<ItemData> temp = new();
         foreach(ItemData rd in ItemLibrary)
         {
             if((rd.consumableRequirements != "nothing=0" &&
@@ -500,7 +585,7 @@ public class Main : MonoBehaviour
     }
     public ItemData[] FindDependenciesFromItem(ItemData item)
     {
-        List<ItemData> deps = new List<ItemData>();
+        List<ItemData> deps = new();
         string[] ar = item.consumableRequirements.Split("-");
         if(ar[0] != "nothing=0")
         {
@@ -515,7 +600,7 @@ public class Main : MonoBehaviour
     }
     public int[] FindDependencyAmountsFromItem(ItemData item)
     {
-        List<int> deps = new List<int>();
+        List<int> deps = new();
         string[] ar = item.consumableRequirements.Split("-");
         if (ar[0] != "nothing=0")
         {
@@ -720,9 +805,7 @@ public class Main : MonoBehaviour
     void BuildGenericResourceInformation()
     {
         ItemLibrary = new ItemData[SheetData.Count];
-        LocationResources = new ItemData[SheetData.Count];
         ItemNameReferenceIndex = new string[SheetData.Count];
-        QuedItemAmount = new int[SheetData.Count];
         LoadedData = new List<string[]>();
         itemNames = new List<string>();
 
@@ -742,7 +825,7 @@ public class Main : MonoBehaviour
                         CompareIndividualItemValues(this,ItemLibrary[j]);
                     }
                 }
-                catch (IndexOutOfRangeException e) { }
+                catch{ }
 
                 continue;
             }
@@ -771,16 +854,13 @@ public class Main : MonoBehaviour
     }
     void BuildGenericResourceInformationFromMemory()
     {
-        LoadedData = new List<string[]>();
-        itemNames = new List<string>();
+        LoadedData = new();
+        itemNames = new();
 
         BuildLoadedData(SaveSystem.LoadFile("/item_shalom"));
 
-        List<ItemData> temp = new List<ItemData>();
         ItemLibrary = new ItemData[LoadedData.Count];
-        LocationResources = new ItemData[LoadedData.Count];
         ItemNameReferenceIndex = new string[LoadedData.Count];
-        QuedItemAmount = new int[LoadedData.Count];
 
         for (int j = 0; j < LoadedData.Count; j++)
         {
@@ -806,7 +886,7 @@ public class Main : MonoBehaviour
     private void BuildItemLibraryFromMemoryAtIndex(int j)
     {
         ItemLibrary[j] = new ItemData(LoadedData[j][0], LoadedData[j][1], LoadedData[j][2], LoadedData[j][3], LoadedData[j][4], LoadedData[j][5], LoadedData[j][6],
-                        (LoadedData[j][7] == "True") ? true : false, int.Parse(LoadedData[j][8]), int.Parse(LoadedData[j][9]), float.Parse(LoadedData[j][10]), LoadedData[j][11], LoadedData[j][12],
+                        LoadedData[j][7] == "True", int.Parse(LoadedData[j][8]), int.Parse(LoadedData[j][9]), float.Parse(LoadedData[j][10]), LoadedData[j][11], LoadedData[j][12],
                         LoadedData[j][13], LoadedData[j][14], LoadedData[j][15], LoadedData[j][16], int.Parse(LoadedData[j][17]), LoadedData[j][18]);
 
         ItemNameReferenceIndex[j] = ItemLibrary[j].displayName;
@@ -821,27 +901,10 @@ public class Main : MonoBehaviour
                         SheetData[j][6], SheetData[j][7], SheetData[j][11], SheetData[j][12],
                         SheetData[j][13], 0, "");
     }
-    void LoadDataFromSave()
-    {
-        LoadedData = new List<string[]>();
-        itemNames = new List<string>();
-
-        string s = SaveSystem.LoadFile("/item_shalom");
-        BuildLoadedData(s);
-        
-        LocationResources = new ItemData[LoadedData.Count];
-
-        for (int j = 0; j < LoadedData.Count; j++)
-        {
-            LocationResources[j] = new ItemData(LoadedData[j][0], LoadedData[j][1], LoadedData[j][2], LoadedData[j][3], LoadedData[j][4], LoadedData[j][5], LoadedData[j][6],
-                    (LoadedData[j][7] == "True") ? true : false, int.Parse(LoadedData[j][8]), int.Parse(LoadedData[j][9]), float.Parse(LoadedData[j][10]), LoadedData[j][11], LoadedData[j][12],
-                    LoadedData[j][13], LoadedData[j][14], LoadedData[j][15], LoadedData[j][16], int.Parse(LoadedData[j][17]), LoadedData[j][18]);
-        }
-    }
     string[] TryLoadLevel()
     {
         string s = SaveSystem.LoadFile("/" + universeAdress);
-        return (s != null) ? s.Split("|") : null; // Checking for a save of the planet
+        return s?.Split("|");// Checking for a save of the planet
     }
     #endregion
     
@@ -852,7 +915,7 @@ public class Main : MonoBehaviour
 
         if (depthLocations != null) WipeUniversePieces();
         
-        List<HexTileInfo> temp = new List<HexTileInfo>();
+        List<HexTileInfo> temp = new();
 
         if (!fromMemoryOfLocation)
         {
@@ -928,7 +991,7 @@ public class Main : MonoBehaviour
     private void SetUpSpaceEncounter(int prefabIndex, int spawnAmount)
     {
         Debug.Log("Generating Space Encounter.");
-        List<GameObject> objs = new List<GameObject>();
+        List<GameObject> objs = new();
         
         if(depthPrefabs[prefabIndex] != null)
         {
@@ -964,7 +1027,7 @@ public class Main : MonoBehaviour
     }
     private void SetUpSpaceEncounter(int planetPrefabIndex, int moonPrefabIndex,int spawnAmount)
     {
-        List<GameObject> objs = new List<GameObject>();
+        List<GameObject> objs = new();
 
         if (depthPrefabs[planetPrefabIndex] != null)
         {
@@ -990,7 +1053,7 @@ public class Main : MonoBehaviour
         bool isBrandNew = false;
         isViewingPlanetOnly = !CheckIfVisitedPlanet(); //need a better check system
         if (!isInitialized) isViewingPlanetOnly = false;
-        if (!LocationAddresses.Contains(universeAdress) && (isLanding ? true : !isViewingPlanetOnly)) 
+        if (!CheckIfVisitedPlanet() && (isLanding ? true : !isViewingPlanetOnly)) 
         {
             LocationAddresses.Add(universeAdress);
             isBrandNew = true;        
@@ -1014,7 +1077,6 @@ public class Main : MonoBehaviour
         planetContainer.Add(Ego);
         activeBrain = Ego;
         activeBrain.AssignMain(this);
-        activeBrain.SetEnemyNumbers(spawnEnemyRatio, spawnEnemyDensityMin, spawnEnemyDensityMax);
         if (isBrandNew && isInitialized)
         {
             Debug.Log("Setting up first encounter.");
@@ -1025,8 +1087,12 @@ public class Main : MonoBehaviour
             Debug.Log("Setting up very first encounter.");
             isInitialized = true;
             PlayerPrefs.SetInt("Initialized", 1);
-            activeBrain.FirstPlanetaryEncounter(shipsManager.GetStarterShip());
+            spawnEnemyRatio = 0.2f;
+            spawnEnemyDensityMin = -16;
+            spawnEnemyDensityMax = 15;
+            //Min0 Max14 Average7
         }
+        activeBrain.SetLandConfiguration(frequencyForLandSpawning,landFormationOdds,spawnEnemyRatio, spawnEnemyDensityMin, spawnEnemyDensityMax);
         activeBrain.BuildPlanetData(TryLoadLevel(), universeAdress,(isLanding) ? false:isViewingPlanetOnly);
         isLanding = false;
 
@@ -1220,7 +1286,7 @@ public class Main : MonoBehaviour
                 break;
             case 10:
                 string[] ar = universeAdress.Split(",");
-                currentDepth = int.Parse(ar[ar.Length - 1]) != 0 ? UniverseDepth.Moon : UniverseDepth.Planet;
+                currentDepth = int.Parse(ar[^1]) != 0 ? UniverseDepth.Moon : UniverseDepth.Planet;
                 break;
         }
     }
@@ -1251,7 +1317,7 @@ public class Main : MonoBehaviour
         if(index == 42) SetLocationDepthByInt(1);
         
         GenerateUniverseLocation(currentDepth, index);
-        OnGoingToHigherLevel?.Invoke(depthLocations[int.Parse(ar[ar.Length - 1])]);
+        OnGoingToHigherLevel?.Invoke(depthLocations[int.Parse(ar[^1])]);
     }
     public static int NormalizeRandom(int minValue, int maxValue) //Normal distribution
     {
@@ -1293,7 +1359,7 @@ public class Main : MonoBehaviour
     {
         activeSpacecraft = ship;
         OnPausePlanetFunction?.Invoke();
-        debugField = ship.targetLocation;
+        debugField = ship.TargetLocation;
         isLanding = true;
         buildLevelAmount = 0;
         GenerateMapLocation();

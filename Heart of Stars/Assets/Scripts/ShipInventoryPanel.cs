@@ -52,7 +52,7 @@ public class ShipInventoryPanel : MonoBehaviour
         tileItemAmountText.text = tileItem.currentAmount.ToString();
         if (shipItem.itemName == "soldier")
         {
-            itemSlider.maxValue = myShip.troopMaximum;
+            itemSlider.maxValue = myShip.UnitMaximum;
             itemSlider.minValue = 0;
             itemSlider.value = shipItem.currentAmount;
             OnUpdateSliderForShip -= AdjustSlider;
@@ -66,9 +66,9 @@ public class ShipInventoryPanel : MonoBehaviour
     void AdjustSlider()
     {
         int value = shipItem.currentAmount + tileItem.currentAmount;
-        if (value > myShip.storageMax)
+        if (value > myShip.StorageMax)
         {
-            value -= value - myShip.storageMax;
+            value -= value - myShip.StorageMax;
             itemSlider.maxValue = value;
             return;
         }
@@ -83,7 +83,7 @@ public class ShipInventoryPanel : MonoBehaviour
             value = myShip.GetUnitsOnBoard(value);
             shipItem.SetCurrentAmount(value);
             shipItemAmountText.text = value.ToString();
-            shipItemAmountText.color =(myShip.units == myShip.troopMaximum) ?Color.red : Color.black;
+            shipItemAmountText.color =(myShip.Units == myShip.UnitMaximum) ?Color.red : Color.black;
 
             SetTileAmount(total - value);
             return;

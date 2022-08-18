@@ -16,21 +16,21 @@ public class Spacecraft : MonoBehaviour
     ShipContainerManager myManager;
 
     public enum SpaceshipType { Basic, NonBasic }
-    public SpaceshipType myShipType { private set; get; }
+    public SpaceshipType MyShipType { private set; get; }
     public string Name { private set; get; }
-    public ItemData[] myItemsData { private set; get; }
-    public int units {private set; get;}
-    public int unitMinimum { private set; get; }
-    public int troopMaximum { private set; get; }
-    public int storageCount { private set; get; }
-    public int storageMax { private set; get; }
-    public string currentPlanetLocation { private set; get; }
-    public string targetLocation { private set; get; }
-    public Vector2 myTileLocation { private set; get; }
-    public int myAccessLevel { private set; get; }
-    public float myTravelTime { private set; get; }
-    public float myTravelTimer { private set; get; }
-    public bool isTraveling { private set; get; }
+    public ItemData[] MyItemsData { private set; get; }
+    public int Units {private set; get;}
+    public int UnitMinimum { private set; get; }
+    public int UnitMaximum { private set; get; }
+    public int StorageCount { private set; get; }
+    public int StorageMax { private set; get; }
+    public string CurrentPlanetLocation { private set; get; }
+    public string TargetLocation { private set; get; }
+    public Vector2 MyTileLocation { private set; get; }
+    public int MyAccessLevel { private set; get; }
+    public float MyTravelTime { private set; get; }
+    public float MyTravelTimer { private set; get; }
+    public bool IsTraveling { private set; get; }
     bool cancel = false;
     public bool arrived = false;
     public string status;
@@ -61,25 +61,25 @@ public class Spacecraft : MonoBehaviour
     }
     public void SetShipSpeed(float speed)
     {
-        myTravelTimer = speed;
+        MyTravelTimer = speed;
     }
     #endregion
 
     #region UnityEngine
     private void Update()
     {
-        if (isTraveling)
+        if (IsTraveling)
         {
-            myTravelTime += Time.deltaTime;
-            if(!cancel && myTravelTime > myTravelTimer)
+            MyTravelTime += Time.deltaTime;
+            if(!cancel && MyTravelTime > MyTravelTimer)
             {
-                isTraveling = false;
+                IsTraveling = false;
                 ReadyForArrival();
             }
 
-            if (cancel && myTravelTime > myTravelTimer)
+            if (cancel && MyTravelTime > MyTravelTimer)
             {
-                isTraveling = false;
+                IsTraveling = false;
                 ReturnedToPlanet();
             }
         }
@@ -95,38 +95,38 @@ public class Spacecraft : MonoBehaviour
         AssignName(ar[0]);
         AssignSpacecraftType(ar[1]);
         CreateMyItems(ar[2]);
-        troopMaximum = int.Parse(ar[3]);
-        unitMinimum = int.Parse(ar[4]);
-        storageMax = int.Parse(ar[5]);
+        UnitMaximum = int.Parse(ar[3]);
+        UnitMinimum = int.Parse(ar[4]);
+        StorageMax = int.Parse(ar[5]);
         AssignLocation(ar[6]);
         AssignDestination(ar[7]);
         AssignTileLocation(ar[8]);
-        myAccessLevel = int.Parse(ar[9]);
-        myTravelTimer = float.Parse(ar[10]);
-        myTravelTime = float.Parse(ar[11]);
-        isTraveling = ar[12] == "True";
+        MyAccessLevel = int.Parse(ar[9]);
+        MyTravelTimer = float.Parse(ar[10]);
+        MyTravelTime = float.Parse(ar[11]);
+        IsTraveling = ar[12] == "True";
         cancel = ar[13] == "True";
-        if (!isTraveling)
+        if (!IsTraveling)
         {
             SetStatus("Waiting");
         }
-        else if (isTraveling && !cancel)
+        else if (IsTraveling && !cancel)
         {
             SetStatus("In Transit");
         }
-        else if (isTraveling && cancel)
+        else if (IsTraveling && cancel)
         {
             SetStatus("Returning");
         }
 
-        foreach(ItemData resource in myItemsData)
+        foreach(ItemData resource in MyItemsData)
         {
             if(resource.itemName == "soldier")
             {
-                units = resource.currentAmount;
+                Units = resource.currentAmount;
                 continue;
             }
-            storageCount += resource.currentAmount;
+            StorageCount += resource.currentAmount;
         }
     }
     /// <summary>
@@ -138,7 +138,7 @@ public class Spacecraft : MonoBehaviour
     public void BuildShip(Main m, ShipContainerManager manager, SpaceshipType type, string name, string curLocation)
     {
         AssignBasics(m, manager, type, name, curLocation);
-        myItemsData = new ItemData[1];
+        MyItemsData = new ItemData[1];
     }
     public void BuildShip(Main m, ShipContainerManager manager, SpaceshipType type, string name, string curLocation, ItemData[] resources)
     {
@@ -157,9 +157,9 @@ public class Spacecraft : MonoBehaviour
         AssignSpacecraftType(type);
         AssignName(name);
         AssignLocation(location);
-        isTraveling = false;
+        IsTraveling = false;
         SetStatus("Waiting");
-        targetLocation = "";
+        TargetLocation = "";
     }
     void AssignName(string name)
     {
@@ -173,7 +173,7 @@ public class Spacecraft : MonoBehaviour
     }
     private void GetRandomName()
     {
-        System.Random rand = new System.Random();
+        System.Random rand = new();
         int i = rand.Next(0, 8);
         string name = "";
         switch (i)
@@ -211,19 +211,19 @@ public class Spacecraft : MonoBehaviour
         switch (type)
         {
             case SpaceshipType.Basic:
-                myShipType = type;
-                myAccessLevel = 8;
-                myTravelTimer = 60f;
+                MyShipType = type;
+                MyAccessLevel = 8;
+                MyTravelTimer = 60f;
                 CreateBasicResourceHolders();
-                unitMinimum = 5;
-                troopMaximum = 20;
-                storageCount = 0;
-                storageMax = 160;
+                UnitMinimum = 5;
+                UnitMaximum = 20;
+                StorageCount = 0;
+                StorageMax = 160;
                 break;
             case SpaceshipType.NonBasic:
-                myShipType = type;
-                myAccessLevel = 8;
-                myTravelTimer = 50f;
+                MyShipType = type;
+                MyAccessLevel = 8;
+                MyTravelTimer = 50f;
                 break;
         }
     }
@@ -232,21 +232,21 @@ public class Spacecraft : MonoBehaviour
         switch (memory)
         {
             case "Basic":
-                myShipType = SpaceshipType.Basic;
+                MyShipType = SpaceshipType.Basic;
                 break;
             case "NonBasic":
-                myShipType = SpaceshipType.NonBasic;
+                MyShipType = SpaceshipType.NonBasic;
                 break;
         }
     }
     void AssignLocation(string location)
     {
-        currentPlanetLocation = location;
-        currentLocationText.text = currentPlanetLocation;
+        CurrentPlanetLocation = location;
+        currentLocationText.text = CurrentPlanetLocation;
     }
     public void AssignTileLocation(Vector2 tile)
     {
-        myTileLocation = tile; 
+        MyTileLocation = tile; 
     }
     public void AssignTileLocation(string memory)
     {
@@ -254,14 +254,14 @@ public class Spacecraft : MonoBehaviour
         char[] charToTrim = { '(', ')'};
         s = s.Trim(charToTrim);
         string[] ar = s.Split(",");
-        myTileLocation = new Vector2(float.Parse(ar[0]), float.Parse(ar[1]));
+        MyTileLocation = new Vector2(float.Parse(ar[0]), float.Parse(ar[1]));
     }
     #endregion
 
     #region Item Management
     void CreateBasicResourceHolders()
     {
-        List<ItemData> temp = new List<ItemData>();
+        List<ItemData> temp = new();
         foreach(ItemData resource in main.GetItemLibrary())
         {
             if(resource.itemName == "soldier")
@@ -272,21 +272,21 @@ public class Spacecraft : MonoBehaviour
                 temp.Add(new ItemData(resource));
             }
         }
-        myItemsData = temp.ToArray();
+        MyItemsData = temp.ToArray();
     }
     public void CreateMyItems(ItemData[] resources)
     {
-        myItemsData = new ItemData[resources.Length];
+        MyItemsData = new ItemData[resources.Length];
         for(int i = 0; i < resources.Length; i++)
         {
             ItemData data = resources[i];
-            myItemsData[i] = new ItemData(data);
+            MyItemsData[i] = new ItemData(data);
             data.AdjustCurrentAmount(data.currentAmount);
         }
     }
     public void CreateMyItems(string memory)
     {
-        List<ItemData> temp = new List<ItemData>();
+        List<ItemData> temp = new();
         string[] ar = memory.Split(";");
         foreach (string s in ar)
         {
@@ -294,22 +294,22 @@ public class Spacecraft : MonoBehaviour
             //string name, string display, string dis, string gr, string eType, string reqs, string nonReqs, bool vis, int cur, int autoA, float craft,
             //string created, string coms, string createComs, string im, string snd, string ach, int mos, string build
             temp.Add(new ItemData(st[0], st[1], st[2], st[3], st[4], st[5], st[6],
-                    (st[7] == "True") ? true : false, int.Parse(st[8]), int.Parse(st[9]),
+                    st[7] == "True", int.Parse(st[8]), int.Parse(st[9]),
                     float.Parse(st[10]), st[11], st[12], st[13], st[14], st[15], st[16],
                     int.Parse(st[17]), st[18]));
         }
 
-        myItemsData = temp.ToArray();
-        foreach (ItemData data in myItemsData)
+        MyItemsData = temp.ToArray();
+        foreach (ItemData data in MyItemsData)
         {
             if (Main.needCompareForUpdatedValues) Main.CompareIndividualItemValues(main, data);
         }
     }
     public void LoadShipWithResource(ItemData resource)
     {
-        List<ItemData> temp = new List<ItemData>();
+        List<ItemData> temp = new();
         bool alreadyHave = false;
-        foreach(ItemData data in myItemsData)
+        foreach(ItemData data in MyItemsData)
         {
             temp.Add(data);
             if(data.itemName == resource.itemName)
@@ -326,13 +326,13 @@ public class Spacecraft : MonoBehaviour
             resource.AdjustCurrentAmount(resource.currentAmount * -1);
         }
 
-        myItemsData = temp.ToArray();
+        MyItemsData = temp.ToArray();
     }
     public void LoadShipWithResource(string itemName, int currentAmount)
     {
-        List<ItemData> temp = new List<ItemData>();
+        List<ItemData> temp = new();
         bool alreadyHave = false;
-        foreach (ItemData data in myItemsData)
+        foreach (ItemData data in MyItemsData)
         {
             if (data == null) break;
             temp.Add(data);
@@ -341,62 +341,62 @@ public class Spacecraft : MonoBehaviour
                 alreadyHave = true;
                 if(data.itemName == "soldier")
                 {
-                    if(units + currentAmount <= troopMaximum)
+                    if(Units + currentAmount <= UnitMaximum)
                     {
-                        units += currentAmount;
+                        Units += currentAmount;
                         continue;
                     }
-                    Main.PushMessage($"Ship {Name}", "You are trying to fit too many units into the ship.");
-                    units = troopMaximum;
+                    Main.PushMessage($"Ship {Name}", "You are trying to fit too many Units into the ship.");
+                    Units = UnitMaximum;
                     continue;
                 }
 
-                if(storageCount + currentAmount <= storageMax)
+                if(StorageCount + currentAmount <= StorageMax)
                 {
                     data.AdjustCurrentAmount(currentAmount);
-                    storageCount += currentAmount;
+                    StorageCount += currentAmount;
                 }
             }
 
         }
         if (!alreadyHave)
         {
-            ItemData data = new ItemData(main.FindItemFromString(itemName));
+            ItemData data = new(main.FindItemFromString(itemName));
             if (data.itemName == "soldier")
             {
-                if (units + currentAmount <= troopMaximum)
+                if (Units + currentAmount <= UnitMaximum)
                 {
                     data.SetCurrentAmount(currentAmount);
-                    units += currentAmount;
+                    Units += currentAmount;
                 }
                 else
                 {
-                    Main.PushMessage($"Ship {Name}", "You are trying to fit too many units into the ship.");
-                    units = troopMaximum;
-                    data.SetCurrentAmount(storageMax - storageCount);
+                    Main.PushMessage($"Ship {Name}", "You are trying to fit too many Units into the ship.");
+                    Units = UnitMaximum;
+                    data.SetCurrentAmount(StorageMax - StorageCount);
                 }
             }
             else
             {
-                if (storageCount + currentAmount <= storageMax)
+                if (StorageCount + currentAmount <= StorageMax)
                 {
                     data.SetCurrentAmount(currentAmount);
-                    storageCount += currentAmount;
+                    StorageCount += currentAmount;
                 }
                 else
                 {
-                    data.SetCurrentAmount(storageMax - storageCount);
-                    storageCount = storageMax;
+                    data.SetCurrentAmount(StorageMax - StorageCount);
+                    StorageCount = StorageMax;
                     Main.PushMessage($"Ship {Name}", "You have attempted to store more resources than you have capacity for.");
                 }
             }
             temp.Add(data);
         }
-        myItemsData = temp.ToArray();
+        MyItemsData = temp.ToArray();
     }
     public ItemData[] GetShipStorage()
     {
-        return myItemsData;
+        return MyItemsData;
     }
     #endregion
 
@@ -413,20 +413,20 @@ public class Spacecraft : MonoBehaviour
     }
     public int GetUnitsOnBoard(int value)
     {
-        if(value > troopMaximum)
+        if(value > UnitMaximum)
         {
-            units = troopMaximum;
-            return units;
+            Units = UnitMaximum;
+            return Units;
         }
-        units = value;
-        return units;
+        Units = value;
+        return Units;
     }
     public void UpdateStorage()
     {
-        storageCount = 0;
-        foreach(ItemData data in myItemsData)
+        StorageCount = 0;
+        foreach(ItemData data in MyItemsData)
         {
-            storageCount += data.currentAmount;
+            StorageCount += data.currentAmount;
         }
     }
     #endregion
@@ -441,35 +441,35 @@ public class Spacecraft : MonoBehaviour
         myManager.SetAtiveShip(this);
         myManager.TurnOffPanel();
         Main.OnSendPlanetLocationAsTarget += AssignDestination;
-        OnRequestingShipDestination?.Invoke(myAccessLevel);
+        OnRequestingShipDestination?.Invoke(MyAccessLevel);
     }
     public void AssignDestination(string target)
     {
-        targetLocation = target;
-        targetLocationText.text = targetLocation;
+        TargetLocation = target;
+        targetLocationText.text = TargetLocation;
         Main.OnSendPlanetLocationAsTarget -= AssignDestination;
     }
     public void StartJourney() //Accessed via button
     {
-        if(targetLocation == "")
+        if(TargetLocation == "")
         {
             Main.PushMessage($"Ship {Name}", "We don't have a location to travel to.");
             return;
-        }else if(units < unitMinimum)
+        }else if(Units < UnitMinimum)
         {
-            Main.PushMessage($"Ship {Name}", $"We don't have enough units to crew the ship. We currently have {units} of {unitMinimum} needed. " +
-                $"Load some of the units from the tile into the ship by accessing the ship inventory on the tile.");
+            Main.PushMessage($"Ship {Name}", $"We don't have enough Units to crew the ship. We currently have {Units} of {UnitMinimum} needed. " +
+                $"Load some of the Units from the tile into the ship by accessing the ship inventory on the tile.");
             return;
         }
-        if (!isTraveling)
+        if (!IsTraveling)
         {
-            myTravelTime = 0;
-            OnLaunchSpaceCraft?.Invoke(myTileLocation);
+            MyTravelTime = 0;
+            OnLaunchSpaceCraft?.Invoke(MyTileLocation);
         }
         journeyButton.SetActive(false);
         cancelJourneyButton.SetActive(true);
         cancel = false;
-        isTraveling = true;
+        IsTraveling = true;
         SetStatus("In Transit");
     }
     private void ReadyForArrival()
@@ -483,7 +483,7 @@ public class Spacecraft : MonoBehaviour
         cancelJourneyButton.SetActive(false);
         journeyButton.SetActive(true);
         cancel = true;
-        myTravelTime = myTravelTimer - myTravelTime;
+        MyTravelTime = MyTravelTimer - MyTravelTime;
     }
     private void ReturnedToPlanet()
     {
@@ -497,7 +497,7 @@ public class Spacecraft : MonoBehaviour
         cancelJourneyButton.SetActive(false);
         journeyButton.SetActive(false);
         landButton.SetActive(true);
-        Main.PushMessage($"Ship {Name}", $"Ready to land on location {((statusText.text == "Arrived")?targetLocation:currentPlanetLocation)}.");
+        Main.PushMessage($"Ship {Name}", $"Ready to land on location {((statusText.text == "Arrived")?TargetLocation:CurrentPlanetLocation)}.");
     }
     public void Land() //Accessed via button
     {
@@ -515,22 +515,22 @@ public class Spacecraft : MonoBehaviour
             return;
         }
         Debug.Log("Landing in a local area.");
-        OnLocalLanding?.Invoke(myTileLocation);
+        OnLocalLanding?.Invoke(MyTileLocation);
         SetStatus("Waiting");
     }
     public void OffloadItems()
     {
-        foreach(ItemData item in myItemsData)
+        foreach(ItemData item in MyItemsData)
         {
             item.SetCurrentAmount(0);
         }
-        storageCount = 0;
-        units = 0;
+        StorageCount = 0;
+        Units = 0;
     }
     public void SwitchLocationToCurrent()
     {
-        currentPlanetLocation = targetLocation;
-        currentLocationText.text = currentPlanetLocation;
+        CurrentPlanetLocation = TargetLocation;
+        currentLocationText.text = CurrentPlanetLocation;
     }
     void SetStatus(string stat)
     {
@@ -543,20 +543,17 @@ public class Spacecraft : MonoBehaviour
     public string DigitizeForSerialization()
     {
         string s = "";
-        if (myItemsData.Length != 0)
+        if (MyItemsData.Length != 0)
         {
-            foreach (ItemData item in myItemsData)
+            foreach (ItemData item in MyItemsData)
             {
-                s = s + item.DigitizeForSerialization();
-                if (item == myItemsData[myItemsData.Length - 1])
-                {
-                    s = s.Remove(s.Length - 1);
-                }
+                s += item.DigitizeForSerialization();
+                if (item == MyItemsData[^1]) s = s.Remove(s.Length - 1);
             }
         }
 
-        return $"{Name}:{myShipType}:{s}:{troopMaximum}:{unitMinimum}:{storageMax}:{currentPlanetLocation}:{targetLocation}:{myTileLocation}:{myAccessLevel}" +
-            $":{myTravelTimer}:{myTravelTime}:{isTraveling}:{cancel}|";
+        return $"{Name}:{MyShipType}:{s}:{UnitMaximum}:{UnitMinimum}:{StorageMax}:{CurrentPlanetLocation}:{TargetLocation}:{MyTileLocation}:{MyAccessLevel}" +
+            $":{MyTravelTimer}:{MyTravelTime}:{IsTraveling}:{cancel}|";
     }
     #endregion
 }

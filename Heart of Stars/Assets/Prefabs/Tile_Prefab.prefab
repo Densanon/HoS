@@ -419,7 +419,6 @@ MonoBehaviour:
   canvasContainerPrefab: {fileID: 8011429825803110569, guid: f332a2bc0eefae3469868b342644e04a, type: 3}
   myCanvasContainer: {fileID: 0}
   myTileType: 0
-  frequencyOfLandDistribution: 0
   myPositionInTheArray: {x: 0, y: 0}
   isStartingPoint: 0
   isMousePresent: 0

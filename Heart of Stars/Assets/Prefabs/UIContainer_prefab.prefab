@@ -718,7 +718,7 @@ GameObject:
   - component: {fileID: 5211009881382885073}
   - component: {fileID: 376042638292203142}
   m_Layer: 5
-  m_Name: Resources_button
+  m_Name: Items_button
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -3653,7 +3653,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!224 &3246025254120433998
 RectTransform:
   m_ObjectHideFlags: 0
@@ -6752,6 +6752,7 @@ MonoBehaviour:
   interactiblesContainer: {fileID: 6828391635950073581}
   unitActionButton: {fileID: 2925350689571998916}
   shipActionButton: {fileID: 2558855726504082799}
+  itemActionButton: {fileID: 931048888616644161}
   dependenceButtonPrefab: {fileID: 4311139583789081462, guid: 7935b2d8249344043b2e603f39b5a0ac, type: 3}
   Containers:
   - {fileID: 4368168704878153448}
@@ -6759,7 +6760,6 @@ MonoBehaviour:
   - {fileID: 7060513187860450685}
   - {fileID: 8147665775373239771}
   mainFunctionsContainer: {fileID: 7906767430254809181}
-  resourceContainer: {fileID: 2157660124373736299}
   UIPivot: {fileID: 4869952055500085426}
   shipContentContainer: {fileID: 1548336555164387807}
   shipInventoryPrefab: {fileID: 1049503963928827319, guid: 6e8b1e766f38ae045aab2a3a3606bb7a, type: 3}

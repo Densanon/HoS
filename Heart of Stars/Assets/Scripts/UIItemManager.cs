@@ -18,14 +18,14 @@ public class UIItemManager : MonoBehaviour
     [SerializeField]
     GameObject shipActionButton;
     [SerializeField]
+    GameObject itemActionButton;
+    [SerializeField]
     GameObject dependenceButtonPrefab;
     [SerializeField]
     GameObject[] Containers;
 
     [SerializeField]
     Transform mainFunctionsContainer;
-    [SerializeField]
-    Transform resourceContainer;
     [SerializeField]
     Transform UIPivot;
     List<Item> itemButtons;
@@ -152,9 +152,10 @@ public class UIItemManager : MonoBehaviour
         mainFunctionsContainer.gameObject.SetActive(true);
         unitActionButton.SetActive(myTile.GetUnitCount() > 0);
         shipActionButton.SetActive(myTile.hasShip && myTile.myShip.status == "Waiting");
+        itemActionButton.SetActive(myTile.myItemData.Length > 2);
         foreach(GameObject obj in Containers)
         {
-            obj.gameObject.SetActive(false);
+            obj.SetActive(false);
         }
         ResetUnitText();      
     }
@@ -193,14 +194,14 @@ public class UIItemManager : MonoBehaviour
         shipTitleText.text = $"{myShip.Name} Inventory";
         UpdateStorageUI();
 
-        ItemData[] ar = myShip.myItemsData;
+        ItemData[] ar = myShip.MyItemsData;
         ItemData[] tileAr = myTile.myItemData;
         inventoryItemPanels = new GameObject[ar.Length];
         for(int i = 0; i < ar.Length; i++)
         {
             GameObject go = Instantiate(shipInventoryPrefab, shipContentContainer);
             inventoryItemPanels[i] = go;
-            ItemData item = new ItemData(ar[1]);
+            ItemData item = new(ar[1]);
             foreach(ItemData d in tileAr)
             {
                 if(d.itemName == ar[i].itemName)
@@ -215,7 +216,7 @@ public class UIItemManager : MonoBehaviour
     void UpdateStorageUI()
     {
         if (myShip == null) myShip = myTile.myShip;
-        shipStorageAmountsText.text = $"{myShip.storageCount} / {myShip.storageMax}";
+        shipStorageAmountsText.text = $"{myShip.StorageCount} / {myShip.StorageMax}";
     }
     public void GetShipMenu() //Accessed via button
     {
@@ -224,6 +225,10 @@ public class UIItemManager : MonoBehaviour
     public void GetShipInfo() //Accessed via button
     {
         myShip.GetShipInfo();
+    }
+    public void ResetUILocationOnScreen()
+    {
+        myTile.SetButtonsOnScreenPosition();
     }
     #endregion
 

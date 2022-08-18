@@ -24,25 +24,25 @@ public class General : MonoBehaviour
 
     #region Enums
     public enum GeneralType { Basic, NonBasic }
-    public GeneralType myType { private set; get; }
+    public GeneralType MyType { private set; get; }
 
     public enum GeneralState { Moving, Combat, Searching, Stop }
-    public GeneralState myGeneralState { private set; get; }
+    public GeneralState MyGeneralState { private set; get; }
 
     public enum Direction { North, NorthEast, SouthEast, South, SouthWest, NorthWest }
-    public Direction generalDirection { private set; get; }
+    public Direction GeneralDirection { private set; get; }
     #endregion
 
     public string Name { private set; get; }
     public bool Active { private set; get; }
     List<int> directionsAvailable;
     bool isSearching, isMoving, isFighting, directionIsPlayable, needCombat;
-    public Vector2 myLocation { private set; get; }
-    public Vector2 targetLocation { private set; get; }
-    public float generalSwitchStateTime { private set; get; }
+    public Vector2 MyLocation { private set; get; }
+    public Vector2 TargetLocation { private set; get; }
+    public float GeneralSwitchStateTime { private set; get; }
     private float timeStamp;
     
-    System.Random rand = new System.Random();
+    readonly System.Random Rand = new();
 
     #region UnityEngine
     private void Update()
@@ -59,15 +59,14 @@ public class General : MonoBehaviour
     {
         myManager = manager;
         myLocationManager = locManager;
-        myType = type;
+        MyType = type;
         SetRandomName();
-        generalSwitchStateTime = 4f;
+        GeneralSwitchStateTime = 4f;
         statusText.text = "Stop";
     }
     void SetRandomName()
     {
-        System.Random rand = new System.Random();
-        int x = rand.Next(0, 4);
+        int x = Rand.Next(0, 4);
         switch (x)
         {
             case 0:
@@ -92,9 +91,9 @@ public class General : MonoBehaviour
     public void SetGeneralTroopLocation(Vector2 tile)
     {
         Debug.Log($"General {Name} location set to {tile}.");
-        myLocation = tile;
+        MyLocation = tile;
         locationText.text = $"{tile}";
-        statusText.text = $"{myGeneralState}";
+        statusText.text = $"{MyGeneralState}";
     }
     public void RequestTroopLocation() //Accessed via button
     {
@@ -102,7 +101,7 @@ public class General : MonoBehaviour
     }
     public void SetGeneralType(GeneralType type) //Not implemented yet
     {
-        myType = type;
+        MyType = type;
     }
     #endregion
 
@@ -119,19 +118,19 @@ public class General : MonoBehaviour
     void StopGeneral()
     {
         Active = false;
-        myGeneralState = GeneralState.Stop;
-        statusText.text = $"{myGeneralState}";
+        MyGeneralState = GeneralState.Stop;
+        statusText.text = $"{MyGeneralState}";
     }
     public void ActivateGeneral()
     {
-        if (myLocation == null || myLocationManager.tileInfoList[Mathf.RoundToInt(myLocation.x)][Mathf.RoundToInt(myLocation.y)].GetUnitCount() < 1)
+        if (MyLocation == null || myLocationManager.tileInfoList[Mathf.RoundToInt(MyLocation.x)][Mathf.RoundToInt(MyLocation.y)].GetUnitCount() < 1)
         {
             Main.PushMessage($"General {Name}", "The General you are accessing does not have a troop to use. You will need to set" +
              " the troop location before you can use them.");
             return;
         }
         isSearching = false;
-        myGeneralState = GeneralState.Searching;
+        MyGeneralState = GeneralState.Searching;
         if(timeStamp != 0)
         {
             CompareTimeStamp();
@@ -169,7 +168,7 @@ public class General : MonoBehaviour
     #region Brain Functions
     void ExecuteGeneralState()
     {
-        switch (myGeneralState)
+        switch (MyGeneralState)
         {
             case GeneralState.Searching:
                 if (!isSearching)
@@ -188,11 +187,11 @@ public class General : MonoBehaviour
                 if (!isMoving)
                 {
                     isMoving = true;
-                    HexTileInfo current = myLocationManager.tileInfoList[Mathf.RoundToInt(myLocation.x)][Mathf.RoundToInt(myLocation.y)];
+                    HexTileInfo current = myLocationManager.tileInfoList[Mathf.RoundToInt(MyLocation.x)][Mathf.RoundToInt(MyLocation.y)];
                     int unitAmount = current.GetUnitCount();
                     current.AdjustUnits(unitAmount * -1);
-                    HexTileInfo target = myLocationManager.tileInfoList[Mathf.RoundToInt(targetLocation.x)][Mathf.RoundToInt(targetLocation.y)];
-                    target.ReceiveGeneralMove(unitAmount, generalSwitchStateTime);
+                    HexTileInfo target = myLocationManager.tileInfoList[Mathf.RoundToInt(TargetLocation.x)][Mathf.RoundToInt(TargetLocation.y)];
+                    target.ReceiveGeneralMove(unitAmount, GeneralSwitchStateTime);
 
                     StartCoroutine(SwitchGeneralState());
                 }
@@ -201,17 +200,17 @@ public class General : MonoBehaviour
                 if (!isFighting)
                 {
                     isFighting = true;
-                    HexTileInfo tile = myLocationManager.tileInfoList[Mathf.RoundToInt(myLocation.x)][Mathf.RoundToInt(myLocation.y)];
+                    HexTileInfo tile = myLocationManager.tileInfoList[Mathf.RoundToInt(MyLocation.x)][Mathf.RoundToInt(MyLocation.y)];
                     int unitAmount = tile.GetUnitCount();
                     tile.AdjustUnits(unitAmount * -1);
-                    HexTileInfo target = myLocationManager.tileInfoList[Mathf.RoundToInt(targetLocation.x)][Mathf.RoundToInt(targetLocation.y)];
+                    HexTileInfo target = myLocationManager.tileInfoList[Mathf.RoundToInt(TargetLocation.x)][Mathf.RoundToInt(TargetLocation.y)];
                     target.potentialAmountToReceive = unitAmount;
-                    target.SetResourceTradingBuddy(myLocation);
+                    target.SetResourceTradingBuddy(MyLocation);
                     target.StartCoroutine(target.BattleSequence());
                     if (target.enemies.currentAmount - unitAmount <= 0)
                     {
-                        myLocation = targetLocation;
-                        locationText.text = $"{myLocation}";
+                        MyLocation = TargetLocation;
+                        locationText.text = $"{MyLocation}";
                         StartCoroutine(SwitchGeneralState());
                         return;
                     }
@@ -223,37 +222,37 @@ public class General : MonoBehaviour
     }
     IEnumerator SwitchGeneralState()
     {
-        if (myGeneralState == GeneralState.Stop) yield break;
+        if (MyGeneralState == GeneralState.Stop) yield break;
         statusText.text = "Deciding";
 
-        yield return new WaitForSeconds(generalSwitchStateTime);
+        yield return new WaitForSeconds(GeneralSwitchStateTime);
 
-        if (myGeneralState == GeneralState.Searching)
+        if (MyGeneralState == GeneralState.Searching)
         {
             if (needCombat)
             {
                 isFighting = false;
-                myGeneralState = GeneralState.Combat;
+                MyGeneralState = GeneralState.Combat;
             }
             else
             {
                 isMoving = false;
-                myGeneralState = GeneralState.Moving;
+                MyGeneralState = GeneralState.Moving;
             }
         }
-        else if (myGeneralState == GeneralState.Moving)
+        else if (MyGeneralState == GeneralState.Moving)
         {
-            myLocation = targetLocation;
-            locationText.text = $"{myLocation}";
+            MyLocation = TargetLocation;
+            locationText.text = $"{MyLocation}";
             isSearching = false;
-            myGeneralState = GeneralState.Searching;
+            MyGeneralState = GeneralState.Searching;
         }
-        else if (myGeneralState == GeneralState.Combat)
+        else if (MyGeneralState == GeneralState.Combat)
         {
             isSearching = false;
-            myGeneralState = GeneralState.Searching;
+            MyGeneralState = GeneralState.Searching;
         }
-        statusText.text = $"{myGeneralState}";
+        statusText.text = $"{MyGeneralState}";
     }
     void ResetDirectionsAvailable()
     {
@@ -267,76 +266,76 @@ public class General : MonoBehaviour
     }
     void GetNewDirection()
     {
-        int x = directionsAvailable[rand.Next(0, directionsAvailable.Count)];
+        int x = directionsAvailable[Rand.Next(0, directionsAvailable.Count)];
         switch (x)
         {
             case 0:
-                generalDirection = Direction.North;
+                GeneralDirection = Direction.North;
                 directionsAvailable.Remove(0); //Removing the integer we associate it with from the options to choose from.
                 break;
             case 1:
-                generalDirection = Direction.NorthEast;
+                GeneralDirection = Direction.NorthEast;
                 directionsAvailable.Remove(1);
                 break;
             case 2:
-                generalDirection = Direction.SouthEast;
+                GeneralDirection = Direction.SouthEast;
                 directionsAvailable.Remove(2);
                 break;
             case 3:
-                generalDirection = Direction.South;
+                GeneralDirection = Direction.South;
                 directionsAvailable.Remove(3);
                 break;
             case 4:
-                generalDirection = Direction.SouthWest;
+                GeneralDirection = Direction.SouthWest;
                 directionsAvailable.Remove(4);
                 break;
             case 5:
-                generalDirection = Direction.NorthWest;
+                GeneralDirection = Direction.NorthWest;
                 directionsAvailable.Remove(5);
                 break;
         }
     }
     void CheckDirectionIsPlayable()
     {
-        switch (generalDirection)
+        switch (GeneralDirection)
         {
             case Direction.North:
-                directionIsPlayable = CheckIfTileIsInNeedOfConquering(myLocationManager.CheckUpLocation(myLocation));
+                directionIsPlayable = CheckIfTileIsInNeedOfConquering(myLocationManager.CheckUpLocation(MyLocation));
                 break;
             case Direction.NorthEast:
-                if (myLocation.x % 2 == 1)//Because of the nature of the hextile, where something looks doesn't always line up with the array position and needs to be picked correctly.
+                if (MyLocation.x % 2 == 1)//Because of the nature of the hextile, where something looks doesn't always line up with the array position and needs to be picked correctly.
                 {//Basically just checking whether the tile is in an even or odd column.
-                    directionIsPlayable = CheckIfTileIsInNeedOfConquering(myLocationManager.CheckRightUpLocation(myLocation));
+                    directionIsPlayable = CheckIfTileIsInNeedOfConquering(myLocationManager.CheckRightUpLocation(MyLocation));
                     break;
                 }
-                directionIsPlayable = CheckIfTileIsInNeedOfConquering(myLocationManager.CheckRightEqualLocation(myLocation));
+                directionIsPlayable = CheckIfTileIsInNeedOfConquering(myLocationManager.CheckRightEqualLocation(MyLocation));
                 break;
             case Direction.SouthEast:
-                if (myLocation.x % 2 == 1)
+                if (MyLocation.x % 2 == 1)
                 {
-                    directionIsPlayable = CheckIfTileIsInNeedOfConquering(myLocationManager.CheckRightEqualLocation(myLocation));
+                    directionIsPlayable = CheckIfTileIsInNeedOfConquering(myLocationManager.CheckRightEqualLocation(MyLocation));
                     break;
                 }
-                directionIsPlayable = CheckIfTileIsInNeedOfConquering(myLocationManager.CheckRightDownLocation(myLocation));
+                directionIsPlayable = CheckIfTileIsInNeedOfConquering(myLocationManager.CheckRightDownLocation(MyLocation));
                 break;
             case Direction.South:
-                directionIsPlayable = CheckIfTileIsInNeedOfConquering(myLocationManager.CheckDownLocation(myLocation));
+                directionIsPlayable = CheckIfTileIsInNeedOfConquering(myLocationManager.CheckDownLocation(MyLocation));
                 break;
             case Direction.SouthWest:
-                if (myLocation.x % 2 == 1)
+                if (MyLocation.x % 2 == 1)
                 {
-                    directionIsPlayable = CheckIfTileIsInNeedOfConquering(myLocationManager.CheckLeftEqualLocation(myLocation));
+                    directionIsPlayable = CheckIfTileIsInNeedOfConquering(myLocationManager.CheckLeftEqualLocation(MyLocation));
                     break;
                 }
-                directionIsPlayable = CheckIfTileIsInNeedOfConquering(myLocationManager.CheckLeftDownLocation(myLocation));
+                directionIsPlayable = CheckIfTileIsInNeedOfConquering(myLocationManager.CheckLeftDownLocation(MyLocation));
                 break;
             case Direction.NorthWest:
-                if (myLocation.x % 2 == 1)
+                if (MyLocation.x % 2 == 1)
                 {
-                    directionIsPlayable = CheckIfTileIsInNeedOfConquering(myLocationManager.CheckLeftUpLocation(myLocation));
+                    directionIsPlayable = CheckIfTileIsInNeedOfConquering(myLocationManager.CheckLeftUpLocation(MyLocation));
                     break;
                 }
-                directionIsPlayable = CheckIfTileIsInNeedOfConquering(myLocationManager.CheckLeftEqualLocation(myLocation));
+                directionIsPlayable = CheckIfTileIsInNeedOfConquering(myLocationManager.CheckLeftEqualLocation(MyLocation));
                 break;
         }
         if (directionIsPlayable)
@@ -350,14 +349,14 @@ public class General : MonoBehaviour
             Main.PushMessage($"General {Name}", "I have run out of places around me that aren't conquered. You shoud" +
                 " continue on without me, or move the units where I may start again.");
             directionIsPlayable = true;
-            myGeneralState = GeneralState.Stop;
+            MyGeneralState = GeneralState.Stop;
         }
     }
     bool CheckIfTileIsInNeedOfConquering(Vector2 tile) //Setting target and checking if the tile is in the Clickable state and has units
     {
         if (tile.x == -1) return false; //if the tile.x is -1 then the location doesn't exist
 
-        targetLocation = tile;
+        TargetLocation = tile;
         HexTileInfo info = myLocationManager.tileInfoList[Mathf.RoundToInt(tile.x)][Mathf.RoundToInt(tile.y)];
         needCombat = info.enemies.currentAmount > 0;
         return info.myState == HexTileInfo.TileStates.Clickable;
