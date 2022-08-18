@@ -6,32 +6,32 @@ using System.Runtime.Serialization.Formatters.Binary;
 public static class SaveSystem 
 {
     static string FileData;
-    static string Resources;
+    static string Items;
     static string Tiles;
 
     public static void WipeString()
     {
         FileData = "";
-        Resources = "";
+        Items = "";
         Tiles = "";
     }
     
-    public static void SaveResource(ItemData data, bool last)
+    public static void SaveItem(ItemData data, bool last)
     {
         if (!last)
         {
-            Resources = Resources + data.DigitizeForSerialization();
+            Items = Items + data.DigitizeForSerialization();
         }
         else
         {
             string s = data.DigitizeForSerialization();
             s = s.Remove(s.Length - 1);
-            Resources = Resources + s;
+            Items = Items + s;
         }
     }
     public static void SaveItemLibrary()
     {
-        FileData = Resources;
+        FileData = Items;
         SaveFile("/item_shalom");
     }
     public static void SaveTile(HexTileInfo data, bool last)
@@ -82,7 +82,6 @@ public static class SaveSystem
         formatter.Serialize(stream, FileData);
         stream.Close();
 
-        //Debug.Log($"SaveString: for {file}:{FileData}");
         WipeString();
 
     }
@@ -154,6 +153,23 @@ public static class SaveSystem
             Debug.Log("I deleted Resources.");
         }
         path = Application.persistentDataPath + "/address_nissi";
+        if (File.Exists(path))
+        {
+            File.Delete(path);
+            Debug.Log("I deleted the universe address.");
+        }
+        path = Application.persistentDataPath + "/ships_Raah";
+        if (File.Exists(path))
+        {
+            File.Delete(path);
+            Debug.Log("I deleted Ships.");
+        }
+
+        DeleteAllLocationInformation();
+    }
+    public static void SafeReset()
+    {
+        string path = Application.persistentDataPath + "/address_nissi";
         if (File.Exists(path))
         {
             File.Delete(path);

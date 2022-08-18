@@ -284,6 +284,25 @@ public class Main : MonoBehaviour
         planetContainer.Clear();
         LocationAddresses.Clear();
     }
+    public void SafeReset() //Deletes everything except the ItemLibrary(for offline editing)
+    {
+        OnDestroyLevel?.Invoke();
+        isInitialized = false;
+        PlayerPrefs.SetInt("Initialized", 0);
+        shipsManager.RemoveAllShips();
+        SaveSystem.SafeReset();
+        Destroy(activeBrain.gameObject);
+        activeBrain = null;
+        planetContainer.Clear();
+        LocationAddresses.Clear();
+        universeAdress = universeAdress.Remove(universeAdress.Length - 2);
+        foreach (Transform manager in universeTransform)
+        {
+            Destroy(manager.gameObject);
+        }
+        planetContainer.Clear();
+        GenerateUniverseLocation(UniverseDepth.Planet, 0);
+    }
     public void ToggleGeneral() //Turns off all generals or allows generals to be used
     {
         usingGeneral = !usingGeneral;
@@ -659,10 +678,10 @@ public class Main : MonoBehaviour
         {
             if (i != (ItemLibrary.Length - 1))
             {
-                SaveSystem.SaveResource(ItemLibrary[i], false);
+                SaveSystem.SaveItem(ItemLibrary[i], false);
                 continue;
             }
-            SaveSystem.SaveResource(ItemLibrary[i], true);
+            SaveSystem.SaveItem(ItemLibrary[i], true);
         }
     }
     public void SaveLocationAddressBook()
@@ -822,21 +841,13 @@ public class Main : MonoBehaviour
     string[] TryLoadLevel()
     {
         string s = SaveSystem.LoadFile("/" + universeAdress);
-        if(s != null) // Checking for a save of the planet
-        {
-            return s.Split("|");
-        }
-
-        //No planetary info was stored so build new stuff
-        LoadDataFromSave();//This is here if we are offline from when we started
-        return null;
+        return (s != null) ? s.Split("|") : null; // Checking for a save of the planet
     }
     #endregion
     
     #region Map
     public void GenerateUniverseLocation(UniverseDepth depth, int index)
     {
-        Debug.Log("Generating Location.");
         UniverseDepth dp = depth;
 
         if (depthLocations != null) WipeUniversePieces();

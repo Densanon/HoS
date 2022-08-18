@@ -315,19 +315,22 @@ public class HexTileInfo : MonoBehaviour
     }
     public void SetAsStartingPoint(Spacecraft ship)
     {
-        myShip = ship;
-        OffloadItemsFromShip(ship.myItemsData);
-        ship.OffloadItems();
-        ship.AssignTileLocation(myPositionInTheArray);
-        hasShip = true;
+        if(ship != null)
+        {
+            myShip = ship;
+            OffloadItemsFromShip(ship.myItemsData);
+            ship.OffloadItems();
+            ship.AssignTileLocation(myPositionInTheArray);
+            hasShip = true;
+            if (!CheckIfItemIsInMyArray("barracks")) AddItemToMyItems("barracks");
+            StartLandingAnimation();
+        }
 
         isStartingPoint = true;
         myRenderers[0].material.mainTexture = tileTextures[3];
         myState = TileStates.Conquered;
-        if (!CheckIfItemIsInMyArray("barracks")) AddItemToMyItems("barracks");
         OnTakeover -= CheckForPlayability;
         OnTakeover?.Invoke(myPositionInTheArray);
-        StartLandingAnimation();
     }
     #endregion
 
