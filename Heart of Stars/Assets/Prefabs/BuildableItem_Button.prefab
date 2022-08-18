@@ -12,7 +12,7 @@ GameObject:
   - component: {fileID: 8624208611523759279}
   - component: {fileID: 8624208611523759274}
   m_Layer: 5
-  m_Name: BuildableResource_Button
+  m_Name: BuildableItem_Button
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -59,15 +59,13 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a6f0519f6cadf3b459ad1b6c68a0cf8b, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  myNamedResource: 
-  myNamedimediateDependencies: []
-  myNamedAllDependencies: []
   dependencyAmounts: 
   dependenciesAble: 
   myText: {fileID: 0}
   pivot: {fileID: 8662317066425794688}
   buttonPrefab: {fileID: 4311139583789081462, guid: 7935b2d8249344043b2e603f39b5a0ac, type: 3}
-  alphaButton: {fileID: 3698432049140201891}
+  originalItemButton: {fileID: 3698432049140201891}
+  isOriginalResource: 0
 --- !u!1 &8662317066425794688
 GameObject:
   m_ObjectHideFlags: 0

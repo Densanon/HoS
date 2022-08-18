@@ -365,6 +365,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   myState: 3
   myUIManager: {fileID: 0}
+  myShip: {fileID: 0}
   tileTextures:
   - {fileID: 2800000, guid: c6c75993386dfa74bbb6218dae7135bb, type: 3}
   - {fileID: 2800000, guid: 15f2a9b033c382041bd7bdd80bae54e5, type: 3}
@@ -391,7 +392,7 @@ MonoBehaviour:
   - {fileID: 2800000, guid: 7c9dfe8bc2e46fe4e99ab94ef913d622, type: 3}
   - {fileID: 2800000, guid: 325433b911384c44898272280e2df4f5, type: 3}
   - {fileID: 2800000, guid: ac654428d7a8912478e3d2e60ff1281e, type: 3}
-  resourceSprites:
+  basicItemSprites:
   - {fileID: -1911635961, guid: 0e7e0976b665ad5449394e6f0c1ce8f7, type: 3}
   - {fileID: 1340352620, guid: 0e7e0976b665ad5449394e6f0c1ce8f7, type: 3}
   - {fileID: 536373858, guid: 0e7e0976b665ad5449394e6f0c1ce8f7, type: 3}
@@ -423,8 +424,9 @@ MonoBehaviour:
   isStartingPoint: 0
   isMousePresent: 0
   isInteractable: 1
-  myResources: []
-  resourceTradingBuddy: {x: 0, y: 0}
+  hasShip: 0
+  myItemData: []
+  itemTradingBuddy: {x: 0, y: 0}
   potentialAmountToReceive: 0
 --- !u!1 &4744813338121559864
 GameObject:

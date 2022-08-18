@@ -6,19 +6,17 @@ using System.Runtime.Serialization.Formatters.Binary;
 public static class SaveSystem 
 {
     static string FileData;
-    static string Address;
     static string Resources;
     static string Tiles;
 
     public static void WipeString()
     {
         FileData = "";
-        Address = "";
         Resources = "";
         Tiles = "";
     }
     
-    public static void SaveResource(ResourceData data, bool last)
+    public static void SaveResource(ItemData data, bool last)
     {
         if (!last)
         {
@@ -31,13 +29,11 @@ public static class SaveSystem
             Resources = Resources + s;
         }
     }
-
-    public static void SaveResourceLibrary()
+    public static void SaveItemLibrary()
     {
         FileData = Resources;
-        SaveFile("/resource_shalom");
+        SaveFile("/item_shalom");
     }
-
     public static void SaveTile(HexTileInfo data, bool last)
     {
         if (!last)
@@ -52,40 +48,29 @@ public static class SaveSystem
 
         }
     }
-
     public static void SaveShips(string ships)
     {
         FileData = ships;
         SaveFile("/ships_Raah");
     }
-
     public static void SaveCameraSettings(string camStats)
     {
         FileData = camStats;
     }
-
-    public static void SaveAddressForLocation(string address)
-    {
-        Address = address;
-    }
-
     public static void SaveCurrentAddress(string address)
     {
         FileData = address;
         SaveFile("/address_nissi");
     }
-
     public static void SaveLocationData()
     {
-        FileData = Tiles; //+ "|" + Resources;
+        FileData = Tiles;
     }
-
     public static void SaveLocationList(string locations)
     {
         FileData = locations;
         SaveFile("/Locations_Jireh");
     }
-
     public static void SaveFile(string file)
     {
         if (FileData == "" || FileData == null){return;}
@@ -101,7 +86,6 @@ public static class SaveSystem
         WipeString();
 
     }
-
 
     public static string LoadFile(string file)
     {
@@ -127,14 +111,10 @@ public static class SaveSystem
                 stream.Close();
                 File.Delete(path);
             }
-            //Debug.Log($"Here is the file: for {file}:{s}");
-            
-
             return s;
         }
         else
         {
-            //Debug.Log("Save file not found in " + path);
             return null;
         }
     }
@@ -165,10 +145,9 @@ public static class SaveSystem
             Debug.Log("I deleted the address book.");
         }
     }
-
     public static void SeriouslyDeleteAllSaveFiles()
     {
-        string path = Application.persistentDataPath + "/resource_shalom";
+        string path = Application.persistentDataPath + "/item_shalom";
         if (File.Exists(path))
         {
             File.Delete(path);

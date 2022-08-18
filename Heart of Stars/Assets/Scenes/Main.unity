@@ -8461,11 +8461,11 @@ MonoBehaviour:
   generalManager: {fileID: 1160017070}
   shipsManager: {fileID: 737243726}
   tileInfoList: []
-  ResourceLibrary: []
+  ItemLibrary: []
   universeAdress: 
   ResourePanelPrefab: {fileID: 2604220087197297246, guid: e46a0c07b04ffe449bb46c34bf3b8bdc, type: 3}
-  ResourcePanelTransform: {fileID: 2009751318}
-  resourcePanelInfoPieces: []
+  ItemPanelTransform: {fileID: 2009751318}
+  itemPanelInfoPieces: []
   BuildableResourceButtonPrefab: {fileID: 8624208611523759268, guid: a7b6da889e3cf9a4bbfcda6a46591635, type: 3}
   Canvas: {fileID: 1668620300}
   searchInputField: 
@@ -8475,10 +8475,10 @@ MonoBehaviour:
   spawnEnemyDensityMax: 50
   testAmounts: 1000
   debugField: 
-  ResourceName: {fileID: 249054828}
-  ResourceCur: {fileID: 443322631}
-  ResourceAut: {fileID: 1165451030}
-  ResourceT: {fileID: 1985301703}
+  ItemNameText: {fileID: 249054828}
+  ItemCurrentAmountText: {fileID: 443322631}
+  ItemAutoAmountText: {fileID: 1165451030}
+  ItemTimeText: {fileID: 1985301703}
 --- !u!4 &1118570889
 Transform:
   m_ObjectHideFlags: 0

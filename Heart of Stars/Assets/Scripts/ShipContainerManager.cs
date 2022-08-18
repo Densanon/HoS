@@ -28,6 +28,18 @@ public class ShipContainerManager : MonoBehaviour
             ship.SetShipSpeed(speed);
         }
     }
+    public void AssignShipToTile(Spacecraft ship)//Accessed via button
+    {
+        activeLocationManager.GiveATileAShip(ship, ship.myTileLocation);
+    }
+    public void RemoveAllShips()
+    {
+        foreach(Spacecraft ship in ships)
+        {
+            Destroy(ship.gameObject);
+        }
+        ships.Clear();
+    }
     #endregion
 
     #region UnityEngine
@@ -45,22 +57,6 @@ public class ShipContainerManager : MonoBehaviour
         mainContainer.SetActive(false);
     }
     #endregion
-
-    private void SetActiveLocationManager(LocationManager manager)
-    {
-        activeLocationManager = manager;
-        foreach (Spacecraft ship in ships)
-        {
-            if (activeLocationManager.myAddress == ship.currentPlanetLocation)
-            {
-                activeLocationManager.GiveATileAShip(ship, ship.myTileLocation);
-            }
-        }
-    }
-    public void AssignShipToTile(Spacecraft ship)
-    {
-        activeLocationManager.GiveATileAShip(ship, ship.myTileLocation);
-    }
 
     #region Ship Creation
     public void BuildABasicShip(Vector2 location)
@@ -94,7 +90,7 @@ public class ShipContainerManager : MonoBehaviour
         ships.Add(sp);
         SimilarSetup(sp, true);
     }
-    public void CreateAShip(Spacecraft.SpaceshipType spaceshipType, string name, ResourceData[] resources)
+    public void CreateAShip(Spacecraft.SpaceshipType spaceshipType, string name, ItemData[] resources)
     {
         GameObject go = Instantiate(shipPrefab, contentContainer.transform);
         Spacecraft sp = go.GetComponent<Spacecraft>();
@@ -141,6 +137,14 @@ public class ShipContainerManager : MonoBehaviour
     #endregion
 
     #region Ship Management
+    private void SetActiveLocationManager(LocationManager manager)
+    {
+        activeLocationManager = manager;
+        foreach (Spacecraft ship in ships)
+        {
+            if (activeLocationManager.myAddress == ship.currentPlanetLocation) activeLocationManager.GiveATileAShip(ship, ship.myTileLocation);
+        }
+    }
     public Spacecraft GetStarterShip()
     {
         CreateAShip(Spacecraft.SpaceshipType.Basic, "", true);
@@ -151,14 +155,6 @@ public class ShipContainerManager : MonoBehaviour
     public void SetAtiveShip(Spacecraft ship)
     {
         activeShip = ship;
-    }
-    public void RemoveAllShips()
-    {
-        foreach(Spacecraft ship in ships)
-        {
-            Destroy(ship.gameObject);
-        }
-        ships.Clear();
     }
     #endregion
 

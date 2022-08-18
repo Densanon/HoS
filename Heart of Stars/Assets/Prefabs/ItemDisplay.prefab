@@ -631,7 +631,7 @@ GameObject:
   - component: {fileID: 2604220087197297216}
   - component: {fileID: 4255998978055407694}
   m_Layer: 5
-  m_Name: ResourceDisplay
+  m_Name: ItemDisplay
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0

@@ -196,10 +196,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 288f978abb8168d499cfbb3bff534d8d, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  resourceNameText: {fileID: 3572266553747677604}
-  shipResourceAmountText: {fileID: 488229214727394948}
-  tileResourceAmountText: {fileID: 1365169887346421819}
-  resourceSlider: {fileID: 6709728815311377383}
+  itemNameText: {fileID: 3572266553747677604}
+  shipItemAmountText: {fileID: 488229214727394948}
+  tileItemAmountText: {fileID: 1365169887346421819}
+  itemSlider: {fileID: 6709728815311377383}
 --- !u!1 &1857990034562179424
 GameObject:
   m_ObjectHideFlags: 0

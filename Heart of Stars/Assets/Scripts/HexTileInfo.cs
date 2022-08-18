@@ -26,14 +26,14 @@ public class HexTileInfo : MonoBehaviour
     LocationManager myLocationManager;
     Main main;
     Camera camera;
-    public UIResourceManager myUIManager;
+    public UIItemManager myUIManager;
     public Spacecraft myShip;
     
     // Objects
     [SerializeField]
     Texture2D[] tileTextures;
     [SerializeField]
-    Sprite[] resourceSprites;
+    Sprite[] basicItemSprites;
     [SerializeField]
     Sprite[] buildingSprites;
     [SerializeField]
@@ -74,22 +74,22 @@ public class HexTileInfo : MonoBehaviour
 
     public bool hasShip = false;
 
-    // Resource References
-    public ResourceData[] myResources;
-    ResourceData soldiers;
-    public ResourceData enemies;
+    // Item References
+    public ItemData[] myItemData;
+    ItemData units;
+    public ItemData enemies;
     int enemyCount;
 
     // Trade Information
-    public Vector2 resourceTradingBuddy;
+    public Vector2 itemTradingBuddy;
     public int potentialAmountToReceive;
     
     // Line
     bool isDrawingRayForPicking;
 
     // Que values
-    int[] QuedResourceAmount;
-    string[] ResourceNameReferenceIndex;
+    int[] QuedItemAmount;
+    string[] ItemNameReferenceIndex;
 
     #region Debugging
     float enemyRatio;
@@ -132,13 +132,13 @@ public class HexTileInfo : MonoBehaviour
     {
         return enemies.currentAmount;
     }
-    public ResourceData GetResource(string itemName)
+    public ItemData GetItem(string itemName)
     {
-        foreach(ResourceData resource in myResources)
+        foreach(ItemData item in myItemData)
         {
-            if(resource.itemName == itemName)
+            if(item.itemName == itemName)
             {
-                return resource;
+                return item;
             }
         }
         return null;
@@ -155,7 +155,7 @@ public class HexTileInfo : MonoBehaviour
         OnReturnPositionToGeneralManager += ResetFromGeneralsInteraction;
         CameraController.OnZoomRelocateUI += SetButtonsOnScreenPosition;
         CameraController.OnZoomedOutTurnOffUI += DeactivateTileOptions;
-        UIResourceManager.OnTilePickInteraction += CheckTileInteratability;
+        UIItemManager.OnTilePickInteraction += CheckTileInteratability;
         GeneralsContainerManager.OnNeedTileForGeneral += PrepareForReturnTileLocation;
         Spacecraft.OnLocalLanding += ReceiveLandingShip;
         Spacecraft.OnRequestingShipDestination += TurnOffEnemyFloatingText;
@@ -175,7 +175,7 @@ public class HexTileInfo : MonoBehaviour
         OnReturnPositionToGeneralManager -= ResetFromGeneralsInteraction;
         CameraController.OnZoomRelocateUI -= SetButtonsOnScreenPosition;
         CameraController.OnZoomedOutTurnOffUI -= DeactivateTileOptions;
-        UIResourceManager.OnTilePickInteraction -= CheckTileInteratability;
+        UIItemManager.OnTilePickInteraction -= CheckTileInteratability;
         GeneralsContainerManager.OnNeedTileForGeneral -= PrepareForReturnTileLocation;
         Spacecraft.OnLocalLanding -= ReceiveLandingShip;
         Spacecraft.OnRequestingShipDestination -= TurnOffEnemyFloatingText;
@@ -228,6 +228,7 @@ public class HexTileInfo : MonoBehaviour
         if(myPositionInTheArray.x == 0 || myPositionInTheArray.x == myLocationManager.locationXBounds-1 ||
            myPositionInTheArray.y == 0 || myPositionInTheArray.y == myLocationManager.locationYBounds-1)
         {
+            //This makes sure the edges cannot be a land piece
             TypeTransform -= TryToTransformToLand;
         }
 
@@ -242,9 +243,9 @@ public class HexTileInfo : MonoBehaviour
     {
         myNeighbors = locations;
     }
-    public int GetResourceSpritesLengthForStartPoint()
+    public int GetItemSpritesLengthForStartPoint()
     {
-        return resourceSprites.Length + 1;
+        return basicItemSprites.Length + 1;
     }
     public void SetEnemyNumbers(float ratio, int densityMin, int densityMax)
     {
@@ -278,14 +279,14 @@ public class HexTileInfo : MonoBehaviour
 
         if (UnityEngine.Random.Range(0, 4) == 0)
         { 
-            myTileType = UnityEngine.Random.Range(1, resourceSprites.Length+1);
+            myTileType = UnityEngine.Random.Range(1, basicItemSprites.Length+1);
             myRenderers[2].enabled = true;
-            myRenderers[2].GetComponent<SpriteRenderer>().sprite = resourceSprites[myTileType-1];
-            CreateResources();
+            myRenderers[2].GetComponent<SpriteRenderer>().sprite = basicItemSprites[myTileType-1];
+            CreateMyItems();
             return;
         }
-        myTileType = resourceSprites.Length+1; // ensures blank space is always more than sprites
-        CreateResources();
+        myTileType = basicItemSprites.Length+1; // ensures blank space is always more than sprites
+        CreateMyItems();
         ///1 mountain
         ///2 tree
         ///3 mine
@@ -315,15 +316,15 @@ public class HexTileInfo : MonoBehaviour
     public void SetAsStartingPoint(Spacecraft ship)
     {
         myShip = ship;
-        OffLoadResourcesFromShip(ship.myResources);
-        ship.OffloadResources();
+        OffloadItemsFromShip(ship.myItemsData);
+        ship.OffloadItems();
         ship.AssignTileLocation(myPositionInTheArray);
         hasShip = true;
 
         isStartingPoint = true;
         myRenderers[0].material.mainTexture = tileTextures[3];
         myState = TileStates.Conquered;
-        if (!CheckIfResourceIsInMyArray("barracks")) AddResourceToMyResources("barracks");
+        if (!CheckIfItemIsInMyArray("barracks")) AddItemToMyItems("barracks");
         OnTakeover -= CheckForPlayability;
         OnTakeover?.Invoke(myPositionInTheArray);
         StartLandingAnimation();
@@ -339,7 +340,7 @@ public class HexTileInfo : MonoBehaviour
 
         SetNeighborsFromString(neighbors);
 
-        BuildResourcesFromMemory(resources);
+        BuildItemsFromMemory(resources);
 
         CreateQueElements();
 
@@ -374,7 +375,7 @@ public class HexTileInfo : MonoBehaviour
         myTileType = tileType;
         if (myTileType < 5 && myTileType != 0)
         {
-            myRenderers[2].GetComponent<SpriteRenderer>().sprite = resourceSprites[myTileType - 1];
+            myRenderers[2].GetComponent<SpriteRenderer>().sprite = basicItemSprites[myTileType - 1];
             myRenderers[2].enabled = true;
         }
     }
@@ -395,40 +396,40 @@ public class HexTileInfo : MonoBehaviour
             myNeighbors[i] = temp[i];
         }
     }
-    void BuildResourcesFromMemory(string resources)
+    void BuildItemsFromMemory(string items)
     {
-        if (resources != "")
+        if (items != "")
         {
-            List<ResourceData> temp = new List<ResourceData>();
-            string[] ar = resources.Split(";");
+            List<ItemData> temp = new List<ItemData>();
+            string[] ar = items.Split(";");
             foreach (string s in ar)
             {
                 string[] st = s.Split(",");
                 //string name, string display, string dis, string gr, string eType, string reqs, string nonReqs, bool vis, int cur, int autoA, float craft,
                 //string created, string coms, string createComs, string im, string snd, string ach, int mos, string build
-                temp.Add(new ResourceData(st[0], st[1], st[2], st[3], st[4], st[5], st[6],
+                temp.Add(new ItemData(st[0], st[1], st[2], st[3], st[4], st[5], st[6],
                         (st[7] == "True") ? true : false, int.Parse(st[8]), int.Parse(st[9]),
                         float.Parse(st[10]), st[11], st[12], st[13], st[14], st[15], st[16],
                         int.Parse(st[17]), st[18]));
             }
 
-            myResources = temp.ToArray();
-            foreach (ResourceData data in myResources)
+            myItemData = temp.ToArray();
+            foreach (ItemData item in myItemData)
             {
-                if (Main.needCompareForUpdatedValues) Main.CompareIndividualResourceValues(main, data);
+                if (Main.needCompareForUpdatedValues) Main.CompareIndividualItemValues(main, item);
 
-                if (data.itemName == "soldier")
+                if (item.itemName == "soldier")
                 {
-                    soldiers = data;
-                    if (data.currentAmount > 0)
+                    units = item;
+                    if (item.currentAmount > 0)
                     {
                         myRenderers[4].enabled = true;
                     }
                     continue;
                 }
-                if (data.itemName == "enemy")
+                if (item.itemName == "enemy")
                 {
-                    enemies = data;
+                    enemies = item;
                     enemyCount = enemies.currentAmount;
                 }
             }
@@ -439,8 +440,7 @@ public class HexTileInfo : MonoBehaviour
 
     #region Animations
     public void StartLandingAnimation()
-    {
-        
+    {        
         spaceship = myRenderers[4].transform;
         OnStartingTile?.Invoke(spaceship);
         SpawnAShip();
@@ -478,7 +478,7 @@ public class HexTileInfo : MonoBehaviour
             isInitializingLeavingSequence = false;
             myRenderers[4].enabled = false;
             spaceship.position = shipEndPosition;
-            CheckSoldierVisual();
+            CheckUnitVisual();
         }
     }
     void DrawPickingLine()
@@ -512,7 +512,7 @@ public class HexTileInfo : MonoBehaviour
             launched = true;
             Spacecraft.OnLaunchSpaceCraft -= LaunchShip;
             StartLaunchAnimation();
-            RemoveResourceAndRebuildResources("barracks");
+            RemoveItemAndRebuildItems("barracks");
         }
     }
     void ReceiveLandingShip(Vector2 location)
@@ -523,7 +523,7 @@ public class HexTileInfo : MonoBehaviour
             Spacecraft.OnLaunchSpaceCraft += LaunchShip; 
             OnTakeover -= CheckForPlayability;
             OnTakeover?.Invoke(myPositionInTheArray);
-            AddResourceToMyResources("barracks");
+            AddItemToMyItems("barracks");
         }
     }
     private void RemoveShip(Spacecraft ship)
@@ -537,57 +537,57 @@ public class HexTileInfo : MonoBehaviour
     }
     public int GetBlankTileIndex()
     {
-        return resourceSprites.Length + 1;
+        return basicItemSprites.Length + 1;
     }
     #endregion
 
     #region Qeue
     public void CreateQueElements()
     {
-        QuedResourceAmount = new int[myResources.Length];
-        ResourceNameReferenceIndex = new string[myResources.Length];
+        QuedItemAmount = new int[myItemData.Length];
+        ItemNameReferenceIndex = new string[myItemData.Length];
         
-        for(int i = 0; i < myResources.Length; i++)
+        for(int i = 0; i < myItemData.Length; i++)
         {
-            ResourceNameReferenceIndex[i] = myResources[i].displayName;
+            ItemNameReferenceIndex[i] = myItemData[i].displayName;
         }
     }
-    public void AddToQue(ResourceData data, int amount)
+    public void AddToQue(ItemData item, int amount)
     {
-        if (data == null || !data.visible) return;
+        if (item == null || !item.visible) return;
 
-        QuedResourceAmount[System.Array.IndexOf(ResourceNameReferenceIndex, data.displayName)] += amount;
+        QuedItemAmount[System.Array.IndexOf(ItemNameReferenceIndex, item.displayName)] += amount;
 
-        if(QuedResourceAmount[System.Array.IndexOf(ResourceNameReferenceIndex, data.displayName)] == 1)
-            StartQueUpdate(data);
+        if(QuedItemAmount[System.Array.IndexOf(ItemNameReferenceIndex, item.displayName)] == 1)
+            StartQueUpdate(item);
     }
-    public void StartQueUpdate(ResourceData data)
+    public void StartQueUpdate(ItemData item)
     {
-        StartCoroutine(UpdateQue(data));
+        StartCoroutine(UpdateQue(item));
     }
-    IEnumerator UpdateQue(ResourceData data)
+    IEnumerator UpdateQue(ItemData item)
     {
         bool addedNormal = false;
-        myUIManager.SetTimerAndStart(data.craftTime);
+        myUIManager.SetTimerAndStart(item.craftTime);
 
-        yield return new WaitForSeconds(data.craftTime);
+        yield return new WaitForSeconds(item.craftTime);
 
-        int queIndex = System.Array.IndexOf(ResourceNameReferenceIndex, data.displayName);
-        int queAmount = QuedResourceAmount[queIndex];
-        if (queAmount > 0 || data.autoAmount > 0)
+        int queIndex = System.Array.IndexOf(ItemNameReferenceIndex, item.displayName);
+        int queAmount = QuedItemAmount[queIndex];
+        if (queAmount > 0 || item.autoAmount > 0)
         {
             if (queAmount > 0)
             {
-                QuedResourceAmount[queIndex] -= 1;
+                QuedItemAmount[queIndex] -= 1;
                 addedNormal = true;
             }
 
-            data.AdjustCurrentAmount(addedNormal ? 1 + data.autoAmount : data.autoAmount);
+            item.AdjustCurrentAmount(addedNormal ? 1 + item.autoAmount : item.autoAmount);
 
-            if (data.itemName == "soldier") myUIManager.ResetTroopText();
+            if (item.itemName == "soldier") myUIManager.ResetUnitText();
 
-            if (QuedResourceAmount[queIndex] > 0 || data.autoAmount > 0)
-                StartCoroutine(UpdateQue(data));
+            if (QuedItemAmount[queIndex] > 0 || item.autoAmount > 0)
+                StartCoroutine(UpdateQue(item));
         }
     }
     #endregion
@@ -632,41 +632,41 @@ public class HexTileInfo : MonoBehaviour
     }
     #endregion
 
-    #region Troop Management
-    public void AdjustSoldiers(int amount)
+    #region Unit Management
+    public void AdjustUnits(int amount)
     {
-        if(soldiers.currentAmount + amount <= 0)
+        if(units.currentAmount + amount <= 0)
         {
-            soldiers.SetCurrentAmount(0);
+            units.SetCurrentAmount(0);
         }
         else
         {
-            soldiers.AdjustCurrentAmount(amount);
+            units.AdjustCurrentAmount(amount);
         }
-        CheckSoldierVisual();
+        CheckUnitVisual();
     }
-    void CheckSoldierVisual()
+    void CheckUnitVisual()
     {
-        if (hasShip && !myShip.isTraveling && !myShip.arrived)
+        if (hasShip && myShip.status == "Waiting")
         {
             SpriteRenderer rend = myRenderers[4].GetComponent<SpriteRenderer>();
             rend.enabled = true;
             rend.sprite = armySprites[armySprites.Length - 1];
         }
-        else if(soldiers.currentAmount > 0)
+        else if(units.currentAmount > 0)
         {
             SpriteRenderer rend = myRenderers[4].GetComponent<SpriteRenderer>();
             rend.enabled = true;
             rend.sprite = armySprites[0];
 
-        }else if (soldiers.currentAmount == 0 && myRenderers[4].enabled)
+        }else if (units.currentAmount == 0 && myRenderers[4].enabled)
         {
             myRenderers[4].enabled = false;
         }
     }
-    public int GetSoldierCount()
+    public int GetUnitCount()
     {
-        return soldiers.currentAmount;
+        return units.currentAmount;
     }
     public IEnumerator Move()
     {
@@ -679,7 +679,7 @@ public class HexTileInfo : MonoBehaviour
         yield return new WaitForSeconds(timer);
 
         generalsTimerOverride = false;
-        AdjustSoldiers(potentialAmountToReceive);
+        AdjustUnits(potentialAmountToReceive);
         myRenderers[0].material.mainTexture = tileTextures[3];
         OnTakeover -= CheckForPlayability;
         OnTakeover?.Invoke(myPositionInTheArray);
@@ -698,7 +698,7 @@ public class HexTileInfo : MonoBehaviour
         int difference = enemyCount - potentialAmountToReceive;
         if (difference < 0)
         {
-            AdjustSoldiers(potentialAmountToReceive);
+            AdjustUnits(potentialAmountToReceive);
             enemies.SetCurrentAmount(0);
             enemyCount = 0;
             myRenderers[0].material.mainTexture = tileTextures[3];
@@ -711,11 +711,11 @@ public class HexTileInfo : MonoBehaviour
         }
         else if (difference == 0)
         {
-            OnTradeWithPartnerTile?.Invoke(resourceTradingBuddy, "soldier", potentialAmountToReceive);
+            OnTradeWithPartnerTile?.Invoke(itemTradingBuddy, "soldier", potentialAmountToReceive);
             ShowEnemyOnTile();
         }else if (difference > 0)
         {
-            if (Main.cantLose) OnTradeWithPartnerTile?.Invoke(resourceTradingBuddy, "soldier", potentialAmountToReceive);
+            if (Main.cantLose) OnTradeWithPartnerTile?.Invoke(itemTradingBuddy, "soldier", potentialAmountToReceive);
             ShowEnemyOnTile();
         }
 
@@ -731,7 +731,7 @@ public class HexTileInfo : MonoBehaviour
             previousState = myState;
             myState = TileStates.Pickable;
             OnResetStateToPreviousFromInteraction += ResetTileStateFromInteraction;
-            resourceTradingBuddy = tile;
+            itemTradingBuddy = tile;
             return;
         }
         //Otherwise don't let them interact
@@ -745,41 +745,41 @@ public class HexTileInfo : MonoBehaviour
         }
         return false;
     }
-    public void SetupReceivingOfTroopsForOriginator()
+    public void SetupReceivingOfUnitsForOriginator()
     {
-        OnTradeWithPartnerTile += ReceiveResourcesFromTrade;
+        OnTradeWithPartnerTile += ReceiveUnitsFromTrade;
     }
-    void ReceiveResourcesFromTrade(Vector2 tile, string resource, int amount)
+    void ReceiveUnitsFromTrade(Vector2 tile, string item, int amount)
     {
         if (tile != myPositionInTheArray) return;
 
-        OnTradeWithPartnerTile -= ReceiveResourcesFromTrade; 
+        OnTradeWithPartnerTile -= ReceiveUnitsFromTrade; 
 
-        foreach(ResourceData data in myResources)
+        foreach(ItemData data in myItemData)
         {
-            if(data.itemName == resource)
+            if(data.itemName == item)
             {
                 data.AdjustCurrentAmount(amount);
                 if(data.itemName == "soldier")
                 {
-                    CheckSoldierVisual();
+                    CheckUnitVisual();
                 }
                 return;
             }
         }
 
-        foreach(ResourceData dt in main.GetResourceLibrary())
+        foreach(ItemData data in main.GetItemLibrary())
         {
-            if (dt.itemName == resource)
+            if (data.itemName == item)
             {
-                List<ResourceData> l = new List<ResourceData>();
-                foreach(ResourceData res in myResources)
+                List<ItemData> l = new List<ItemData>();
+                foreach(ItemData dt in myItemData)
                 {
-                    l.Add(res);
+                    l.Add(dt);
                 }
-                ResourceData d = new ResourceData(dt);
+                ItemData d = new ItemData(data);
                 l.Add(d);
-                myResources = l.ToArray();
+                myItemData = l.ToArray();
                 return;
             }
         }
@@ -797,120 +797,120 @@ public class HexTileInfo : MonoBehaviour
         myState = previousState;
         myRenderers[0].material.color = Color.white;
     }
-    public void ReceiveGeneralMove(int troops, float timer)
+    public void ReceiveGeneralMove(int units, float timer)
     {
-        potentialAmountToReceive = troops;
+        potentialAmountToReceive = units;
         generalsTimerOverride = true;
         generalsTimer = timer;
         StartCoroutine(Move());
     }
     public void SetResourceTradingBuddy(Vector2 tile)
     {
-        resourceTradingBuddy = tile;
+        itemTradingBuddy = tile;
     }
     #endregion
     #endregion
 
-    #region Resource Specific Methods
-    public ResourceData CheckIfAndUseOwnResources(ResourceData item)
+    #region Item Specific Methods
+    public ItemData CheckIfAndUseOwnItems(ItemData item)
     {
-        foreach(ResourceData data in myResources)
+        foreach(ItemData data in myItemData)
         {
-            if(data != item && data.itemName == item.itemName) return data;
+            if(!ReferenceEquals(data, item) && item.itemName == data.itemName) return data;
         }
         return item;
     }
-    public ResourceData GetResourceByString(string itemName)
+    public ItemData GetResourceByString(string itemName)
     {
-        foreach(ResourceData data in myResources)
+        foreach(ItemData item in myItemData)
         {
-            if(itemName == data.itemName) return data;
+            if(itemName == item.itemName) return item;
         }
         return null;
     }
-    private void OffLoadResourcesFromShip(ResourceData[] resources)
+    private void OffloadItemsFromShip(ItemData[] items)
     {
-        foreach (ResourceData resource in resources)
+        foreach (ItemData item in items)
         {
-            AddResourceToMyResources(resource);
+            AddItemToMyItems(item);
         }
     }
-    private bool CheckIfResourceIsInMyArray(string itemName)
+    private bool CheckIfItemIsInMyArray(string itemName)
     {
-        foreach (ResourceData data in myResources)
+        foreach (ItemData item in myItemData)
         {
-            if (data.itemName == itemName)
+            if (item.itemName == itemName)
             {
                 return true;
             }
         }
         return false;
     }
-    void AddResourceToMyResources(string itemName)
+    void AddItemToMyItems(string itemName)
     {
-        List<ResourceData> temp = new List<ResourceData>();
-        foreach (ResourceData data in myResources)
+        List<ItemData> temp = new List<ItemData>();
+        foreach (ItemData item in myItemData)
         {
-            temp.Add(data);
-            if (data.itemName == itemName) return;
+            temp.Add(item);
+            if (item.itemName == itemName) return;
         }
 
-        foreach (ResourceData dt in main.GetResourceLibrary())
+        foreach (ItemData item in main.GetItemLibrary())
         {
-            if (itemName == dt.itemName)
+            if (itemName == item.itemName)
             {
-                ResourceData d = new ResourceData(dt);
+                ItemData d = new ItemData(item);
                 if(itemName == "barracks") d.SetCurrentAmount(1);
                 temp.Add(d);
                 break;
             }
         }
 
-        myResources = temp.ToArray();
+        myItemData = temp.ToArray();
     }
-    void AddResourceToMyResources(ResourceData resource)
+    void AddItemToMyItems(ItemData item)
     {
-        List<ResourceData> temp = new List<ResourceData>();
+        List<ItemData> temp = new List<ItemData>();
         bool isAlreadyHere = false;
-        foreach (ResourceData data in myResources)
+        foreach (ItemData data in myItemData)
         {
             temp.Add(data);
-            if (resource.itemName == data.itemName)
+            if (item.itemName == data.itemName)
             {
-                data.AdjustCurrentAmount(resource.currentAmount);
+                data.AdjustCurrentAmount(item.currentAmount);
                 isAlreadyHere = true;
             }
         }
-        if (!isAlreadyHere) temp.Add(new ResourceData(resource));
+        if (!isAlreadyHere) temp.Add(new ItemData(item));
 
-        myResources = temp.ToArray();
+        myItemData = temp.ToArray();
     }
-    void CreateResources()
+    void CreateMyItems()
     {
-        List<ResourceData> tempToPermanent = new List<ResourceData>();
-        List<ResourceData> locationTypeOptionList = new List<ResourceData>();
+        List<ItemData> tempToPermanent = new List<ItemData>();
+        List<ItemData> locationTypeOptionList = new List<ItemData>();
 
-        foreach (ResourceData data in main.GetResourceLibrary())
+        foreach (ItemData item in main.GetItemLibrary())
         {
-            if (myTileType == 1 && data.groups == "metal") //Mountain resources
+            if (myTileType == 1 && item.groups == "metal") //Mountain resources
             {
-                locationTypeOptionList.Add(new ResourceData(data));
+                locationTypeOptionList.Add(new ItemData(item));
                 continue;
             }
-            if (myTileType == 2 && data.itemName == "food") //Forest resource
+            if (myTileType == 2 && item.itemName == "food") //Forest resource
             {
-                locationTypeOptionList.Add(new ResourceData(data));
+                locationTypeOptionList.Add(new ItemData(item));
                 continue;
             }
-            if (data.itemName == "soldier") //UniversalResource
+            if (item.itemName == "soldier") //UniversalResource
             {
-                soldiers = new ResourceData(data);
-                tempToPermanent.Add(soldiers);
+                units = new ItemData(item);
+                tempToPermanent.Add(units);
                 continue;
             }
-            if (data.itemName == "enemy" && myTileType != 0) //UniversalResource
+            if (item.itemName == "enemy" && myTileType != 0) //UniversalResource
             {
-                enemies = new ResourceData(data);
+                enemies = new ItemData(item);
                 tempToPermanent.Add(enemies);
                 TrySpawnEnemy();
                 continue;
@@ -918,29 +918,29 @@ public class HexTileInfo : MonoBehaviour
         }
 
         if (locationTypeOptionList.Count > 0)//Getting a random resource that we can have.
-            tempToPermanent.Add(new ResourceData(locationTypeOptionList[UnityEngine.Random.Range(0, locationTypeOptionList.Count)]));
+            tempToPermanent.Add(new ItemData(locationTypeOptionList[UnityEngine.Random.Range(0, locationTypeOptionList.Count)]));
 
-        myResources = tempToPermanent.ToArray();
+        myItemData = tempToPermanent.ToArray();
 
         if (Main.needCompareForUpdatedValues)
         {
-            foreach (ResourceData data in myResources)
+            foreach (ItemData item in myItemData)
             {
-                Main.CompareIndividualResourceValues(main, data);
+                Main.CompareIndividualItemValues(main, item);
             }
         }
 
         CreateQueElements();
     }
-    public void RemoveResourceAndRebuildResources(string itemName)
+    public void RemoveItemAndRebuildItems(string itemName)
     {
-        List<ResourceData> temp = new List<ResourceData>();
-        foreach(ResourceData resource in myResources)
+        List<ItemData> temp = new List<ItemData>();
+        foreach(ItemData item in myItemData)
         {
-            if (resource.itemName == itemName) continue;
-            temp.Add(resource);
+            if (item.itemName == itemName) continue;
+            temp.Add(item);
         }
-        myResources = temp.ToArray();
+        myItemData = temp.ToArray();
     }
     #endregion
 
@@ -980,9 +980,9 @@ public class HexTileInfo : MonoBehaviour
         myCanvasContainer = GameObject.Find("Canvas").transform;
         GameObject obj = Instantiate(canvasContainerPrefab, myCanvasContainer);
         myCanvasContainer = obj.transform;
-        myUIManager = obj.GetComponent<UIResourceManager>();
+        myUIManager = obj.GetComponent<UIItemManager>();
         myUIManager.SetMyTileAndMain(this, main);
-        myUIManager.CreateResourceButtons();
+        myUIManager.CreateItemButtons();
         SetButtonsOnScreenPosition();
     }
     void TurnOffEnemyFloatingText() //Accessed via action
@@ -1069,12 +1069,12 @@ public class HexTileInfo : MonoBehaviour
         }
 
         string str = "";
-        if(myResources.Length != 0)
+        if(myItemData.Length != 0)
         {
-            foreach(ResourceData data in myResources)
+            foreach(ItemData item in myItemData)
             {
-                str = str + data.DigitizeForSerialization();
-                if (data == myResources[myResources.Length - 1])
+                str = str + item.DigitizeForSerialization();
+                if (item == myItemData[myItemData.Length - 1])
                 {
                     str = str.Remove(str.Length - 1);
                 }

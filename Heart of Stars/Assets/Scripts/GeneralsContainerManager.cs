@@ -167,7 +167,7 @@ public class GeneralsContainerManager : MonoBehaviour
     }
     public void StopAllLocationGenerals(bool onWorldMap)
     {
-        if(activeLocation != null)
+        if(activeLocation != null && GeneralsDictionary.ContainsKey(activeLocation.myAddress))
         {
             foreach (General g in GeneralsDictionary[activeLocation.myAddress])
             {

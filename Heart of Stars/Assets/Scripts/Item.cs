@@ -4,23 +4,17 @@ using UnityEngine;
 using System;
 using TMPro;
 
-public class Resource : MonoBehaviour
+public class Item : MonoBehaviour
 {
-    public static Action<ResourceData> OnClicked = delegate { };
-    public static Action<ResourceData> OnUpdate = delegate { };
+    public static Action<ItemData> OnClicked = delegate { };
+    public static Action<ItemData> OnUpdate = delegate { };
 
     Main main;
     HexTileInfo tile;
 
-    [SerializeField]
-    string myNamedResource;
-    public ResourceData myResource;
-    [SerializeField]
-    string[] myNamedimediateDependencies;
-    List<ResourceData> myImediateDependence;
-    [SerializeField]
-    string[] myNamedAllDependencies;
-    ResourceData[] allMyDependence;
+    public ItemData myItemData;
+    List<ItemData> myImediateDependence;
+    ItemData[] allMyDependence;
     [SerializeField]
     int[] dependencyAmounts;
     [SerializeField]
@@ -30,44 +24,40 @@ public class Resource : MonoBehaviour
 
     public GameObject pivot;
     public GameObject buttonPrefab;
-    public GameObject originalResourceButton;
+    public GameObject originalItemButton;
     bool doneWithDependencyCheck = false;
     public bool isOriginalResource = false;
-    public bool panelButton = false;
 
-    public void SetUpResource(ResourceData source, bool alpha, Main theMain)
+    #region Setup
+    public void SetUpItem(ItemData source, bool alpha, Main theMain)
     {
         isOriginalResource = alpha;
-        myResource = source;
+        myItemData = source;
         main = theMain;
-        myNamedResource = myResource.itemName;
 
         SetUpDependencyLists(source);
 
         if (isOriginalResource != true) // setting non-alpha information
         {
-            if (myText != null) myText.text = myResource.displayName;
+            if (myText != null) myText.text = myItemData.displayName;
 
-            if (transform.GetComponent<HoverAbleResourceButton>() != null)
+            if (transform.GetComponent<HoverAbleItemButton>() != null)
             {
-                HoverAbleResourceButton h = transform.GetComponent<HoverAbleResourceButton>();
+                HoverAbleItemButton h = transform.GetComponent<HoverAbleItemButton>();
                 h.Assignment(this, main);
-                if (panelButton)  h.panelButton = true;
             }
         }
     }
-
     public void AssignTile(HexTileInfo hexTile)
     {
         tile = hexTile;
     }
-
-    private void SetUpDependencyLists(ResourceData source)
+    private void SetUpDependencyLists(ItemData source)
     {
-        myImediateDependence = new List<ResourceData>();
+        myImediateDependence = new List<ItemData>();
 
         List<string> tempNames = new List<string>();
-        List<ResourceData> temp = new List<ResourceData>();
+        List<ItemData> temp = new List<ItemData>();
         List<int> tempIndices = new List<int>();
 
         //check for consumable dependencies
@@ -77,7 +67,7 @@ public class Resource : MonoBehaviour
             foreach (string s in str)
             {
                 string[] tAr = s.Split('=');
-                temp.Add(main.FindResourceFromString(tAr[0]));
+                temp.Add(main.FindItemFromString(tAr[0]));
                 tempIndices.Add(int.Parse(tAr[1]));
                 tempNames.Add(tAr[0]);
             }
@@ -90,7 +80,7 @@ public class Resource : MonoBehaviour
             foreach (string s in str)
             {
                 string[] tAr = s.Split('=');
-                temp.Add(main.FindResourceFromString(tAr[0]));
+                temp.Add(main.FindItemFromString(tAr[0]));
                 tempIndices.Add(1);
                 tempNames.Add(tAr[0]);
             }
@@ -103,13 +93,10 @@ public class Resource : MonoBehaviour
 
         dependenciesAble = new bool[myImediateDependence.Count];
         dependencyAmounts = tempIndices.ToArray();
-        myNamedimediateDependencies = tempNames.ToArray();
 
         for(int k = 0; k < myImediateDependence.Count; k++) //Setting to my tile resources if there are any
         {
-            //Debug.Log($"Checking for resource: {myImediateDependence[k].itemName}:{myImediateDependence[k].currentAmount}");
-            myImediateDependence[k] = tile.CheckIfAndUseOwnResources(myImediateDependence[k]);
-            //Debug.Log($"Checking for resource: {myImediateDependence[k].itemName}:{myImediateDependence[k].currentAmount}");
+            myImediateDependence[k] = tile.CheckIfAndUseOwnItems(myImediateDependence[k]);
         }
 
         if (isOriginalResource)
@@ -117,19 +104,16 @@ public class Resource : MonoBehaviour
             GetAllDependencies(temp);
         }
     }
-
-    void GetAllDependencies(List<ResourceData> dependencies)
+    void GetAllDependencies(List<ItemData> dependencies)
     {
-        List<ResourceData> extendedList = dependencies;
-        List<ResourceData> temp = new List<ResourceData>();
-        foreach(ResourceData r in dependencies)
+        List<ItemData> extendedList = dependencies;
+        List<ItemData> temp = new List<ItemData>();
+        foreach(ItemData r in dependencies)
         {
             temp.Add(r);
         }
-        List<ResourceData> dump = new List<ResourceData>();
+        List<ItemData> dump = new List<ItemData>();
         string[] str;
-
-        List<string> tempDependenceListNames = new List<string>();
 
         while (!doneWithDependencyCheck)
         {
@@ -137,7 +121,7 @@ public class Resource : MonoBehaviour
             {
                 doneWithDependencyCheck = true;
             }
-            foreach (ResourceData dt in extendedList)
+            foreach (ItemData dt in extendedList)
             {
                 str = dt.consumableRequirements.Split("-");
                 if (str[0] != "nothing=0")
@@ -145,12 +129,11 @@ public class Resource : MonoBehaviour
                     foreach (string s in str)
                     {
                         string[] tAr = s.Split('=');
-                        ResourceData TD = main.FindResourceFromString(tAr[0]);
+                        ItemData TD = main.FindItemFromString(tAr[0]);
                         if (!temp.Contains(TD))
                         {
                             dump.Add(TD);
                             temp.Add(TD);
-                            tempDependenceListNames.Add(TD.itemName);
                         }
                     }
                 }
@@ -161,86 +144,76 @@ public class Resource : MonoBehaviour
                     foreach (string s in str)
                     {
                         string[] tAr = s.Split('=');
-                        ResourceData TD = main.FindResourceFromString(tAr[0]);
+                        ItemData TD = main.FindItemFromString(tAr[0]);
                         if (!temp.Contains(TD))
                         {
                             dump.Add(TD);
                             temp.Add(TD);
-                            tempDependenceListNames.Add(TD.itemName);
                         }
                     }
                 }
             }
             extendedList.Clear();
-            foreach(ResourceData d in dump)
+            foreach(ItemData d in dump)
             {
                 extendedList.Add(d);
             }
             dump.Clear();
         }
 
-        foreach(string st in myNamedimediateDependencies)
-        {
-            tempDependenceListNames.Add(st);
-        }
-        myNamedAllDependencies = tempDependenceListNames.ToArray();
-
         allMyDependence = temp.ToArray();
         SetupButtonLayout();
     }
+    #endregion
 
+    #region Buttons
     void SetupButtonLayout()
     {
-        List<Resource> deps = new List<Resource>();
+        List<Item> temp = new List<Item>();
 
         if (isOriginalResource)
         {
-            Resource res = originalResourceButton.GetComponent<Resource>();
+            Item item = originalItemButton.GetComponent<Item>();
 
-            res.SetUpResource(myResource, false, main);
-            deps.Add(res);
+            item.SetUpItem(myItemData, false, main);
+            temp.Add(item);
         }
 
         for(int i = allMyDependence.Length-1; i > -1; i--)
         {
             GameObject Obj = Instantiate(buttonPrefab, new Vector3(pivot.transform.position.x, pivot.transform.position.y + 100f, pivot.transform.position.z), Quaternion.identity, pivot.transform);
-            Resource source = Obj.GetComponent<Resource>();
-            source.SetUpResource(allMyDependence[i], false, main);
-            deps.Add(source);
+            Item source = Obj.GetComponent<Item>();
+            source.SetUpItem(allMyDependence[i], false, main);
+            temp.Add(source);
             if (i != 0)
             {
                 pivot.transform.Rotate(0f, 0f, -45f);  
                 continue;
             }
 
-            foreach (Resource r in deps)
+            foreach (Item item in temp)
             {
-                r.ResetRotation();
+                item.ResetRotation();
             }
         }
     }
-
     public void ResetRotation()
     {
         transform.rotation = Quaternion.identity;
     }
-
     public void ClickedButton()
     {
         if(myImediateDependence.Count != 0)
         {
-            if (myResource.groups == "tool" && myResource.currentAmount == myResource.atMostAmount)
-            {
-                Debug.Log("You are trying to create a tool when you already have the max.");
-                return; // if I am a tool and already have it we don't need to be here
-            }
+            if (myItemData.groups == "tool" && myItemData.currentAmount == myItemData.atMostAmount) return; // if I am a tool and already have it we don't need to be here
 
             for (int i = 0; i < myImediateDependence.Count; i++) // checking amounts are enough for each dependency
             {
                 if (myImediateDependence[i].currentAmount >= dependencyAmounts[i]) {
                     dependenciesAble[i] = true;
                 }
-                else{
+                else
+                {
                     dependenciesAble[i] = false; // if one is not able we will stop the method
                     return;
                 }
@@ -255,44 +228,47 @@ public class Resource : MonoBehaviour
                 }
             }
 
-            string[] ar = myResource.itemsToGain.Split("=");           
+            string[] ar = myItemData.itemsToGain.Split("=");           
             tile.AddToQue(tile.GetResourceByString(ar[0]), int.Parse(ar[1]));
-            OnClicked?.Invoke(myResource);
+            OnClicked?.Invoke(myItemData);
             StartCoroutine(UpdateMyInformation());
         }
         else
         {
-            if (myResource.groups == "tool" && myResource.currentAmount == myResource.atMostAmount)
-            {
-                return;
-            }
+            if (myItemData.groups == "tool" && myItemData.currentAmount == myItemData.atMostAmount) return;
 
-            string[] ar = myResource.itemsToGain.Split("=");
+            string[] ar = myItemData.itemsToGain.Split("=");
             tile.AddToQue(tile.GetResourceByString(ar[0]), int.Parse(ar[1]));
-            OnClicked?.Invoke(myResource);
+            OnClicked?.Invoke(myItemData);
             StartCoroutine(UpdateMyInformation());
         }
     }
+    #endregion
 
-    public ResourceData[] GetImediateDependencyNames()
+    #region Dependency
+    public ItemData[] GetImediateDependencyNames()
     {
         return myImediateDependence.ToArray(); ;
     }
-
     public int[] GetDependencyAmounts()
     {
         return dependencyAmounts;
     }
+    #endregion
 
+    #region Visibility
     public void BecomeVisible()
     {
-        myResource.AdjustVisibility(true);
-        tile.StartQueUpdate(myResource);
+        myItemData.AdjustVisibility(true);
+        tile.StartQueUpdate(myItemData);
     }
+    #endregion
 
+    #region IEnumerators
     IEnumerator UpdateMyInformation()
     {
-        yield return new WaitForSeconds(myResource.craftTime + 0.1f);
-        OnUpdate?.Invoke(myResource);
+        yield return new WaitForSeconds(myItemData.craftTime + 0.1f);
+        OnUpdate?.Invoke(myItemData);
     }
+    #endregion
 }

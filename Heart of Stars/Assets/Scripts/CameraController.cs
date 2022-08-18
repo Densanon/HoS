@@ -335,6 +335,6 @@ public class CameraController : MonoBehaviour
 
     private void OnApplicationQuit()
     {
-        //SaveCameraState?.Invoke(SaveCameraSettings());
+        SaveCameraState?.Invoke(SaveCameraSettings());
     }
 }

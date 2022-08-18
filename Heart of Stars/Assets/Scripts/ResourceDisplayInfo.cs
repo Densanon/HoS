@@ -5,7 +5,7 @@ using TMPro;
 
 public class ResourceDisplayInfo : MonoBehaviour
 {
-    ResourceData myResource;
+    ItemData myItemData;
     [SerializeField]
     TMP_Text nameText;
     [SerializeField]
@@ -17,33 +17,38 @@ public class ResourceDisplayInfo : MonoBehaviour
     [SerializeField]
     TMP_Text autoTimeText;
 
+    #region UnityEngine
     private void OnEnable()
     {
-        Resource.OnClicked += UpdateInfo;
-        Resource.OnUpdate += UpdateInfo;
+        Item.OnClicked += UpdateInfo;
+        Item.OnUpdate += UpdateInfo;
     }
-
     private void OnDisable()
     {
-        Resource.OnClicked -= UpdateInfo;
-        Resource.OnUpdate -= UpdateInfo;
+        Item.OnClicked -= UpdateInfo;
+        Item.OnUpdate -= UpdateInfo;
     }
+    #endregion
 
-    public void Initialize(ResourceData data)
+    #region Setup
+    public void Initialize(ItemData data)
     {
-        myResource = data;
+        myItemData = data;
         nameText.text = data.itemName;
         displayText.text = data.displayName;
         UpdateInfo(data);
     }
+    #endregion
 
-    void UpdateInfo(ResourceData source)
+    #region UI Mnagement
+    void UpdateInfo(ItemData source)
     {
-        if(source == myResource)
+        if(source == myItemData)
         {
-            currentText.text = myResource.currentAmount.ToString();
-            autoAmountText.text = myResource.autoAmount.ToString();
-            autoTimeText.text = myResource.craftTime.ToString();
+            currentText.text = myItemData.currentAmount.ToString();
+            autoAmountText.text = myItemData.autoAmount.ToString();
+            autoTimeText.text = myItemData.craftTime.ToString();
         }
     }
+    #endregion
 }

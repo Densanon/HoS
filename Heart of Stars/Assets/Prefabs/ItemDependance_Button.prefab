@@ -16,7 +16,7 @@ GameObject:
   - component: {fileID: 12058774668551154}
   - component: {fileID: 4381430400498391048}
   m_Layer: 5
-  m_Name: ResourceDependance_Button
+  m_Name: ItemDependance_Button
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0

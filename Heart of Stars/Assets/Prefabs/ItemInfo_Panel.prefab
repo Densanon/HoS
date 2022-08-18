@@ -1108,7 +1108,7 @@ GameObject:
   - component: {fileID: 7152112002962471343}
   - component: {fileID: 2725684907314652506}
   m_Layer: 5
-  m_Name: ResourceInfo_Panel
+  m_Name: ItemInfo_Panel
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0

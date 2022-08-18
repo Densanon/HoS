@@ -53,19 +53,19 @@ public class Main : MonoBehaviour
     List<string[]> LoadedData;
     List<string> itemNames;
     [SerializeField]
-    ResourceData[] ResourceLibrary;
-    ResourceData[] LocationResources;
+    ItemData[] ItemLibrary;
+    ItemData[] LocationResources;
     List<string> LocationAddresses;
 
     public string universeAdress;
     string activePlanetAddress;
 
-    string[] ResourceNameReferenceIndex;
-    int[] QuedResourceAmount;
+    string[] ItemNameReferenceIndex;
+    int[] QuedItemAmount;
 
     public GameObject ResourePanelPrefab;
-    public Transform ResourcePanelTransform;
-    public List<GameObject> resourcePanelInfoPieces;
+    public Transform ItemPanelTransform;
+    public List<GameObject> itemPanelInfoPieces;
 
     public GameObject BuildableResourceButtonPrefab;
     public GameObject Canvas;
@@ -82,7 +82,7 @@ public class Main : MonoBehaviour
 
     public static bool isInitialized = false;
 
-    WeightedRandomBag<ResourceData> dropTypes = new WeightedRandomBag<ResourceData>();
+    WeightedRandomBag<ItemData> dropTypes = new WeightedRandomBag<ItemData>(); //Needs to be implemented for item drops
 
     #region Debug Values
     public static Action OnRevealTileLocations = delegate { };
@@ -107,7 +107,7 @@ public class Main : MonoBehaviour
     [SerializeField]
     int testAmounts;
 
-    ResourceData dat;
+    ItemData dat;
     public string debugField = "";
     int buildLevelAmount = 0;
 
@@ -117,87 +117,84 @@ public class Main : MonoBehaviour
     public static bool needCompareForUpdatedValues;
 
     [SerializeField]
-    TMP_Text ResourceName;
+    TMP_Text ItemNameText;
     [SerializeField]
-    TMP_Text ResourceCur;
+    TMP_Text ItemCurrentAmountText;
     [SerializeField]
-    TMP_Text ResourceAut;
+    TMP_Text ItemAutoAmountText;
     [SerializeField]
-    TMP_Text ResourceT;
+    TMP_Text ItemTimeText;
     #endregion
     
     #region Debugging
-    public void ToggleCanSeeInPlanets()
+    public void ToggleCanSeeInPlanets() //Allows access into a planet/moon without saving things
     {
         canSeeIntoPlanets = !canSeeIntoPlanets;
     }
-    public void SetHighestLevelOfView()
+    public void SetHighestLevelOfView() //Allows access to farther out zooms
     {
         highestLevelOfView = int.Parse(debugField);
-        Debug.Log($"Highest Level Access Set To: {highestLevelOfView}");
-        Debug.Log($"Current level: {(int)currentDepth}");
     }
-    public void UpdateDebugField(string s)
-    {
-        debugField = s;
-    }
-    public void SubmitDebugField()
-    {
-        dat = debugTile.GetResource(debugField);
-        if (dat == null)
-        {
-            Debug.Log("Didn't get a legitamate resource.");
-            return;
-        }
-        UpdateCurrentDebugFields();
-    }
-    public void UpdateCurrentDebugFields()
-    {
-        ResourceName.text = dat.displayName;
-        ResourceCur.text = dat.currentAmount.ToString();
-        ResourceAut.text = dat.autoAmount.ToString();
-        ResourceT.text = dat.craftTime.ToString();
-    }
-    public void SubmitDebugSetTileActive()
-    {
-        string[] ar = debugField.Split(",");
-        debugTile = activeBrain.GetTile(new Vector2(float.Parse(ar[0]), float.Parse(ar[1])));
-    }
-    public void SubmitDebugIncrease()
-    {
-        dat.AdjustCurrentAmount(int.Parse(debugField));
-        UpdateCurrentDebugFields();
-    }
-    public void SubmitDebugDecrease()
-    {
-        dat.AdjustCurrentAmount(int.Parse(debugField));
-        UpdateCurrentDebugFields();
-    }
-    public void SubmitDebugSetCurrent()
-    {
-        dat.SetCurrentAmount(int.Parse(debugField));
-        UpdateCurrentDebugFields();
-    }
-    public void SubmitDebugSetVisible()
-    {
-        dat.AdjustVisibility("true" == debugField.ToLower());
-        Debug.Log($"Visible: {dat.visible} ");
-    }
-    public void ToTheTop()
+    public void ToTheTop() //Pulls you to the Universe Level
     {
         SetLocationDepthByInt(1);
         GenerateUniverseLocation(currentDepth, 42);
     }
-    public void DeleteAllSaveData()
+    public void UpdateDebugField(string s) //Sets the universal Debug Field
+    {
+        debugField = s;
+    }
+    public void SubmitDebugSetTileActive() //Takes x,y from Universal Debug Field so set active tile
+    {
+        string[] ar = debugField.Split(",");
+        debugTile = activeBrain.GetTile(new Vector2(float.Parse(ar[0]), float.Parse(ar[1])));
+    }
+    public void SubmitDebugField() //With a tile active, when done editting the highest field it attemps to access the tile item by itemName
+    {
+        dat = debugTile.GetItem(debugField);
+        if (dat == null)
+        {
+            Debug.Log("Didn't get a legitamate item.");
+            return;
+        }
+        UpdateCurrentDebugFields();
+    }
+    public void UpdateCurrentDebugFields() //Populates all item fields with it's values
+    {
+        ItemNameText.text = dat.displayName;
+        ItemCurrentAmountText.text = dat.currentAmount.ToString();
+        ItemAutoAmountText.text = dat.autoAmount.ToString();
+        ItemTimeText.text = dat.craftTime.ToString();
+    }
+    public void SubmitDebugIncrease() //If active tile and some integer value in universal debug, adds to the current amount
+    {
+        dat.AdjustCurrentAmount(int.Parse(debugField));
+        UpdateCurrentDebugFields();
+    }
+    public void SubmitDebugDecrease() //If active tile and some integer value with a -inFront in universal debug, subtract from the current amount
+    {
+        dat.AdjustCurrentAmount(int.Parse(debugField));
+        UpdateCurrentDebugFields();
+    }
+    public void SubmitDebugSetCurrent() //If active tile and some integer value in universal debug, sets the current amount
+    {
+        dat.SetCurrentAmount(int.Parse(debugField));
+        UpdateCurrentDebugFields();
+    }
+    public void SubmitDebugSetVisible() //If active tile and item and some True or False value in universal debug, sets the visibility
+    {
+        dat.AdjustVisibility("true" == debugField.ToLower());
+    }
+    public void DeleteAllSaveData() //Deletes all saved data, game reset
     {
         SaveSystem.SeriouslyDeleteAllSaveFiles();
     }
-    public void ForceBuildDataFromSheet() // used this to reforce everything to be built from the data sheet
+    public void ForceBuildDataFromSheet() //Use this to reforce everything to be built from the data sheet
     {
         for (int j = 0; j < SheetData.Count; j++)
         {
             Debug.Log($"Sheetdata at [1]: {SheetData[j][1]}");
-            ResourceLibrary[j] = new ResourceData(SheetData[j][0], SheetData[j][8],
+            ItemLibrary[j] = new ItemData(SheetData[j][0], SheetData[j][8],
                 SheetData[j][9], SheetData[j][10], SheetData[j][1], SheetData[j][2],
                 SheetData[j][3], false, 0, 0, float.Parse(SheetData[j][4]), SheetData[j][5],
                 SheetData[j][6], SheetData[j][7], SheetData[j][11], SheetData[j][12],
@@ -205,42 +202,42 @@ public class Main : MonoBehaviour
 
             if (SheetData[j][3] == "nothing=0" && SheetData[j][4] == "nothing")
             {
-                ResourceLibrary[j].AdjustVisibility(true);
+                ItemLibrary[j].AdjustVisibility(true);
             }
 
-            if (ResourceLibrary[j].groups == "tool")
+            if (ItemLibrary[j].groups == "tool")
             {
                 string[] ra = SheetData[j][7].Split(" ");
                 string[] k = ra[1].Split("=");
-                ResourceLibrary[j].SetAtMost(int.Parse(k[1]));
+                ItemLibrary[j].SetAtMost(int.Parse(k[1]));
             }
 
-            ResourceNameReferenceIndex[j] = ResourceLibrary[j].displayName;
+            ItemNameReferenceIndex[j] = ItemLibrary[j].displayName;
         }
 
         CreateOrResetAllBuildableStrings();
 
-        CreateResourcePanelInfo("all", "");
+        CreateItemPanelInfo("all", "");
 
-        SaveResourceLibrary();
-        SaveSystem.SaveFile("/resource_shalom");
+        SaveItemLibrary();
+        SaveSystem.SaveFile("/item_shalom");
         LoadedData.Clear();
     }
-    public void RevealTileLocation()
+    public void RevealTileLocation() //Shows all tile vector2 positions on screen, may take a second to create all UI
     {
         OnRevealTileLocations?.Invoke();
     }
-    public void DebugTileInformation()
+    public void DebugTileInformation() //Active Tile, in console it gives the tiles save data string in the console
     {
         string[] s = debugField.Split(",");
         Vector2 v = new Vector2(int.Parse(s[0]), int.Parse(s[1]));
         OnRevealTileSpecificInformation(v);
     }
-    public void ToggleCantLose()
+    public void ToggleCantLose() //Prevents you or generals from losing any units
     {
         cantLose = !cantLose;
     }
-    public void TestNormalizeNumbers()
+    public void TestNormalizeNumbers() //Values are set in the inspector, it shows min, max and average of the set(for finding a spaceobject/enemy spread)
     {
         int average = 0;
         int min = 100;
@@ -256,15 +253,15 @@ public class Main : MonoBehaviour
         Debug.Log("Max: " + max);
         Debug.Log("Average: " + average / testAmounts);
     }
-    public void RevealEnemies()
+    public void RevealEnemies() //Shows all enemies and their amounts in the map
     {
         OnRevealEnemies?.Invoke();
     }
-    public void ChangeCameraZoomToggleUI()
+    public void ChangeCameraZoomToggleUI() //Sets the distance the camera can zoom before the UI turn off
     {
         camCancelUI = float.Parse(debugField);
     }
-    public void ResetLevelWithNewValues()
+    public void ResetLevelWithNewValues() //Actually resets the game to initial values and destroys all things
     {
         OnDestroyLevel?.Invoke();
         ResetTheInitialEncounter();
@@ -276,7 +273,7 @@ public class Main : MonoBehaviour
         planetContainer.Clear();
         GenerateUniverseLocation(UniverseDepth.Planet, 0);
     }
-    public void ResetTheInitialEncounter()
+    public void ResetTheInitialEncounter() //The rest of the reset code from above^
     {
         isInitialized = false;
         PlayerPrefs.SetInt("Initialized", 0);
@@ -287,41 +284,41 @@ public class Main : MonoBehaviour
         planetContainer.Clear();
         LocationAddresses.Clear();
     }
-    public void ToggleGeneral()
+    public void ToggleGeneral() //Turns off all generals or allows generals to be used
     {
         usingGeneral = !usingGeneral;
         generalManager.StartActiveGeneral();
     }
-    public void SubmitGeneralStart()
+    public void SubmitGeneralStart() //Puts the active general at tile location set by Universal Debug Field x,y
     {
         string[] s = debugField.Split(",");
         Vector2 tile = new Vector2(float.Parse(s[0]), float.Parse(s[1]));
         generalManager.SetGeneralLocation(tile);
     }
-    public void SubmitGeneralName()
+    public void SubmitGeneralName() //Changes the name of active general set by Universal Debug Field
     {
         Debug.Log("Sending name submition.");
         generalManager.SetActiveGeneralName(debugField);
     }
-    public void CreateGeneral()
+    public void CreateGeneral() //Creates a general which needs to be assigned
     {
         generalManager.CreateAGeneral();
     }
-    public void GenerateMapLocation()
+    public void GenerateMapLocation() //Using the Universal Debug Field type in the universe address and it will create and take you there
     {
-        //42,7,1,1,2,7,10,2,8,0  Current working planet
+        //42,7,1,1,2,7,10,2,8,0  Current planet working inside of
         fromMemoryOfLocation = true;
         universeAdress = debugField;
         OnWorldMap?.Invoke(true);
         GenerateUniverseLocation(UniverseDepth.Planet, 42);
     }
-    public void CreateABasicShip()
+    public void CreateABasicShip() //Creates a basic ship, this ship must be set with a tile to start by Universal Debug Field x,y
     {
         string[] ar = debugField.Split(",");
         Vector2 v = new Vector2(float.Parse(ar[0]), float.Parse(ar[1]));
         shipsManager.BuildABasicShip(v);
     }
-    public void SetAllShipSpeeds()
+    public void SetAllShipSpeeds() //Sets all ships flying delays to whatever float value set by Universal Debug Field
     {
         shipsManager.SetAllShipSpeeds(float.Parse(debugField));
     }
@@ -338,9 +335,9 @@ public class Main : MonoBehaviour
         UnityEngine.Random.InitState(42);
         
         SheetData = SheetReader.GetSheetData();
-        resourcePanelInfoPieces = new List<GameObject>();
+        itemPanelInfoPieces = new List<GameObject>();
 
-        //This will build the template we will use for planets
+        //This will build the template we will use for all items
         if(SheetData != null)
         {
             BuildGenericResourceInformation();
@@ -359,8 +356,6 @@ public class Main : MonoBehaviour
 
         LoadWhereWeHaveBeen();
 
-        DontDestroyOnLoad(this.gameObject);
-
         Depthinteraction.SpaceInteractionHover += CheckForSpaceObject;
         Depthinteraction.CheckIfCanZoomToPlanetaryLevel += CheckIfWeCanZoomToPlanet;
         CameraController.OnCameraZoomContinue += SetZoomContinueTrue;
@@ -369,10 +364,12 @@ public class Main : MonoBehaviour
         HexTileInfo.OnLeaving += GoBackAStep;
         Spacecraft.OnRequestingShipDestination += StartShipDestinationMode;
         Spacecraft.OnGoToPlanetForShip += GoToPlanetWithNewSpacecraft;
+
+        DontDestroyOnLoad(this.gameObject);
     }
     private void Start()
     {
-        GenerateUniverseLocation(UniverseDepth.Universe, 42);
+        GenerateUniverseLocation(UniverseDepth.Universe, 42); //If there is no loaded location we will start at the universe level
 
         LoadCamState();
     }
@@ -389,90 +386,90 @@ public class Main : MonoBehaviour
     #region Data Calls
     void CreateOrResetAllBuildableStrings()
     {
-        for (int k = 0; k < ResourceLibrary.Length; k++)
+        for (int k = 0; k < ItemLibrary.Length; k++)
         {
-            if (needResetAllBuildables) ResourceLibrary[k].SetBuildablesString("");
+            if (needResetAllBuildables) ItemLibrary[k].SetBuildablesString("");
 
-            if (ResourceLibrary[k].buildables == "")
+            if (ItemLibrary[k].buildables == "")
             {
-                ResourceData[] res = FindBuildablesForResourceData(ResourceLibrary[k]);
+                ItemData[] res = FindBuildablesForItem(ItemLibrary[k]);
                 for (int i = 0; i < res.Length; i++)
                 {
                     if (i != res.Length - 1)
                     {
-                        ResourceLibrary[k].SetBuildablesString(ResourceLibrary[k].buildables + res[i].itemName + "-");
+                        ItemLibrary[k].SetBuildablesString(ItemLibrary[k].buildables + res[i].itemName + "-");
                         continue;
                     }
 
-                    ResourceLibrary[k].SetBuildablesString(ResourceLibrary[k].buildables + res[i].itemName);
+                    ItemLibrary[k].SetBuildablesString(ItemLibrary[k].buildables + res[i].itemName);
                 }
             }
         }
         needResetAllBuildables = false;
     }
-    public static void CompareIndividualResourceValues(Main main, ResourceData data)
+    public static void CompareIndividualItemValues(Main main, ItemData item)
     {
-        if (data == null) return;
+        if (item == null) return;
         foreach(string[] ar in main.SheetData)
         {
-            if (ar[0] == data.itemName)
+            if (ar[0] == item.itemName)
             {
-                Debug.Log($"{data.itemName} is gettting checked for value changes.");
-                if(data.displayName != ar[8]) data.SetDisplayName(ar[8]);      
-                if(data.description != ar[9]) data.SetDescription(ar[9]);              
-                if(data.groups != ar[10]) data.SetGroups(ar[10]);                
-                if(data.gameElementType != ar[1]) data.SetGameElementType(ar[1]);               
-                if(data.consumableRequirements != ar[2])
+                Debug.Log($"{item.itemName} is gettting checked for value changes.");
+                if(item.displayName != ar[8]) item.SetDisplayName(ar[8]);      
+                if(item.description != ar[9]) item.SetDescription(ar[9]);              
+                if(item.groups != ar[10]) item.SetGroups(ar[10]);                
+                if(item.gameElementType != ar[1]) item.SetGameElementType(ar[1]);               
+                if(item.consumableRequirements != ar[2])
                 {
-                    data.SetConsumableRequirements(ar[2]);
+                    item.SetConsumableRequirements(ar[2]);
                     needResetAllBuildables = true;
                 }
-                if(data.nonConsumableRequirements != ar[3])
+                if(item.nonConsumableRequirements != ar[3])
                 {
-                    data.SetNonConsumableRequirements(ar[3]);
+                    item.SetNonConsumableRequirements(ar[3]);
                     needResetAllBuildables = true;
                 }
-                if(data.craftTime != float.Parse(ar[4])) data.SetCraftTimer(float.Parse(ar[4]));               
-                if (data.itemsToGain != ar[5]) data.SetItemsToGain(ar[5]);                
-                if(data.commandsOnPressed != ar[6]) data.SetCommandsOnPressed(ar[6]);                
-                if (data.commandsOnCreated != ar[7]) data.SetCommandsOnCreated(ar[7]);                
-                if (data.imageName != ar[11]) data.SetImageName(ar[11]);
-                if (data.soundName != ar[12]) data.SetSoundName(ar[12]);
-                if (data.achievement != ar[13]) data.SetAchievementName(ar[13]);
+                if(item.craftTime != float.Parse(ar[4])) item.SetCraftTimer(float.Parse(ar[4]));               
+                if (item.itemsToGain != ar[5]) item.SetItemsToGain(ar[5]);                
+                if(item.commandsOnPressed != ar[6]) item.SetCommandsOnPressed(ar[6]);                
+                if (item.commandsOnCreated != ar[7]) item.SetCommandsOnCreated(ar[7]);                
+                if (item.imageName != ar[11]) item.SetImageName(ar[11]);
+                if (item.soundName != ar[12]) item.SetSoundName(ar[12]);
+                if (item.achievement != ar[13]) item.SetAchievementName(ar[13]);
                 return;
             }
         }
     }
-    public ResourceData FindResourceFromString(string itemName)
+    public ItemData FindItemFromString(string itemName)
     {
-        foreach(ResourceData data in ResourceLibrary)
+        foreach(ItemData item in ItemLibrary)
         {
-            if(data.itemName == itemName)
+            if(item.itemName == itemName)
             {
-                return data;
+                return item;
             }
         }
 
-        Debug.LogError($"FindResourceFromString: Could not find itemName : {itemName}");
+        Debug.LogError($"FindItemFromString: Could not find itemName : {itemName}");
         return null;
     }
-    public ResourceData[] FindBuildablesForResourceData(ResourceData data)
+    public ItemData[] FindBuildablesForItem(ItemData item)
     {
-        List<ResourceData> temp = new List<ResourceData>();
-        foreach(ResourceData rd in ResourceLibrary)
+        List<ItemData> temp = new List<ItemData>();
+        foreach(ItemData rd in ItemLibrary)
         {
             if((rd.consumableRequirements != "nothing=0" &&
-                CheckStringForResource(data.itemName, rd.consumableRequirements)) ||
+                CheckStringForItem(item.itemName, rd.consumableRequirements)) ||
                 (rd.nonConsumableRequirements != "nothing" &&
-                CheckStringForResource(data.itemName, rd.nonConsumableRequirements))) 
+                CheckStringForItem(item.itemName, rd.nonConsumableRequirements))) 
                 temp.Add(rd);
         }
         return temp.ToArray();
     }
-    bool CheckStringForResource(string itemName, string dependencyListString)
+    bool CheckStringForItem(string itemName, string dependencyListString)
     {
-        string[] checkResource = dependencyListString.Split("-");
-        foreach(string s in checkResource)
+        string[] checkItem = dependencyListString.Split("-");
+        foreach(string s in checkItem)
         {
             string[] stAr = s.Split("=");
             if(stAr[0] == itemName)
@@ -482,25 +479,25 @@ public class Main : MonoBehaviour
         }
         return false;
     }
-    public ResourceData[] FindDependenciesFromResourceData(ResourceData data)
+    public ItemData[] FindDependenciesFromItem(ItemData item)
     {
-        List<ResourceData> deps = new List<ResourceData>();
-        string[] ar = data.consumableRequirements.Split("-");
+        List<ItemData> deps = new List<ItemData>();
+        string[] ar = item.consumableRequirements.Split("-");
         if(ar[0] != "nothing=0")
         {
             foreach(string s in ar)
             {
                 string[] tAr = s.Split('=');
-                ResourceData TD = FindResourceFromString(tAr[0]);
+                ItemData TD = FindItemFromString(tAr[0]);
                 if (!deps.Contains(TD)) deps.Add(TD);
             }
         }
         return deps.ToArray();
     }
-    public int[] FindDependencyAmountsFromResourceData(ResourceData data)
+    public int[] FindDependencyAmountsFromItem(ItemData item)
     {
         List<int> deps = new List<int>();
-        string[] ar = data.consumableRequirements.Split("-");
+        string[] ar = item.consumableRequirements.Split("-");
         if (ar[0] != "nothing=0")
         {
             foreach (string s in ar)
@@ -514,53 +511,53 @@ public class Main : MonoBehaviour
     }
     #endregion
 
-    #region Resource Panel
-    public void CreateResourcePanelInfo(string group, string type) // currently only works for the ResourceLibrary
+    #region Item Panel
+    public void CreateItemPanelInfo(string group, string type) // currently only works for the ItemLibrary
     {
         RemovePreviousPanelInformation();
 
         if (group == "all")
         {
-            foreach (ResourceData data in ResourceLibrary)
+            foreach (ItemData item in ItemLibrary)
             {
-                CreateInfoPanel(data);
+                CreateInfoPanel(item);
             }
             return;
         }
 
         if (group == "allVisible")
         {
-            foreach (ResourceData data in ResourceLibrary)
+            foreach (ItemData item in ItemLibrary)
             {
-                if (data.visible) CreateInfoPanel(data);
+                if (item.visible) CreateInfoPanel(item);
             }
             return;
         }
 
         if (type == "Groups")
         {
-            foreach (ResourceData data in ResourceLibrary)//checking group name
+            foreach (ItemData item in ItemLibrary)//checking group name
             {
-                string[] ar = data.groups.Split(" ");
+                string[] ar = item.groups.Split(" ");
                 foreach(string s in ar)
                 {
-                    if (s.ToLower() == group.ToLower() && data.visible)
+                    if (s.ToLower() == group.ToLower() && item.visible)
                     {
-                        CreateInfoPanel(data);
+                        CreateInfoPanel(item);
                     }
                 }
             }
 
-            if(resourcePanelInfoPieces.Count == 0)
+            if(itemPanelInfoPieces.Count == 0)
             {
-                foreach (ResourceData dt in ResourceLibrary)
+                foreach (ItemData item in ItemLibrary)
                 {
-                    string[] ar = dt.displayName.Split(" ");
+                    string[] ar = item.displayName.Split(" ");
                     foreach(string s in ar)
                     {
-                        if(s.ToLower() == group.ToLower() && dt.visible)
+                        if(s.ToLower() == group.ToLower() && item.visible)
                         {
-                            CreateInfoPanel(dt);
+                            CreateInfoPanel(item);
                             break;
                         }
                     }
@@ -571,32 +568,31 @@ public class Main : MonoBehaviour
 
         if (type == "Game Element")
         {
-            foreach (ResourceData data in ResourceLibrary)
+            foreach (ItemData item in ItemLibrary)
             {
-                if (data.gameElementType == group)
+                if (item.gameElementType == group)
                 {
-                    CreateInfoPanel(data);
+                    CreateInfoPanel(item);
                 }
             }
         }
     }
-    private void CreateInfoPanel(ResourceData data)
+    private void CreateInfoPanel(ItemData item)
     {
-        GameObject obj = Instantiate(ResourePanelPrefab, ResourcePanelTransform);
-        obj.GetComponent<ResourceDisplayInfo>().Initialize(data);
-        resourcePanelInfoPieces.Add(obj);
+        GameObject obj = Instantiate(ResourePanelPrefab, ItemPanelTransform);
+        obj.GetComponent<ResourceDisplayInfo>().Initialize(item);
+        itemPanelInfoPieces.Add(obj);
     }
-    public void CreateResourcePanelInfo(string resourceByName) 
+    public void CreateItemPanelInfo(string itemByName) 
     {
         RemovePreviousPanelInformation();
-        Debug.Log($"Looking to create: {resourceByName}");
-        foreach(ResourceData data in ResourceLibrary)
+        foreach(ItemData item in ItemLibrary)
         {
-            if(resourceByName.ToLower() == data.displayName.ToLower())
+            if(itemByName.ToLower() == item.displayName.ToLower())
             {
-                if (data.visible)
+                if (item.visible)
                 {
-                    CreateInfoPanel(data);
+                    CreateInfoPanel(item);
                 }
                 return;
             }
@@ -608,42 +604,42 @@ public class Main : MonoBehaviour
     }
     public void SubmitSearchForPanelInformation()
     {
-        foreach(string s in ResourceNameReferenceIndex) //check by displayName
+        foreach(string s in ItemNameReferenceIndex) //check by displayName
         {
             if(s.ToLower() == searchInputField.ToLower())
             {
-                CreateResourcePanelInfo(searchInputField);
+                CreateItemPanelInfo(searchInputField);
                 return;
             }
         }
 
         if(searchInputField.ToLower() == "crafters")
         {
-            CreateResourcePanelInfo("crafters", "Game Element");
+            CreateItemPanelInfo("crafters", "Game Element");
             return;
         }
         if (searchInputField.ToLower() == "*all")
         {
-            CreateResourcePanelInfo("all", "");
+            CreateItemPanelInfo("all", "");
             return;
         }
         if (searchInputField.ToLower() == "all")
         {
             Debug.Log("Should be finding all visible.");
-            CreateResourcePanelInfo("allVisible", "");
+            CreateItemPanelInfo("allVisible", "");
             return;
         }
 
-        CreateResourcePanelInfo(searchInputField, "Groups");
+        CreateItemPanelInfo(searchInputField, "Groups");
     }
     void RemovePreviousPanelInformation()
     {
-        foreach(Transform child in ResourcePanelTransform)
+        foreach(Transform child in ItemPanelTransform)
         {
             GameObject.Destroy(child.gameObject);
         }
 
-        resourcePanelInfoPieces.Clear();
+        itemPanelInfoPieces.Clear();
     }
     #endregion
 
@@ -657,17 +653,16 @@ public class Main : MonoBehaviour
     {
         SendCameraState?.Invoke(SaveSystem.LoadFile("/camera_rohi"));
     }
-    public void SaveResourceLibrary()
+    public void SaveItemLibrary()
     {
-        for (int i = 0; i < ResourceLibrary.Length; i++)
+        for (int i = 0; i < ItemLibrary.Length; i++)
         {
-            if (i != (ResourceLibrary.Length - 1))
+            if (i != (ItemLibrary.Length - 1))
             {
-                SaveSystem.SaveResource(ResourceLibrary[i], false);
+                SaveSystem.SaveResource(ItemLibrary[i], false);
                 continue;
             }
-            SaveSystem.SaveResource(ResourceLibrary[i], true);
-            //Debug.Log("Finished saving the last resource to the library.");
+            SaveSystem.SaveResource(ItemLibrary[i], true);
         }
     }
     public void SaveLocationAddressBook()
@@ -676,7 +671,6 @@ public class Main : MonoBehaviour
         string s = "";
         for(int i = 0; i < LocationAddresses.Count; i++)
         {
-            //Debug.Log($"Adding {LocationAddresses[i]}");
             if(i == LocationAddresses.Count-1)
             {
                 s += LocationAddresses[i];
@@ -706,27 +700,27 @@ public class Main : MonoBehaviour
     }
     void BuildGenericResourceInformation()
     {
-        ResourceLibrary = new ResourceData[SheetData.Count];
-        LocationResources = new ResourceData[SheetData.Count];
-        ResourceNameReferenceIndex = new string[SheetData.Count];
-        QuedResourceAmount = new int[SheetData.Count];
+        ItemLibrary = new ItemData[SheetData.Count];
+        LocationResources = new ItemData[SheetData.Count];
+        ItemNameReferenceIndex = new string[SheetData.Count];
+        QuedItemAmount = new int[SheetData.Count];
         LoadedData = new List<string[]>();
         itemNames = new List<string>();
 
-        BuildLoadedData(SaveSystem.LoadFile("/resource_shalom"));
+        BuildLoadedData(SaveSystem.LoadFile("/item_shalom"));
 
         for (int j = 0; j < SheetData.Count; j++)
         {
             if (itemNames.Contains(SheetData[j][0]))
             {
-                BuildResourceLibraryFromMemoryAtGivenIndex(j);
+                BuildItemLibraryFromMemoryAtIndex(j);
 
                 try
                 {
                     if (SheetData[j][14] == "TRUE")
                     {
                         needCompareForUpdatedValues = true;
-                        CompareIndividualResourceValues(this,ResourceLibrary[j]);
+                        CompareIndividualItemValues(this,ItemLibrary[j]);
                     }
                 }
                 catch (IndexOutOfRangeException e) { }
@@ -734,26 +728,26 @@ public class Main : MonoBehaviour
                 continue;
             }
 
-            CreateResourceForLibraryAtIndex(j);
+            CreateItemForLibraryAtIndex(j);
 
             //If it is a basic resource we need it to start visible
-            if ((SheetData[j][2] == "nothing=0" && SheetData[j][3] == "nothing")|| SheetData[j][0] == "barracks") ResourceLibrary[j].AdjustVisibility(true);
+            if ((SheetData[j][2] == "nothing=0" && SheetData[j][3] == "nothing")|| SheetData[j][0] == "barracks") ItemLibrary[j].AdjustVisibility(true);
 
             //If it is a tool, we need to set it's max amount to whatever the given max amount will be
-            if (ResourceLibrary[j].groups == "tool")
+            if (ItemLibrary[j].groups == "tool")
             {
                 string[] ra = SheetData[j][7].Split(" ");
                 string[] k = ra[1].Split("=");
-                ResourceLibrary[j].SetAtMost(int.Parse(k[1]));
+                ItemLibrary[j].SetAtMost(int.Parse(k[1]));
             }
 
-            ResourceNameReferenceIndex[j] = ResourceLibrary[j].displayName;
+            ItemNameReferenceIndex[j] = ItemLibrary[j].displayName;
         }
 
         CreateOrResetAllBuildableStrings();
 
-        SaveResourceLibrary();
-        SaveSystem.SaveResourceLibrary();
+        SaveItemLibrary();
+        SaveSystem.SaveItemLibrary();
         LoadedData.Clear();
     }
     void BuildGenericResourceInformationFromMemory()
@@ -761,17 +755,17 @@ public class Main : MonoBehaviour
         LoadedData = new List<string[]>();
         itemNames = new List<string>();
 
-        BuildLoadedData(SaveSystem.LoadFile("/resource_shalom"));
+        BuildLoadedData(SaveSystem.LoadFile("/item_shalom"));
 
-        List<ResourceData> temp = new List<ResourceData>();
-        ResourceLibrary = new ResourceData[LoadedData.Count];
-        LocationResources = new ResourceData[LoadedData.Count];
-        ResourceNameReferenceIndex = new string[LoadedData.Count];
-        QuedResourceAmount = new int[LoadedData.Count];
+        List<ItemData> temp = new List<ItemData>();
+        ItemLibrary = new ItemData[LoadedData.Count];
+        LocationResources = new ItemData[LoadedData.Count];
+        ItemNameReferenceIndex = new string[LoadedData.Count];
+        QuedItemAmount = new int[LoadedData.Count];
 
         for (int j = 0; j < LoadedData.Count; j++)
         {
-            BuildResourceLibraryFromMemoryAtGivenIndex(j);
+            BuildItemLibraryFromMemoryAtIndex(j);
         }
 
         CreateOrResetAllBuildableStrings();
@@ -790,49 +784,37 @@ public class Main : MonoBehaviour
             }
         }
     }
-    private void BuildLoadedData(string[] fileInfo)
+    private void BuildItemLibraryFromMemoryAtIndex(int j)
     {
-        if (fileInfo != null)
-        {
-            foreach (string str in fileInfo)
-            {
-                string[] final = str.Split(',');
-                LoadedData.Add(final);
-                itemNames.Add(final[0]);
-            }
-        }
-    }
-    private void BuildResourceLibraryFromMemoryAtGivenIndex(int j)
-    {
-        ResourceLibrary[j] = new ResourceData(LoadedData[j][0], LoadedData[j][1], LoadedData[j][2], LoadedData[j][3], LoadedData[j][4], LoadedData[j][5], LoadedData[j][6],
+        ItemLibrary[j] = new ItemData(LoadedData[j][0], LoadedData[j][1], LoadedData[j][2], LoadedData[j][3], LoadedData[j][4], LoadedData[j][5], LoadedData[j][6],
                         (LoadedData[j][7] == "True") ? true : false, int.Parse(LoadedData[j][8]), int.Parse(LoadedData[j][9]), float.Parse(LoadedData[j][10]), LoadedData[j][11], LoadedData[j][12],
                         LoadedData[j][13], LoadedData[j][14], LoadedData[j][15], LoadedData[j][16], int.Parse(LoadedData[j][17]), LoadedData[j][18]);
 
-        ResourceNameReferenceIndex[j] = ResourceLibrary[j].displayName;
+        ItemNameReferenceIndex[j] = ItemLibrary[j].displayName;
     }
-    private void CreateResourceForLibraryAtIndex(int j)
+    private void CreateItemForLibraryAtIndex(int j)
     {
         //name, desc, dis, gr, eType, req, nonReq, vis, cur, autA, timer, created,
         //coms, createComs, im, snd, ach, most
-        ResourceLibrary[j] = new ResourceData(SheetData[j][0], SheetData[j][8],
+        ItemLibrary[j] = new ItemData(SheetData[j][0], SheetData[j][8],
                         SheetData[j][9], SheetData[j][10], SheetData[j][1], SheetData[j][2],
                         SheetData[j][3], false, 0, 0, float.Parse(SheetData[j][4]), SheetData[j][5],
                         SheetData[j][6], SheetData[j][7], SheetData[j][11], SheetData[j][12],
                         SheetData[j][13], 0, "");
     }
-    void LoadDataFromSave(string[] resource)
+    void LoadDataFromSave()
     {
         LoadedData = new List<string[]>();
         itemNames = new List<string>();
 
-        string s = SaveSystem.LoadFile("/resource_shalom");
+        string s = SaveSystem.LoadFile("/item_shalom");
         BuildLoadedData(s);
         
-        LocationResources = new ResourceData[LoadedData.Count];
+        LocationResources = new ItemData[LoadedData.Count];
 
         for (int j = 0; j < LoadedData.Count; j++)
         {
-            LocationResources[j] = new ResourceData(LoadedData[j][0], LoadedData[j][1], LoadedData[j][2], LoadedData[j][3], LoadedData[j][4], LoadedData[j][5], LoadedData[j][6],
+            LocationResources[j] = new ItemData(LoadedData[j][0], LoadedData[j][1], LoadedData[j][2], LoadedData[j][3], LoadedData[j][4], LoadedData[j][5], LoadedData[j][6],
                     (LoadedData[j][7] == "True") ? true : false, int.Parse(LoadedData[j][8]), int.Parse(LoadedData[j][9]), float.Parse(LoadedData[j][10]), LoadedData[j][11], LoadedData[j][12],
                     LoadedData[j][13], LoadedData[j][14], LoadedData[j][15], LoadedData[j][16], int.Parse(LoadedData[j][17]), LoadedData[j][18]);
         }
@@ -846,7 +828,7 @@ public class Main : MonoBehaviour
         }
 
         //No planetary info was stored so build new stuff
-        LoadDataFromSave(null);//This is here if we are offline from when we started
+        LoadDataFromSave();//This is here if we are offline from when we started
         return null;
     }
     #endregion
@@ -854,6 +836,7 @@ public class Main : MonoBehaviour
     #region Map
     public void GenerateUniverseLocation(UniverseDepth depth, int index)
     {
+        Debug.Log("Generating Location.");
         UniverseDepth dp = depth;
 
         if (depthLocations != null) WipeUniversePieces();
@@ -874,8 +857,6 @@ public class Main : MonoBehaviour
         }
         else
         {
-            //Debug.Log($"UniverseAddress being set up from memory: {universeAdress}");
-
             UnityEngine.Random.InitState(universeAdress.GetHashCode());
 
             string[] ar = universeAdress.Split(",");
@@ -935,6 +916,7 @@ public class Main : MonoBehaviour
     }
     private void SetUpSpaceEncounter(int prefabIndex, int spawnAmount)
     {
+        Debug.Log("Generating Space Encounter.");
         List<GameObject> objs = new List<GameObject>();
         
         if(depthPrefabs[prefabIndex] != null)
@@ -997,7 +979,7 @@ public class Main : MonoBehaviour
         bool isBrandNew = false;
         isViewingPlanetOnly = !CheckIfVisitedPlanet(); //need a better check system
         if (!isInitialized) isViewingPlanetOnly = false;
-        if (!LocationAddresses.Contains(universeAdress) && (isLanding) ? true : !isViewingPlanetOnly) 
+        if (!LocationAddresses.Contains(universeAdress) && (isLanding ? true : !isViewingPlanetOnly)) 
         {
             LocationAddresses.Add(universeAdress);
             isBrandNew = true;        
@@ -1008,7 +990,6 @@ public class Main : MonoBehaviour
         {
             if (brain.myAddress == universeAdress)
             {
-                Debug.Log("Accessing a location already made.");
                 activeBrain = brain;
                 if (isLanding) activeBrain.GiveATileAShip(activeSpacecraft, activeBrain.FindSuitableLandingSpace(), true);
                 activeBrain.TurnOnVisibility();
@@ -1092,13 +1073,8 @@ public class Main : MonoBehaviour
     }
     private void SetAreaText()
     {
-        if (currentDepth != UniverseDepth.Planet)
-        {
-            areaText.text = $"{universeAdress} : {currentDepth}";
-            return;
-        }
-
-        areaText.text = $"{universeAdress} : {currentDepth} : NamedOrNot";
+        areaText.text = (currentDepth != UniverseDepth.Planet) ? $"{universeAdress} : {currentDepth}" :
+            areaText.text = $"{universeAdress} : {currentDepth} : NamedOrNot";
     }
     void WipeUniversePieces()
     {
@@ -1125,11 +1101,7 @@ public class Main : MonoBehaviour
         if (currentDepth == UniverseDepth.PlanetMoon)
         {
             isPlanet = (index == 0);
-            if (!canSeeIntoPlanets && !isVisitedPlanet && isInitialized)
-            {
-                Debug.Log("Can't see and haven't visited.");
-                yield break;
-            }
+            if (!canSeeIntoPlanets && !isVisitedPlanet && isInitialized) yield break;
         }
 
         yield return new WaitUntil(() => canZoomContinue);
@@ -1146,14 +1118,15 @@ public class Main : MonoBehaviour
     {
         return LocationAddresses.Contains(universeAdress + $",{index}");
     }
+    private bool CheckIfVisitedPlanet()
+    {
+        return LocationAddresses.Contains(universeAdress);
+    }
     private int GetSpaceObjectIndex(GameObject obj)
     {
         for (int i = 0; i < depthLocations.Length; i++)
         {
-            if (ReferenceEquals(obj, depthLocations[i]))
-            {
-                return i;
-            }
+            if (ReferenceEquals(obj, depthLocations[i])) return i;
         }
 
         Debug.Log("Object wasn't in the array");
@@ -1163,10 +1136,6 @@ public class Main : MonoBehaviour
     {
         planetContainer.Remove(brain);
         Destroy(brain.gameObject);
-    }
-    private bool CheckIfVisitedPlanet()
-    {
-        return LocationAddresses.Contains(universeAdress);
     }
     private void SetZoomContinueTrue()
     {
@@ -1285,9 +1254,9 @@ public class Main : MonoBehaviour
         
         return ret;
     }
-    public ResourceData[] GetResourceLibrary()
+    public ItemData[] GetItemLibrary()
     {
-        return ResourceLibrary;
+        return ItemLibrary;
     }
     public LocationManager GetActiveLocation()
     {
@@ -1332,17 +1301,15 @@ public class Main : MonoBehaviour
         foreach(string s in items)
         {
             string[] ar = s.Split("=");
-            FindResourceFromString(ar[0]).AdjustCurrentAmount(int.Parse(ar[1]));
+            FindItemFromString(ar[0]).AdjustCurrentAmount(int.Parse(ar[1]));
         }
     }
-    public IEnumerator PushMessage(string type, string message, float delay)
+    public IEnumerator PushMessage(string type, string message, float delay) //Delayed Message
     {
-        Debug.Log("Pushing message wait.");
         yield return new WaitForSeconds(delay);
-        Debug.Log("Pushing message");
         OnSendMessage?.Invoke(type, message);
     }
-    public static void PushMessage(string type, string message)
+    public static void PushMessage(string type, string message) //Instant Universal Message System
     {
         OnSendMessage?.Invoke(type, message);
     }

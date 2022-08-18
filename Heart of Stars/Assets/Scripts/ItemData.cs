@@ -1,5 +1,5 @@
 [System.Serializable]
-public class ResourceData 
+public class ItemData 
 {
     public string itemName { get; private set; }
     public string displayName { get; private set; }
@@ -21,7 +21,7 @@ public class ResourceData
     public int atMostAmount { get; private set; }
     public string buildables { get; private set; }
 
-    public ResourceData(string name, string display, string des, string gr, string eType, string reqs, string nonReqs, bool vis, int cur, int autoA, float craft, 
+    public ItemData(string name, string display, string des, string gr, string eType, string reqs, string nonReqs, bool vis, int cur, int autoA, float craft, 
         string created, string coms, string createComs, string im, string snd, string ach, int most, string build)
     {
         itemName = name;
@@ -45,7 +45,7 @@ public class ResourceData
         buildables = build;
     }
 
-    public ResourceData(ResourceData data)
+    public ItemData(ItemData data)
     {
         itemName = data.itemName;
         displayName = data.displayName;

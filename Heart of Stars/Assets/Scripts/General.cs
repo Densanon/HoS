@@ -22,7 +22,7 @@ public class General : MonoBehaviour
     Image myUIImage;
     #endregion
 
-    #region Enumerators
+    #region Enums
     public enum GeneralType { Basic, NonBasic }
     public GeneralType myType { private set; get; }
 
@@ -124,7 +124,7 @@ public class General : MonoBehaviour
     }
     public void ActivateGeneral()
     {
-        if (myLocation == null || myLocationManager.tileInfoList[Mathf.RoundToInt(myLocation.x)][Mathf.RoundToInt(myLocation.y)].GetSoldierCount() < 1)
+        if (myLocation == null || myLocationManager.tileInfoList[Mathf.RoundToInt(myLocation.x)][Mathf.RoundToInt(myLocation.y)].GetUnitCount() < 1)
         {
             Main.PushMessage($"General {Name}", "The General you are accessing does not have a troop to use. You will need to set" +
              " the troop location before you can use them.");
@@ -189,10 +189,10 @@ public class General : MonoBehaviour
                 {
                     isMoving = true;
                     HexTileInfo current = myLocationManager.tileInfoList[Mathf.RoundToInt(myLocation.x)][Mathf.RoundToInt(myLocation.y)];
-                    int soldierAmount = current.GetSoldierCount();
-                    current.AdjustSoldiers(soldierAmount * -1);
+                    int unitAmount = current.GetUnitCount();
+                    current.AdjustUnits(unitAmount * -1);
                     HexTileInfo target = myLocationManager.tileInfoList[Mathf.RoundToInt(targetLocation.x)][Mathf.RoundToInt(targetLocation.y)];
-                    target.ReceiveGeneralMove(soldierAmount, generalSwitchStateTime);
+                    target.ReceiveGeneralMove(unitAmount, generalSwitchStateTime);
 
                     StartCoroutine(SwitchGeneralState());
                 }
@@ -201,14 +201,14 @@ public class General : MonoBehaviour
                 if (!isFighting)
                 {
                     isFighting = true;
-                    HexTileInfo current = myLocationManager.tileInfoList[Mathf.RoundToInt(myLocation.x)][Mathf.RoundToInt(myLocation.y)];
-                    int soldierAmount = current.GetSoldierCount();
-                    current.AdjustSoldiers(soldierAmount * -1);
+                    HexTileInfo tile = myLocationManager.tileInfoList[Mathf.RoundToInt(myLocation.x)][Mathf.RoundToInt(myLocation.y)];
+                    int unitAmount = tile.GetUnitCount();
+                    tile.AdjustUnits(unitAmount * -1);
                     HexTileInfo target = myLocationManager.tileInfoList[Mathf.RoundToInt(targetLocation.x)][Mathf.RoundToInt(targetLocation.y)];
-                    target.potentialAmountToReceive = soldierAmount;
+                    target.potentialAmountToReceive = unitAmount;
                     target.SetResourceTradingBuddy(myLocation);
                     target.StartCoroutine(target.BattleSequence());
-                    if (target.enemies.currentAmount - soldierAmount <= 0)
+                    if (target.enemies.currentAmount - unitAmount <= 0)
                     {
                         myLocation = targetLocation;
                         locationText.text = $"{myLocation}";
@@ -348,12 +348,12 @@ public class General : MonoBehaviour
         if (!directionIsPlayable && directionsAvailable.Count == 0)
         {
             Main.PushMessage($"General {Name}", "I have run out of places around me that aren't conquered. You shoud" +
-                " continue on without me, or move the troops where I may start again.");
+                " continue on without me, or move the units where I may start again.");
             directionIsPlayable = true;
             myGeneralState = GeneralState.Stop;
         }
     }
-    bool CheckIfTileIsInNeedOfConquering(Vector2 tile) //Setting target and checking if the tile is in the Clickable state and has troops
+    bool CheckIfTileIsInNeedOfConquering(Vector2 tile) //Setting target and checking if the tile is in the Clickable state and has units
     {
         if (tile.x == -1) return false; //if the tile.x is -1 then the location doesn't exist
 

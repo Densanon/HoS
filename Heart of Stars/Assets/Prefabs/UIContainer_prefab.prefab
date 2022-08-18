@@ -4189,7 +4189,7 @@ GameObject:
   - component: {fileID: 8770904511287042732}
   - component: {fileID: 7426962824810759799}
   m_Layer: 5
-  m_Name: BattleTimer_slider
+  m_Name: Timer_slider
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -6750,7 +6750,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   interactiblesContainer: {fileID: 6828391635950073581}
-  troopActionButton: {fileID: 2925350689571998916}
+  unitActionButton: {fileID: 2925350689571998916}
   shipActionButton: {fileID: 2558855726504082799}
   dependenceButtonPrefab: {fileID: 4311139583789081462, guid: 7935b2d8249344043b2e603f39b5a0ac, type: 3}
   Containers:
@@ -6760,15 +6760,15 @@ MonoBehaviour:
   - {fileID: 8147665775373239771}
   mainFunctionsContainer: {fileID: 7906767430254809181}
   resourceContainer: {fileID: 2157660124373736299}
-  resourcePivot: {fileID: 4869952055500085426}
+  UIPivot: {fileID: 4869952055500085426}
   shipContentContainer: {fileID: 1548336555164387807}
   shipInventoryPrefab: {fileID: 1049503963928827319, guid: 6e8b1e766f38ae045aab2a3a3606bb7a, type: 3}
   shipTitleText: {fileID: 7765474350284664234}
   shipStorageAmountsText: {fileID: 2652003890892735353}
   floatingText: {fileID: 6241471060356153629}
-  troopText: {fileID: 4466141596026880676}
-  troopSlider: {fileID: 383419984730374409}
-  visualBattleTimer: {fileID: 7426962824810759799}
+  unitText: {fileID: 4466141596026880676}
+  unitSlider: {fileID: 383419984730374409}
+  timerVisual: {fileID: 7426962824810759799}
 --- !u!1 &8046977297758577012
 GameObject:
   m_ObjectHideFlags: 0

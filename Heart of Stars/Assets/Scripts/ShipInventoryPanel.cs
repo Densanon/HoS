@@ -10,18 +10,19 @@ public class ShipInventoryPanel : MonoBehaviour
     public static Action OnUpdateSliderForShip = delegate { };
 
     Spacecraft myShip;
-    public ResourceData shipResource;
-    public ResourceData tileResource;
+    public ItemData shipItem;
+    public ItemData tileItem;
 
     [SerializeField]
-    TMP_Text resourceNameText;
+    TMP_Text itemNameText;
     [SerializeField]
-    TMP_Text shipResourceAmountText;
+    TMP_Text shipItemAmountText;
     [SerializeField]
-    TMP_Text tileResourceAmountText;
+    TMP_Text tileItemAmountText;
     [SerializeField]
-    Slider resourceSlider;
+    Slider itemSlider;
 
+    #region UnityEngine
     private void OnEnable()
     {
         OnUpdateSliderForShip += AdjustSlider;
@@ -30,70 +31,74 @@ public class ShipInventoryPanel : MonoBehaviour
     {
         OnUpdateSliderForShip -= AdjustSlider;
     }
+    #endregion
 
-    public void Setup(Spacecraft ship, ResourceData shipRes, ResourceData tileRes)
+    #region Setup
+    public void Setup(Spacecraft ship, ItemData shipIte, ItemData tileIte)
     {
         myShip = ship;
-        shipResource = shipRes;
-        tileResource = tileRes;
-        resourceNameText.text = shipResource.displayName;
+        shipItem = shipIte;
+        tileItem = tileIte;
+        itemNameText.text = shipItem.displayName;
         
         SetValues();
     }
+    #endregion
+
+    #region UI Management
     void SetValues()
     {
-        shipResourceAmountText.text = shipResource.currentAmount.ToString();
-        tileResourceAmountText.text = tileResource.currentAmount.ToString();
-        if (shipResource.itemName == "soldier")
+        shipItemAmountText.text = shipItem.currentAmount.ToString();
+        tileItemAmountText.text = tileItem.currentAmount.ToString();
+        if (shipItem.itemName == "soldier")
         {
-            resourceSlider.maxValue = myShip.troopMaximum;
-            resourceSlider.minValue = 0;
-            resourceSlider.value = shipResource.currentAmount;
+            itemSlider.maxValue = myShip.troopMaximum;
+            itemSlider.minValue = 0;
+            itemSlider.value = shipItem.currentAmount;
             OnUpdateSliderForShip -= AdjustSlider;
         }
         else
         {
-            resourceSlider.maxValue = shipResource.currentAmount + tileResource.currentAmount;
-            resourceSlider.value = shipResource.currentAmount;
+            itemSlider.maxValue = shipItem.currentAmount + tileItem.currentAmount;
+            itemSlider.value = shipItem.currentAmount;
         }
     }
     void AdjustSlider()
     {
-        int value = shipResource.currentAmount + tileResource.currentAmount;
+        int value = shipItem.currentAmount + tileItem.currentAmount;
         if (value > myShip.storageMax)
         {
             value -= value - myShip.storageMax;
-            resourceSlider.maxValue = value;
+            itemSlider.maxValue = value;
             return;
         }
-        resourceSlider.maxValue = value;
+        itemSlider.maxValue = value;
     }
-
     public void ShowUIFromSlider()// Accessed via slider
     {
-        int value = (int)resourceSlider.value;
-        int total = shipResource.currentAmount + tileResource.currentAmount;
-        if(shipResource.itemName == "soldier")
+        int value = (int)itemSlider.value;
+        int total = shipItem.currentAmount + tileItem.currentAmount;
+        if(shipItem.itemName == "soldier")
         {
-            value = myShip.GetTroopsOnBoard(value);
-            shipResource.SetCurrentAmount(value);
-            shipResourceAmountText.text = value.ToString();
-            shipResourceAmountText.color =(myShip.troops == myShip.troopMaximum) ?Color.red : Color.black;
+            value = myShip.GetUnitsOnBoard(value);
+            shipItem.SetCurrentAmount(value);
+            shipItemAmountText.text = value.ToString();
+            shipItemAmountText.color =(myShip.units == myShip.troopMaximum) ?Color.red : Color.black;
 
             SetTileAmount(total - value);
             return;
         }
-        shipResource.SetCurrentAmount(value);
-        shipResourceAmountText.text = value.ToString();
+        shipItem.SetCurrentAmount(value);
+        shipItemAmountText.text = value.ToString();
         SetTileAmount(total-value);
         myShip.UpdateStorage();
 
         OnUpdateSliderForShip?.Invoke();
     }
-
     void SetTileAmount(int value)
     {
-        tileResource.SetCurrentAmount(value);
-        tileResourceAmountText.text = tileResource.currentAmount.ToString();
+        tileItem.SetCurrentAmount(value);
+        tileItemAmountText.text = tileItem.currentAmount.ToString();
     }
+    #endregion
 }

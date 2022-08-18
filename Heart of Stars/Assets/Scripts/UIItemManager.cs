@@ -4,7 +4,7 @@ using UnityEngine.UI;
 using TMPro;
 using System;
 
-public class UIResourceManager : MonoBehaviour
+public class UIItemManager : MonoBehaviour
 {
     public static Action<string, Vector2, int> OnTilePickInteraction = delegate { };
 
@@ -14,7 +14,7 @@ public class UIResourceManager : MonoBehaviour
 
     public GameObject interactiblesContainer;
     [SerializeField]
-    GameObject troopActionButton;
+    GameObject unitActionButton;
     [SerializeField]
     GameObject shipActionButton;
     [SerializeField]
@@ -27,8 +27,8 @@ public class UIResourceManager : MonoBehaviour
     [SerializeField]
     Transform resourceContainer;
     [SerializeField]
-    Transform resourcePivot;
-    List<Resource> resourceButtons;
+    Transform UIPivot;
+    List<Item> itemButtons;
 
     [Header("Ship UI")]
     [SerializeField]    
@@ -39,23 +39,23 @@ public class UIResourceManager : MonoBehaviour
     TMP_Text shipTitleText;
     [SerializeField]
     TMP_Text shipStorageAmountsText;
-    GameObject[] inventoryResourcePanels;
+    GameObject[] inventoryItemPanels;
 
     [Header("Troop/Enemy")]
     [SerializeField]
     TMP_Text floatingText;
     [SerializeField]
-    TMP_Text troopText;
+    TMP_Text unitText;
 
     [SerializeField]
-    Slider troopSlider;
+    Slider unitSlider;
     [SerializeField]
-    Slider visualBattleTimer;
+    Slider timerVisual;
 
-    int troopCount;
+    int unitCount;
     bool needVisualTimer = false;
-    float battleTime = 0f;
-    float battleTimer = 0f;
+    float currentTime = 0f;
+    float timerAmount = 0f;
 
     #region UnityEngine
     private void OnEnable()
@@ -69,33 +69,9 @@ public class UIResourceManager : MonoBehaviour
         ShipInventoryPanel.OnUpdateSliderForShip -= UpdateStorageUI;
 
     }
-    private void FixedUpdate()
+    private void Update()
     {
-        if (needVisualTimer)
-        {
-            ShowVisualTimer();
-        }
-    }
-    #endregion
-
-    #region Timer
-    public void SetTimerAndStart(float time)
-    {
-        battleTime = time;
-        battleTimer = 0f;
-        visualBattleTimer.gameObject.SetActive(true);
-        visualBattleTimer.maxValue = time;
-        needVisualTimer = true;
-    }
-    void ShowVisualTimer()
-    {
-        visualBattleTimer.value = battleTimer += Time.fixedDeltaTime;
-        if (battleTimer > battleTime)
-        {
-            needVisualTimer = false;
-            battleTimer = 0f;
-            visualBattleTimer.gameObject.SetActive(false);
-        }
+        if (needVisualTimer) ShowVisualTimer();
     }
     #endregion
 
@@ -104,48 +80,68 @@ public class UIResourceManager : MonoBehaviour
     {
         myTile = tile;
         main = m;
-
         myTile.SetFloatingText(floatingText);
     }
-    public void CreateResourceButtons()
+    public void CreateItemButtons()
     {
-        if(resourceButtons == null) resourceButtons = new List<Resource>();
+        if(itemButtons == null) itemButtons = new List<Item>();
         int pivotCount = -1;
-        foreach (ResourceData data in myTile.myResources)
+        foreach (ItemData data in myTile.myItemData)
         {
             if (data.itemName == "soldier" || data.itemName == "enemy") continue; // These resources will be managed other ways.
             
-            GameObject obs = Instantiate(dependenceButtonPrefab, resourcePivot);
+            GameObject obs = Instantiate(dependenceButtonPrefab, UIPivot);
 
             //This creates a fanning effect.
-            if(pivotCount != -1) resourcePivot.Rotate(0f, 0f, -45f - (22.5f * pivotCount));
+            if(pivotCount != -1) UIPivot.Rotate(0f, 0f, -45f - (22.5f * pivotCount));
             obs.transform.position = new Vector3(obs.transform.position.x, obs.transform.position.y + 100f);
-            if (pivotCount != -1) resourcePivot.Rotate(0f, 0f, 22.5f + (22.5f * pivotCount));
+            if (pivotCount != -1) UIPivot.Rotate(0f, 0f, 22.5f + (22.5f * pivotCount));
             pivotCount++;
             
-            Resource r = obs.GetComponent<Resource>();
-            r.AssignTile(myTile);
-            r.SetUpResource(data, false, main);
-            resourceButtons.Add(r);
+            Item i = obs.GetComponent<Item>();
+            i.AssignTile(myTile);
+            i.SetUpItem(data, false, main);
+            itemButtons.Add(i);
         }
-        troopSlider.onValueChanged.AddListener(SetTroopTextForMove);
+        unitSlider.onValueChanged.AddListener(SetUnitTextForMove);
 
-        foreach(Resource res in resourceButtons)
+        foreach(Item item in itemButtons)
         {
-            res.ResetRotation();
+            item.ResetRotation();
         }
     }
     public void CheckResourceButtons()
     {
-        if(resourceButtons.Count != myTile.myResources.Length - 2)
+        if(itemButtons.Count != myTile.myItemData.Length - 2)
         {
-            foreach(Resource resource in resourceButtons)
+            foreach(Item item in itemButtons)
             {
-                Destroy(resource.gameObject);
+                Destroy(item.gameObject);
             }
-            resourceButtons.Clear();
+            itemButtons.Clear();
 
-            CreateResourceButtons();
+            CreateItemButtons();
+        }
+    }
+    #endregion
+
+    #region Timer
+    public void SetTimerAndStart(float time)
+    {
+        currentTime = time;
+        timerAmount = 0f;
+        timerVisual.gameObject.SetActive(true);
+        timerVisual.maxValue = time;
+        needVisualTimer = true;
+    }
+    void ShowVisualTimer()
+    {
+        timerVisual.value = timerAmount += Time.deltaTime;
+        if (timerAmount > currentTime)
+        {
+            needVisualTimer = false;
+            timerAmount = 0f;
+            timerVisual.gameObject.SetActive(false);
         }
     }
     #endregion
@@ -154,40 +150,40 @@ public class UIResourceManager : MonoBehaviour
     public void ResetUI()
     {
         mainFunctionsContainer.gameObject.SetActive(true);
-        troopActionButton.SetActive(myTile.GetSoldierCount() > 0);
+        unitActionButton.SetActive(myTile.GetUnitCount() > 0);
         shipActionButton.SetActive(myTile.hasShip && myTile.myShip.status == "Waiting");
         foreach(GameObject obj in Containers)
         {
             obj.gameObject.SetActive(false);
         }
-        ResetTroopText();      
+        ResetUnitText();      
     }
-    public void ResetTroopText()
+    public void ResetUnitText()
     {
-        troopCount = myTile.GetSoldierCount();
-        troopText.text = troopCount.ToString();
-        troopSlider.maxValue = troopCount;
-        troopSlider.value = troopSlider.maxValue;
+        unitCount = myTile.GetUnitCount();
+        unitText.text = unitCount.ToString();
+        unitSlider.maxValue = unitCount;
+        unitSlider.value = unitSlider.maxValue;
     }
-    public void SetTroopTextForMove(float amount)
+    public void SetUnitTextForMove(float amount)
     {
-        troopCount = Mathf.RoundToInt(amount);
-        troopText.text = amount.ToString();
+        unitCount = Mathf.RoundToInt(amount);
+        unitText.text = amount.ToString();
     }
     public void ActivateTilePickInteraction(string type) //Accessed via button
     {
         myTile.StartDrawingRayForPicking();
-        myTile.SetupReceivingOfTroopsForOriginator();
-        OnTilePickInteraction(type, myTile.myPositionInTheArray, troopCount);
-        myTile.AdjustSoldiers(troopCount * -1);
+        myTile.SetupReceivingOfUnitsForOriginator();
+        OnTilePickInteraction(type, myTile.myPositionInTheArray, unitCount);
+        myTile.AdjustUnits(unitCount * -1);
         DeactivateSelf();
         ResetUI();
     }
-    public void SetupShipInventory()
+    public void SetupShipInventory() //Accessed via button
     {
-        if (inventoryResourcePanels != null)
+        if (inventoryItemPanels != null)
         {
-            foreach (GameObject obj in inventoryResourcePanels)
+            foreach (GameObject obj in inventoryItemPanels)
             {
                 Destroy(obj);
             }
@@ -197,38 +193,38 @@ public class UIResourceManager : MonoBehaviour
         shipTitleText.text = $"{myShip.Name} Inventory";
         UpdateStorageUI();
 
-        ResourceData[] ar = myShip.myResources;
-        ResourceData[] tileAr = myTile.myResources;
-        inventoryResourcePanels = new GameObject[ar.Length];
+        ItemData[] ar = myShip.myItemsData;
+        ItemData[] tileAr = myTile.myItemData;
+        inventoryItemPanels = new GameObject[ar.Length];
         for(int i = 0; i < ar.Length; i++)
         {
             GameObject go = Instantiate(shipInventoryPrefab, shipContentContainer);
-            inventoryResourcePanels[i] = go;
-            ResourceData dat = new ResourceData(ar[1]);
-            foreach(ResourceData d in tileAr)
+            inventoryItemPanels[i] = go;
+            ItemData item = new ItemData(ar[1]);
+            foreach(ItemData d in tileAr)
             {
                 if(d.itemName == ar[i].itemName)
                 {
-                    dat = d;
+                    item = d;
+                    break;
                 }
             }
-            go.GetComponent<ShipInventoryPanel>().Setup(myShip, ar[i], dat);
+            go.GetComponent<ShipInventoryPanel>().Setup(myShip, ar[i], item);
         }
-
     }
     void UpdateStorageUI()
     {
         if (myShip == null) myShip = myTile.myShip;
         shipStorageAmountsText.text = $"{myShip.storageCount} / {myShip.storageMax}";
     }
-    public void GetShipMenu()
+    public void GetShipMenu() //Accessed via button
     {
         main.GetShipMenu();
-    }//Accessed via button
-    public void GetShipInfo()
+    }
+    public void GetShipInfo() //Accessed via button
     {
         myShip.GetShipInfo();
-    }//Accessed via button
+    }
     #endregion
 
     #region Life Cycle

@@ -12,7 +12,7 @@ public class LocationManager : MonoBehaviour
     public GameObject tilePrefab;
 
     Main main;
-    UIResourceManager activeManager;
+    UIItemManager activeManager;
     Transform canvas;
     Spacecraft mySpaceship;
 
@@ -69,7 +69,7 @@ public class LocationManager : MonoBehaviour
     }
     public void FirstPlanetaryEncounter(Spacecraft ship)
     {
-        mySpaceship = ship;       
+        mySpaceship = ship;
     }
     public void BuildPlanetData(string[] hextiles, string address, bool viewing)
     {
@@ -88,7 +88,6 @@ public class LocationManager : MonoBehaviour
 
         if (!viewing)
         {
-            Debug.Log("Saving Location.");
             SaveLocationInfo();
             main.SaveLocationAddressBook();
             OnGreetManagers?.Invoke(this);
@@ -157,7 +156,7 @@ public class LocationManager : MonoBehaviour
             foreach (HexTileInfo tile in tileArray)
             {
                 tile.SetNeighbors(FindNeighbors(tile.myPositionInTheArray));
-                if (!start && tile.myTileType == tile.GetResourceSpritesLengthForStartPoint() && !isViewing)
+                if (!start && tile.myTileType == tile.GetItemSpritesLengthForStartPoint() && !isViewing)
                 {
                     tile.SetAsStartingPoint(mySpaceship);
                     start = true;
@@ -218,12 +217,10 @@ public class LocationManager : MonoBehaviour
             {
                 if(tile.myTileType == tile.GetBlankTileIndex() && !tile.hasShip && tile.enemies.currentAmount == 0)
                 {
-                    Debug.Log($"{tile.myPositionInTheArray} is a suitable landing place.");
                     return tile.myPositionInTheArray;
                 }
             }
         }
-
         return  starter.myPositionInTheArray;
     }
     #endregion
@@ -332,20 +329,20 @@ public class LocationManager : MonoBehaviour
     }
     private void CheckNewTileOptions(HexTileInfo tile)
     {
-        UIResourceManager res = tile.myUIManager;
-        if (activeManager == null) activeManager = res;
-        if (res != activeManager)
+        UIItemManager i = tile.myUIManager;
+        if (activeManager == null) activeManager = i;
+        if (i != activeManager)
         {
             activeManager.ResetUI();
             activeManager.DeactivateSelf();
-            activeManager = res;
+            activeManager = i;
             activeManager.ActivateSelf();
             activeManager.ResetUI();
         }
-        else if (res != activeManager)
+        else if (i != activeManager)
         {
-            res.DeactivateSelf();
-        }else if (res == activeManager && !activeManager.interactiblesContainer.activeInHierarchy)
+            i.DeactivateSelf();
+        }else if (i == activeManager && !activeManager.interactiblesContainer.activeInHierarchy)
         {
             activeManager.ActivateSelf();
             activeManager.ResetUI();
