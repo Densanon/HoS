@@ -8714,8 +8714,9 @@ MonoBehaviour:
   areaText: {fileID: 1035021492}
   depthPrefabs:
   - {fileID: 4139849635087196150, guid: c464993674b3ef949937c1b9d6269bb8, type: 3}
-  - {fileID: 4139849635087196150, guid: 7f7b4a583fe120248a8426c132d87e82, type: 3}
   - {fileID: 4139849635087196150, guid: c9ba14b9bffaceb49a717d9ca87ba4b8, type: 3}
+  - {fileID: 4139849635087196150, guid: c5ba907cd06ff044ab6d977b32b44f79, type: 3}
+  - {fileID: 4139849635087196150, guid: 7f7b4a583fe120248a8426c132d87e82, type: 3}
   - {fileID: 4139849635087196150, guid: dca835014b84f4b419be2e5fe83f67a7, type: 3}
   - {fileID: 4139849635087196150, guid: 2363aee21125bf943b96c08745ee6e75, type: 3}
   - {fileID: 4139849635087196150, guid: ed5ad16a8c05e5948af8e1018149e9ce, type: 3}
@@ -8731,7 +8732,6 @@ MonoBehaviour:
   generalManager: {fileID: 1160017070}
   shipsManager: {fileID: 737243726}
   tileInfoList: []
-  ItemLibrary: []
   universeAdress: 
   landStartingPointsForSpawning: 5
   frequencyForLandSpawning: 0.34

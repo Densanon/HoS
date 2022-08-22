@@ -15,7 +15,7 @@ public class Main : MonoBehaviour
     public static Action<string> OnSendPlanetLocationAsTarget = delegate { };
     public static Action OnPausePlanetFunction = delegate { };
 
-    public enum UniverseDepth {Universe, SuperCluster, Galaxy, Nebula, GlobularCluster, StarCluster, Constellation, SolarSystem, PlanetMoon, Planet, Moon}
+    public enum UniverseDepth {Universe, GalaxyFilament, SuperCluster, GalaxyCluster, Galaxy, GlobularCluster, StarCluster, Constellation, SolarSystem, PlanetMoon, Planet, Moon}
     public static UniverseDepth currentDepth = UniverseDepth.Universe;
 
     public enum TerrainType { River, Ocean, Lake, Lava, ToxicSea, Desert, Dune, SaltFlat, Oasis, DriedMud, Soil, Swamp, Grassland, Forest, Jungle, 
@@ -988,33 +988,36 @@ public class Main : MonoBehaviour
                 SetUpSpaceEncounter(0, 10);
                 Camera.main.transform.GetComponent<CameraController>().atUniverse = true;
                 break;
-            case UniverseDepth.SuperCluster:
+            case UniverseDepth.GalaxyFilament:
                 SetUpSpaceEncounter(1, SpawnAmount);
                 break;
-            case UniverseDepth.Galaxy:
+            case UniverseDepth.SuperCluster:
                 SetUpSpaceEncounter(2, SpawnAmount);
                 break;
-            case UniverseDepth.Nebula:
+            case UniverseDepth.GalaxyCluster:
                 SetUpSpaceEncounter(3, SpawnAmount);
                 break;
-            case UniverseDepth.GlobularCluster:
+            case UniverseDepth.Galaxy:
                 SetUpSpaceEncounter(4, SpawnAmount);
                 break;
+            case UniverseDepth.GlobularCluster:
+                SetUpSpaceEncounter(5, SpawnAmount);
+                break;
             case UniverseDepth.StarCluster:
-                SetUpSpaceEncounter(5,SpawnAmount);
+                SetUpSpaceEncounter(6,SpawnAmount);
                 break;
             case UniverseDepth.Constellation:
                 SpawnAmount = NormalizeRandom(-14, 16);
-                SetUpSpaceEncounter(6, SpawnAmount);
+                SetUpSpaceEncounter(7, SpawnAmount);
                 break;
             case UniverseDepth.SolarSystem:
                 SpawnAmount = NormalizeRandom(-14, 16);
-                SetUpSpaceEncounter(7, SpawnAmount);
+                SetUpSpaceEncounter(8, SpawnAmount);
                 break;
             case UniverseDepth.PlanetMoon:
                 OnWorldMap?.Invoke(true);
                 SpawnAmount = NormalizeRandom(-14, 16);
-                SetUpSpaceEncounter(9, 8, SpawnAmount);
+                SetUpSpaceEncounter(10, 9, SpawnAmount);
                 SaveLocationAddressBook();
                 break;
             case UniverseDepth.Planet:
@@ -1266,13 +1269,16 @@ public class Main : MonoBehaviour
             case UniverseDepth.Universe:
                 currentDepth = UniverseDepth.SuperCluster;
                 break;
+            case UniverseDepth.GalaxyFilament:
+                currentDepth = UniverseDepth.StarCluster;
+                break;
             case UniverseDepth.SuperCluster:
+                currentDepth = UniverseDepth.GalaxyCluster;
+                break;
+            case UniverseDepth.GalaxyCluster:
                 currentDepth = UniverseDepth.Galaxy;
                 break;
             case UniverseDepth.Galaxy:
-                currentDepth = UniverseDepth.Nebula;
-                break;
-            case UniverseDepth.Nebula:
                 currentDepth = UniverseDepth.GlobularCluster;
                 break;
             case UniverseDepth.GlobularCluster:
@@ -1302,30 +1308,33 @@ public class Main : MonoBehaviour
                 currentDepth = UniverseDepth.Universe;
                 break;
             case 2:
-                currentDepth = UniverseDepth.SuperCluster;
+                currentDepth = UniverseDepth.GalaxyFilament;
                 break;
             case 3:
-                currentDepth = UniverseDepth.Galaxy;
+                currentDepth = UniverseDepth.SuperCluster;
                 break;
             case 4:
-                currentDepth = UniverseDepth.Nebula;
+                currentDepth = UniverseDepth.GalaxyCluster;
                 break;
             case 5:
-                currentDepth = UniverseDepth.GlobularCluster;
+                currentDepth = UniverseDepth.Galaxy;
                 break;
             case 6:
-                currentDepth = UniverseDepth.StarCluster;
+                currentDepth = UniverseDepth.GlobularCluster;
                 break;
             case 7:
-                currentDepth = UniverseDepth.Constellation;
+                currentDepth = UniverseDepth.StarCluster;
                 break;
             case 8:
-                currentDepth = UniverseDepth.SolarSystem;
+                currentDepth = UniverseDepth.Constellation;
                 break;
             case 9:
-                currentDepth = UniverseDepth.PlanetMoon;
+                currentDepth = UniverseDepth.SolarSystem;
                 break;
             case 10:
+                currentDepth = UniverseDepth.PlanetMoon;
+                break;
+            case 11:
                 string[] ar = universeAdress.Split(",");
                 currentDepth = int.Parse(ar[^1]) != 0 ? UniverseDepth.Moon : UniverseDepth.Planet;
                 break;
