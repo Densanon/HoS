@@ -262,7 +262,7 @@ public class Spacecraft : MonoBehaviour
     void CreateBasicResourceHolders()
     {
         List<ItemData> temp = new();
-        foreach(ItemData resource in main.GetItemLibrary())
+        foreach(ItemData resource in main.GetItemLibrary("ItemLibrary"))
         {
             if(resource.itemName == "soldier")
             {

@@ -17,6 +17,7 @@ public class LocationManager : MonoBehaviour
     Spacecraft mySpaceship;
 
     public string myAddress;
+    public AtmosphericTraits MyAtmosphericTraits;
     public HexTileInfo[][] tileInfoList;
     HexTileInfo starter;
     Vector2[] TileLocations;
@@ -86,10 +87,11 @@ public class LocationManager : MonoBehaviour
     {
         mySpaceship = ship;
     }
-    public void BuildPlanetData(string[] hextiles, string address, bool viewing)
+    public void BuildPlanetData(string[] hextiles, string address, bool viewing, AtmosphericTraits traits)
     {
         myAddress = address;
         isViewing = viewing;
+        MyAtmosphericTraits = traits;
 
         BuildTileBase();
 
@@ -128,7 +130,7 @@ public class LocationManager : MonoBehaviour
                 tf.SetManager(this);
                 tf.SetMain(main);
                 tf.SetUpTileLocation(x, y);
-                tf.SetLandConfiguration(frequencyForLandSpawning, landFormationOdds, enemyRatio, enemyDensityMin, enemyDensityMax);
+                tf.SetLandConfiguration(MyAtmosphericTraits, frequencyForLandSpawning, landFormationOdds, enemyRatio, enemyDensityMin, enemyDensityMax);
                 temp.Add(tf);
                 locs.Add(tf.myPositionInTheArray);
             }
@@ -154,7 +156,7 @@ public class LocationManager : MonoBehaviour
                 y = 0;
             }
             string[] ar = s.Split(":");
-            tileInfoList[x][y].SetAllTileInfoFromMemory(ar[0], int.Parse(ar[1]), ar[2], (ar[3] == "True"), ar[4]);
+            tileInfoList[x][y].SetAllTileInfoFromMemory(ar[0], int.Parse(ar[1]), ar[2], (ar[3] == "True"), ar[4], ar[5], ar[6]);
             if (ar[3] == "True") starter = tileInfoList[x][y];
             y++;
         }
@@ -171,7 +173,7 @@ public class LocationManager : MonoBehaviour
             foreach (HexTileInfo tile in tileArray)
             {
                 tile.SetNeighbors(FindNeighbors(tile.myPositionInTheArray));
-                if (!start && tile.myTileType == tile.GetItemSpritesLengthForStartPoint() && !isViewing)
+                if (!start && tile.CheckTileIsEmpty() && !isViewing)
                 {
                     tile.SetAsStartingPoint(mySpaceship);
                     start = true;

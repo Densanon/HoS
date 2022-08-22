@@ -21,10 +21,6 @@ public class Main : MonoBehaviour
     public enum TerrainType { River, Ocean, Lake, Lava, ToxicSea, Desert, Dune, SaltFlat, Oasis, DriedMud, Soil, Swamp, Grassland, Forest, Jungle, 
         ConcreteRoad, Road, Mountain, Canyon, Hill, Cliff, Butte, Valley, FloatingIslands, BoulderLaden, Glacier, ArcticTundra, AlpineTundra, Arctic, Snow, Volcano}
 
-    public static Dictionary<TerrainType, List<ItemData>> TerrainDictionary; 
-
-
-
     [SerializeField]
     TMP_Text areaText;
     [SerializeField]
@@ -33,9 +29,6 @@ public class Main : MonoBehaviour
     Transform universeTransform;
     [SerializeField]
     GameObject[] depthLocations;
-    bool fromMemoryOfLocation = false;
-    bool isPlanet = false;
-    bool canZoomContinue = false;
     [SerializeField]
     GameObject planetPrefab;
     [SerializeField]
@@ -47,22 +40,27 @@ public class Main : MonoBehaviour
     [SerializeField]
     ShipContainerManager shipsManager;
     Spacecraft activeSpacecraft;
-
     [SerializeField]
     HexTileInfo[] tileInfoList;
+
+    bool fromMemoryOfLocation = false;
+    bool isPlanet = false;
+    bool canZoomContinue = false;
 
     List<string[]> SheetData;
     List<string[]> LoadedData;
     List<string> itemNames;
-    [SerializeField]
     ItemData[] ItemLibrary;
+    ItemData[] BasicItemLibrary;
     List<string> LocationAddresses;
 
     public string universeAdress;
     string activePlanetAddress;
     public int landStartingPointsForSpawning;
-    public float frequencyForLandSpawning;
+    [Range(0.34f, 1.0f)]
+    public float frequencyForLandSpawning; 
     public int landFormationOdds;
+    AtmosphericTraits atmosphericValues;
 
     string[] ItemNameReferenceIndex;
 
@@ -227,7 +225,7 @@ public class Main : MonoBehaviour
 
         CreateItemPanelInfo("all", "");
 
-        SaveItemLibrary();
+        SaveItemLibrarys();
         SaveSystem.SaveFile("/item_shalom");
         LoadedData.Clear();
     }
@@ -364,8 +362,8 @@ public class Main : MonoBehaviour
         SheetData = SheetReader.GetSheetData();
         itemPanelInfoPieces = new List<GameObject>();
 
-        //This will build the template we will use for all items
-        if(SheetData != null)
+        
+        if(SheetData != null) //This will build the template we will use for all items
         {
             BuildGenericResourceInformation();
         }
@@ -374,7 +372,7 @@ public class Main : MonoBehaviour
             BuildGenericResourceInformationFromMemory();
         }
 
-        BuildTerrainDictionary();
+        //BuildTerrainDictionary();
 
         string s = SaveSystem.LoadFile("/address_nissi");
         if (s != null)
@@ -413,81 +411,6 @@ public class Main : MonoBehaviour
     #endregion
 
     #region Data Calls
-    private void BuildTerrainDictionary()
-    {
-        TerrainDictionary.Add(TerrainType.River, new());
-        TerrainDictionary.Add(TerrainType.Ocean, new());
-        TerrainDictionary.Add(TerrainType.Lake, new());
-        TerrainDictionary.Add(TerrainType.Lava, new());
-        TerrainDictionary.Add(TerrainType.ToxicSea, new());
-        TerrainDictionary.Add(TerrainType.Desert, new());
-        TerrainDictionary.Add(TerrainType.Dune, new());
-        TerrainDictionary.Add(TerrainType.SaltFlat, new());
-        TerrainDictionary.Add(TerrainType.Oasis, new());
-        TerrainDictionary.Add(TerrainType.DriedMud, new());
-        TerrainDictionary.Add(TerrainType.Soil, new());
-        TerrainDictionary.Add(TerrainType.Swamp, new());
-        TerrainDictionary.Add(TerrainType.Grassland, new());
-        TerrainDictionary.Add(TerrainType.Forest, new());
-        TerrainDictionary.Add(TerrainType.Jungle, new());
-        TerrainDictionary.Add(TerrainType.ConcreteRoad, new());
-        TerrainDictionary.Add(TerrainType.Road, new());
-        TerrainDictionary.Add(TerrainType.Mountain, new());
-        TerrainDictionary.Add(TerrainType.Canyon, new());
-        TerrainDictionary.Add(TerrainType.Hill, new());
-        TerrainDictionary.Add(TerrainType.Cliff, new());
-        TerrainDictionary.Add(TerrainType.Butte, new());
-        TerrainDictionary.Add(TerrainType.Valley, new());
-        TerrainDictionary.Add(TerrainType.FloatingIslands, new());
-        TerrainDictionary.Add(TerrainType.BoulderLaden, new());
-        TerrainDictionary.Add(TerrainType.Glacier, new());
-        TerrainDictionary.Add(TerrainType.ArcticTundra, new());
-        TerrainDictionary.Add(TerrainType.AlpineTundra, new());
-        TerrainDictionary.Add(TerrainType.Arctic, new());
-        TerrainDictionary.Add(TerrainType.Snow, new());
-        TerrainDictionary.Add(TerrainType.Volcano, new());
-        foreach (ItemData item in ItemLibrary)
-        {
-            if (item.nonConsumableRequirements != "nothing")
-            {
-                string[] ar = item.nonConsumableRequirements.Split(" ");
-                foreach (string s in ar)
-                {
-                    if (s == "River") TerrainDictionary[TerrainType.River].Add(item);
-                    else if (s == "Ocean") TerrainDictionary[TerrainType.Ocean].Add(item);
-                    else if (s == "Lake") TerrainDictionary[TerrainType.Lake].Add(item);
-                    else if (s == "Lava") TerrainDictionary[TerrainType.Lava].Add(item);
-                    else if (s == "ToxicSea") TerrainDictionary[TerrainType.ToxicSea].Add(item);
-                    else if (s == "Desert") TerrainDictionary[TerrainType.Desert].Add(item);
-                    else if (s == "Dune") TerrainDictionary[TerrainType.Dune].Add(item);
-                    else if (s == "SaltFlat") TerrainDictionary[TerrainType.SaltFlat].Add(item);
-                    else if (s == "Oasis") TerrainDictionary[TerrainType.Oasis].Add(item);
-                    else if (s == "DriedMud") TerrainDictionary[TerrainType.DriedMud].Add(item);
-                    else if (s == "Soil") TerrainDictionary[TerrainType.Soil].Add(item);
-                    else if (s == "Swamp") TerrainDictionary[TerrainType.Swamp].Add(item);
-                    else if (s == "Grassland") TerrainDictionary[TerrainType.Grassland].Add(item);
-                    else if (s == "Forest") TerrainDictionary[TerrainType.Forest].Add(item);
-                    else if (s == "Jungle") TerrainDictionary[TerrainType.Jungle].Add(item);
-                    else if (s == "ConcreteRoad") TerrainDictionary[TerrainType.ConcreteRoad].Add(item);
-                    else if (s == "Road") TerrainDictionary[TerrainType.Road].Add(item);
-                    else if (s == "Mountain") TerrainDictionary[TerrainType.Mountain].Add(item);
-                    else if (s == "Canyon") TerrainDictionary[TerrainType.Canyon].Add(item);
-                    else if (s == "Hill") TerrainDictionary[TerrainType.Hill].Add(item);
-                    else if (s == "Cliff") TerrainDictionary[TerrainType.Cliff].Add(item);
-                    else if (s == "Butte") TerrainDictionary[TerrainType.Butte].Add(item);
-                    else if (s == "Valley") TerrainDictionary[TerrainType.Valley].Add(item);
-                    else if (s == "FloatingIslands") TerrainDictionary[TerrainType.FloatingIslands].Add(item);
-                    else if (s == "BoulderLaden") TerrainDictionary[TerrainType.BoulderLaden].Add(item);
-                    else if (s == "Galcier") TerrainDictionary[TerrainType.Glacier].Add(item);
-                    else if (s == "Arctic") TerrainDictionary[TerrainType.Arctic].Add(item);
-                    else if (s == "ArcticTundra") TerrainDictionary[TerrainType.ArcticTundra].Add(item);
-                    else if (s == "AlpineTundra") TerrainDictionary[TerrainType.AlpineTundra].Add(item);
-                    else if (s == "Snow") TerrainDictionary[TerrainType.Snow].Add(item);
-                    else if (s == "Volcano") TerrainDictionary[TerrainType.Volcano].Add(item);
-                }
-            }
-        }
-    }
     void CreateOrResetAllBuildableStrings()
     {
         for (int k = 0; k < ItemLibrary.Length; k++)
@@ -748,6 +671,7 @@ public class Main : MonoBehaviour
     #endregion
 
     #region Save Load
+    #region Camera
     void SaveCamState(string state)
     {
         SaveSystem.SaveCameraSettings(state);
@@ -757,17 +681,13 @@ public class Main : MonoBehaviour
     {
         SendCameraState?.Invoke(SaveSystem.LoadFile("/camera_rohi"));
     }
-    public void SaveItemLibrary()
+    #endregion
+
+    #region Locations
+    public void SaveUniverseLocation()
     {
-        for (int i = 0; i < ItemLibrary.Length; i++)
-        {
-            if (i != (ItemLibrary.Length - 1))
-            {
-                SaveSystem.SaveItem(ItemLibrary[i], false);
-                continue;
-            }
-            SaveSystem.SaveItem(ItemLibrary[i], true);
-        }
+        SaveSystem.WipeString();
+        SaveSystem.SaveCurrentAddress(universeAdress);
     }
     public void SaveLocationAddressBook()
     {
@@ -784,11 +704,6 @@ public class Main : MonoBehaviour
         }
         SaveSystem.SaveLocationList(s);
     }
-    public void SaveUniverseLocation()
-    {
-        SaveSystem.WipeString();
-        SaveSystem.SaveCurrentAddress(universeAdress);
-    }
     void LoadWhereWeHaveBeen()
     {
         LocationAddresses = new List<string>();
@@ -802,12 +717,58 @@ public class Main : MonoBehaviour
             }
         }
     }
+    string[] TryLoadLevel()
+    {
+        string s = SaveSystem.LoadFile("/" + universeAdress);
+        return s?.Split("|");// Checking for a save of the planet
+    }
+    AtmosphericTraits BuildAtmosphericValues()
+    {
+        return new AtmosphericTraits(UnityEngine.Random.Range(0, 4), UnityEngine.Random.Range(0, 4), UnityEngine.Random.Range(0, 4), 
+            UnityEngine.Random.Range(0, 4), UnityEngine.Random.Range(0, 4), UnityEngine.Random.Range(0, 4), UnityEngine.Random.Range(0, 4),
+            UnityEngine.Random.Range(0, 4), UnityEngine.Random.Range(0, 4), UnityEngine.Random.Range(0, 4), UnityEngine.Random.Range(0, 4), 
+            UnityEngine.Random.Range(0, 4), UnityEngine.Random.Range(0, 4), UnityEngine.Random.Range(0, 4), UnityEngine.Random.Range(0, 4), 
+            UnityEngine.Random.Range(0, 4), UnityEngine.Random.Range(0, 4), UnityEngine.Random.Range(0, 4));
+    }
+    #endregion
+
+    public void SaveItemLibrarys()
+    {
+        Debug.Log("Saving ItemLibrary");
+        for (int i = 0; i < ItemLibrary.Length; i++)
+        {
+            if (i != (ItemLibrary.Length - 1))
+            {
+                SaveSystem.SaveItem(ItemLibrary[i], false);
+                continue;
+            }
+            SaveSystem.SaveItem(ItemLibrary[i], true);
+        }
+        SaveSystem.SaveItemLibrary("/item_shalom");
+        SaveSystem.WipeString();
+
+        if (BasicItemLibrary == null) return;
+
+        Debug.Log("Saving the BasicItemLibrary");
+        for (int i = 0; i < BasicItemLibrary.Length; i++)
+        {
+            if (i != (BasicItemLibrary.Length - 1))
+            {
+                SaveSystem.SaveItem(BasicItemLibrary[i], false);
+                continue;
+            }
+            SaveSystem.SaveItem(BasicItemLibrary[i], true);
+        }
+        SaveSystem.SaveItemLibrary("/basic_shalom");
+        SaveSystem.WipeString();
+    }
     void BuildGenericResourceInformation()
     {
         ItemLibrary = new ItemData[SheetData.Count];
         ItemNameReferenceIndex = new string[SheetData.Count];
         LoadedData = new List<string[]>();
         itemNames = new List<string>();
+        List<ItemData> basicItems = new();
 
         BuildLoadedData(SaveSystem.LoadFile("/item_shalom"));
 
@@ -815,7 +776,7 @@ public class Main : MonoBehaviour
         {
             if (itemNames.Contains(SheetData[j][0]))
             {
-                BuildItemLibraryFromMemoryAtIndex(j);
+                BuildItemLibraryFromMemoryAtIndex(j, "ItemLibrary");
 
                 try
                 {
@@ -833,7 +794,13 @@ public class Main : MonoBehaviour
             CreateItemForLibraryAtIndex(j);
 
             //If it is a basic resource we need it to start visible
-            if ((SheetData[j][2] == "nothing=0" && SheetData[j][3] == "nothing")|| SheetData[j][0] == "barracks") ItemLibrary[j].AdjustVisibility(true);
+            if (CheckBasicItemNeeds(SheetData[j][3]))
+            {
+                ItemLibrary[j].AdjustVisibility(true);
+                basicItems.Add(ItemLibrary[j]);
+            }
+
+            if (SheetData[j][0] == "barracks") ItemLibrary[j].AdjustVisibility(true);
 
             //If it is a tool, we need to set it's max amount to whatever the given max amount will be
             if (ItemLibrary[j].groups == "tool")
@@ -845,14 +812,67 @@ public class Main : MonoBehaviour
 
             ItemNameReferenceIndex[j] = ItemLibrary[j].displayName;
         }
+        BasicItemLibrary = basicItems.ToArray();
 
         CreateOrResetAllBuildableStrings();
 
-        SaveItemLibrary();
-        SaveSystem.SaveItemLibrary();
+        SaveItemLibrarys();
         LoadedData.Clear();
     }
+    private bool CheckBasicItemNeeds(string requirements)
+    {
+        if (requirements == "nothing=0") return false;
+        string[] ar = requirements.Split(" ");
+        string[] array = new string[1];
+        if (ar[0].Contains("="))
+        {
+            array = ar[0].Split("=");
+        }else if (ar[0].Contains(">"))
+        {
+            array = ar[0].Split(">");
+        }
+        else if (ar[0].Contains("<"))
+        {
+            array = ar[0].Split("<");
+        }
+        return array[0] switch
+        {
+            "Acidity" => true,
+            "AcousticAbsorbtion" => true,
+            "Compressability" => true,
+            "Density" => true,
+            "ElectricalCharge" => true,
+            "FrequencyEmission" => true,
+            "Flammability" => true,
+            "Luminescence" => true,
+            "Temperature" => true,
+            "Magnetism" => true,
+            "Pressure" => true,
+            "Radioactivity" => true,
+            "Refelctivity" => true,
+            "Smell" => true,
+            "Transparency" => true,
+            "BoilingPoint" => true,
+            "Brittleness" => true,
+            "Elasticity" => true,
+            "FluctuationOfSteepness" => true,
+            "Gravity" => true,
+            "Hardness" => true,
+            "LiquidToxicity" => true,
+            "Sharpness" => true,
+            "SolidityLiquidity" => true,
+            "SteepnessOfTopography" => true,
+            "Structure" => true,
+            "Vegitation" => true,
+            _ => false,
+        };
+    }
     void BuildGenericResourceInformationFromMemory()
+    {       
+        BuildBasicItemLibraryFromMemory();
+        BuildGenericItemListFromMemory();
+    }
+    void BuildGenericItemListFromMemory()
     {
         LoadedData = new();
         itemNames = new();
@@ -864,11 +884,26 @@ public class Main : MonoBehaviour
 
         for (int j = 0; j < LoadedData.Count; j++)
         {
-            BuildItemLibraryFromMemoryAtIndex(j);
+            BuildItemLibraryFromMemoryAtIndex(j, "ItemLibrary");
         }
 
         CreateOrResetAllBuildableStrings();
         LoadedData.Clear();
+    }
+    void BuildBasicItemLibraryFromMemory()
+    {
+        LoadedData = new();
+        itemNames = new();
+
+        BuildLoadedData(SaveSystem.LoadFile("/basic_shalom"));
+
+        BasicItemLibrary = new ItemData[LoadedData.Count];
+        ItemNameReferenceIndex = new string[LoadedData.Count];
+
+        for (int j = 0; j < LoadedData.Count; j++)
+        {
+            BuildItemLibraryFromMemoryAtIndex(j, "BasicItemLibrary");
+        }
     }
     private void BuildLoadedData(string fileInfo)
     {
@@ -883,13 +918,24 @@ public class Main : MonoBehaviour
             }
         }
     }
-    private void BuildItemLibraryFromMemoryAtIndex(int j)
+    private void BuildItemLibraryFromMemoryAtIndex(int j, string library)
     {
-        ItemLibrary[j] = new ItemData(LoadedData[j][0], LoadedData[j][1], LoadedData[j][2], LoadedData[j][3], LoadedData[j][4], LoadedData[j][5], LoadedData[j][6],
-                        LoadedData[j][7] == "True", int.Parse(LoadedData[j][8]), int.Parse(LoadedData[j][9]), float.Parse(LoadedData[j][10]), LoadedData[j][11], LoadedData[j][12],
-                        LoadedData[j][13], LoadedData[j][14], LoadedData[j][15], LoadedData[j][16], int.Parse(LoadedData[j][17]), LoadedData[j][18]);
+        if(library == "BasicItemLibrary")
+        {
+            BasicItemLibrary[j] = new ItemData(LoadedData[j][0], LoadedData[j][1], LoadedData[j][2], LoadedData[j][3], LoadedData[j][4], LoadedData[j][5], LoadedData[j][6],
+                            LoadedData[j][7] == "True", int.Parse(LoadedData[j][8]), int.Parse(LoadedData[j][9]), float.Parse(LoadedData[j][10]), LoadedData[j][11], LoadedData[j][12],
+                            LoadedData[j][13], LoadedData[j][14], LoadedData[j][15], LoadedData[j][16], int.Parse(LoadedData[j][17]), LoadedData[j][18]);
 
-        ItemNameReferenceIndex[j] = ItemLibrary[j].displayName;
+            ItemNameReferenceIndex[j] = BasicItemLibrary[j].displayName;
+        }
+        else if (library == "ItemLibrary")
+        {
+            ItemLibrary[j] = new ItemData(LoadedData[j][0], LoadedData[j][1], LoadedData[j][2], LoadedData[j][3], LoadedData[j][4], LoadedData[j][5], LoadedData[j][6],
+                            LoadedData[j][7] == "True", int.Parse(LoadedData[j][8]), int.Parse(LoadedData[j][9]), float.Parse(LoadedData[j][10]), LoadedData[j][11], LoadedData[j][12],
+                            LoadedData[j][13], LoadedData[j][14], LoadedData[j][15], LoadedData[j][16], int.Parse(LoadedData[j][17]), LoadedData[j][18]);
+
+            ItemNameReferenceIndex[j] = ItemLibrary[j].displayName;
+        }
     }
     private void CreateItemForLibraryAtIndex(int j)
     {
@@ -901,13 +947,8 @@ public class Main : MonoBehaviour
                         SheetData[j][6], SheetData[j][7], SheetData[j][11], SheetData[j][12],
                         SheetData[j][13], 0, "");
     }
-    string[] TryLoadLevel()
-    {
-        string s = SaveSystem.LoadFile("/" + universeAdress);
-        return s?.Split("|");// Checking for a save of the planet
-    }
     #endregion
-    
+
     #region Map
     public void GenerateUniverseLocation(UniverseDepth depth, int index)
     {
@@ -1093,7 +1134,7 @@ public class Main : MonoBehaviour
             //Min0 Max14 Average7
         }
         activeBrain.SetLandConfiguration(frequencyForLandSpawning,landFormationOdds,spawnEnemyRatio, spawnEnemyDensityMin, spawnEnemyDensityMax);
-        activeBrain.BuildPlanetData(TryLoadLevel(), universeAdress,(isLanding) ? false:isViewingPlanetOnly);
+        activeBrain.BuildPlanetData(TryLoadLevel(), universeAdress,(isLanding) ? false:isViewingPlanetOnly, BuildAtmosphericValues());
         isLanding = false;
 
         #region Diamond Map
@@ -1331,9 +1372,16 @@ public class Main : MonoBehaviour
         
         return ret;
     }
-    public ItemData[] GetItemLibrary()
+    public ItemData[] GetItemLibrary(string library)
     {
-        return ItemLibrary;
+        if(library == "BasicItemLibrary")
+        {
+            return BasicItemLibrary;
+        }else if(library == "ItemLibrary")
+        {
+            return ItemLibrary;
+        }
+        return null;
     }
     public LocationManager GetActiveLocation()
     {
@@ -1381,6 +1429,9 @@ public class Main : MonoBehaviour
             FindItemFromString(ar[0]).AdjustCurrentAmount(int.Parse(ar[1]));
         }
     }
+    #endregion
+
+    #region Message System
     public IEnumerator PushMessage(string type, string message, float delay) //Delayed Message
     {
         yield return new WaitForSeconds(delay);

@@ -20,38 +20,38 @@ public static class SaveSystem
     {
         if (!last)
         {
-            Items = Items + data.DigitizeForSerialization();
+            Items += data.DigitizeForSerialization();
         }
         else
         {
             string s = data.DigitizeForSerialization();
             s = s.Remove(s.Length - 1);
-            Items = Items + s;
+            Items += s;
         }
     }
-    public static void SaveItemLibrary()
+    public static void SaveItemLibrary(string location)
     {
         FileData = Items;
-        SaveFile("/item_shalom");
+        SaveFile(location);
     }
     public static void SaveTile(HexTileInfo data, bool last)
     {
         if (!last)
         {
-            Tiles = Tiles + data.DigitizeForSerialization();
+            Tiles += data.DigitizeForSerialization();
         }
         else
         {
             string s = data.DigitizeForSerialization();
             s = s.Remove(s.Length - 1);
-            Tiles = Tiles + s;
+            Tiles += s;
 
         }
     }
     public static void SaveShips(string ships)
     {
         FileData = ships;
-        SaveFile("/ships_Raah");
+        SaveFile("/ships_raah");
     }
     public static void SaveCameraSettings(string camStats)
     {
@@ -69,21 +69,20 @@ public static class SaveSystem
     public static void SaveLocationList(string locations)
     {
         FileData = locations;
-        SaveFile("/Locations_Jireh");
+        SaveFile("/locations_jireh");
     }
     public static void SaveFile(string file)
     {
-        if (FileData == "" || FileData == null){return;}
+        if (string.IsNullOrEmpty(FileData)) return;
 
-        BinaryFormatter formatter = new BinaryFormatter();
+        BinaryFormatter formatter = new();
         string path = Application.persistentDataPath + file;
-        FileStream stream = new FileStream(path, FileMode.Create);
+        FileStream stream = new(path, FileMode.Create);
 
         formatter.Serialize(stream, FileData);
         stream.Close();
 
         WipeString();
-
     }
 
     public static string LoadFile(string file)
@@ -93,8 +92,8 @@ public static class SaveSystem
         string path = Application.persistentDataPath + file;
         if (File.Exists(path))
         {
-            BinaryFormatter formatter = new BinaryFormatter();
-            FileStream stream = new FileStream(path, FileMode.Open);
+            BinaryFormatter formatter = new();
+            FileStream stream = new(path, FileMode.Open);
             string s = "";
             try
             {
@@ -105,7 +104,7 @@ public static class SaveSystem
                     File.Delete(path);
                 }
             }
-            catch(Exception e)
+            catch(Exception)
             {
                 stream.Close();
                 File.Delete(path);
@@ -122,7 +121,7 @@ public static class SaveSystem
     {
         string path;
 
-        string s = LoadFile("/Locations_Jireh");
+        string s = LoadFile("/locations_jireh");
         if (s != null)
         {
             string[] ar = s.Split(";");
@@ -137,7 +136,7 @@ public static class SaveSystem
             }
         }
 
-        path = Application.persistentDataPath + "/Locations_Jireh";
+        path = Application.persistentDataPath + "/locations_jireh";
         if (File.Exists(path))
         {
             File.Delete(path);
@@ -150,22 +149,16 @@ public static class SaveSystem
         if (File.Exists(path))
         {
             File.Delete(path);
-            Debug.Log("I deleted Resources.");
+            Debug.Log("I deleted items.");
         }
-        path = Application.persistentDataPath + "/address_nissi";
+        path = Application.persistentDataPath + "/basic_shalom";
         if (File.Exists(path))
         {
             File.Delete(path);
-            Debug.Log("I deleted the universe address.");
-        }
-        path = Application.persistentDataPath + "/ships_Raah";
-        if (File.Exists(path))
-        {
-            File.Delete(path);
-            Debug.Log("I deleted Ships.");
+            Debug.Log("I deleted basic items.");
         }
 
-        DeleteAllLocationInformation();
+        SafeReset();
     }
     public static void SafeReset()
     {
@@ -175,7 +168,7 @@ public static class SaveSystem
             File.Delete(path);
             Debug.Log("I deleted the universe address.");
         }
-        path = Application.persistentDataPath + "/ships_Raah";
+        path = Application.persistentDataPath + "/ships_raah";
         if (File.Exists(path))
         {
             File.Delete(path);

@@ -60,6 +60,9 @@ public class Item : MonoBehaviour
         List<ItemData> temp = new();
         List<int> tempIndices = new();
 
+        if (CheckIfBasic(source)) return;
+
+
         //check for consumable dependencies
         string[] str = source.consumableRequirements.Split("-");
         if (source.consumableRequirements != "nothing=0")
@@ -104,6 +107,16 @@ public class Item : MonoBehaviour
             GetAllDependencies(temp);
         }
     }
+
+    private bool CheckIfBasic(ItemData item)
+    {
+        foreach(ItemData data in main.GetItemLibrary("BasicItemLibrary"))
+        {
+            if (data.itemName == item.itemName) return true;
+        }
+        return false;
+    }
+
     void GetAllDependencies(List<ItemData> dependencies)
     {
         List<ItemData> extendedList = dependencies;
