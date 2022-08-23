@@ -354,71 +354,71 @@ public class Main : MonoBehaviour
     }
     public void CalculateAllLandablePositions() //This will freeze unity until the calculation is done, it may also melt your computer or run out of memory
     {
-        float start = Time.realtimeSinceStartup;
-        int galF = 0;
-        int sup = 0;
-        int galC = 0;
-        int gal = 0;
-        int glob = 0;
-        int star = 0;
-        int cons = 0;
-        int sol = 0;
+        //float start = Time.realtimeSinceStartup;
+        //int galF = 0;
+        //int sup = 0;
+        //int galC = 0;
+        //int gal = 0;
+        //int glob = 0;
+        //int star = 0;
+        //int cons = 0;
+        //int sol = 0;
 
-        long count = 0;
-        debugField = "42";
-        GenerateMapLocation();
-        galF = depthLocations.Length;
-        for (int i = 0; i < galF; i++) // 100 - 0.001886368
-        {
-            debugField = "42," + i;
-            GenerateMapLocation();
-            sup = depthLocations.Length;
-            for (int j = 0; j < sup; j++) // 1,775 - 0.01888037
-            {
-                debugField = $"42,{i},{j}";
-                GenerateMapLocation();
-                galC = depthLocations.Length;
-                for (int k = 0; k < galC; k++) //17,547 - 0.197854
-                {
-                    debugField = $"42,{i},{j},{k}";
-                    GenerateMapLocation();
-                    gal = depthLocations.Length;
-                    for (int l = 0; l < gal; l++) // 204,221 - 7.336893
-                    {
-                        debugField = $"42,{i},{j},{k},{l}";
-                        GenerateMapLocation();
-                        glob = depthLocations.Length;
-                        for (int m = 0; m < glob; m++) // 2,359,802 - 440.7656
-                        {
-                            debugField = $"42,{i},{j},{k},{l},{m}";
-                            GenerateMapLocation();
-                            star = depthLocations.Length;
-                            for (int n = 0; n < star; n++)
-                            {
-                                //debugField = $"42,{i},{j},{k},{l},{m},{n}";
-                                //GenerateMapLocation();
-                                //cons = depthLocations.Length;
-                                //for (int o = 0; o < cons; o++)
-                                //{
-                                //    debugField = $"42,{i},{j},{k},{l},{m},{n},{o}";
-                                //    GenerateMapLocation();
-                                //    sol = depthLocations.Length;
-                                //    for (int p = 0; p < sol; p++)
-                                //    {
-                                //        debugField = $"42,{i},{j},{k},{l},{m},{n},{o},{p}";
-                                //        GenerateMapLocation();
-                                //        count += depthLocations.Length;
-                                //    }
-                                //}
-                                count += depthLocations.Length;
-                            }
-                        }
-                    }
-                }
-            }
-        }
-        Debug.Log(Time.realtimeSinceStartup - start);
-        Debug.Log($"Total landable locations: {count}");
+        //long count = 0;
+        //debugField = "42";
+        //GenerateMapLocation();
+        //galF = depthLocations.Length;
+        //for (int i = 0; i < galF; i++) // 100 - 0.001886368
+        //{
+        //    debugField = "42," + i;
+        //    GenerateMapLocation();
+        //    sup = depthLocations.Length;
+        //    for (int j = 0; j < sup; j++) // 1,775 - 0.01888037
+        //    {
+        //        debugField = $"42,{i},{j}";
+        //        GenerateMapLocation();
+        //        galC = depthLocations.Length;
+        //        for (int k = 0; k < galC; k++) //17,547 - 0.197854
+        //        {
+        //            debugField = $"42,{i},{j},{k}";
+        //            GenerateMapLocation();
+        //            gal = depthLocations.Length;
+        //            for (int l = 0; l < gal; l++) // 204,221 - 7.336893
+        //            {
+        //                debugField = $"42,{i},{j},{k},{l}";
+        //                GenerateMapLocation();
+        //                glob = depthLocations.Length;
+        //                for (int m = 0; m < glob; m++) // 2,359,802 - 440.7656
+        //                {
+        //                    debugField = $"42,{i},{j},{k},{l},{m}"; //crashed
+        //                    GenerateMapLocation();
+        //                    star = depthLocations.Length;
+        //                    for (int n = 0; n < star; n++)
+        //                    {
+        //                        debugField = $"42,{i},{j},{k},{l},{m},{n}";
+        //                        GenerateMapLocation();
+        //                        cons = depthLocations.Length;
+        //                        for (int o = 0; o < cons; o++)
+        //                        {
+        //                            debugField = $"42,{i},{j},{k},{l},{m},{n},{o}";
+        //                            GenerateMapLocation();
+        //                            sol = depthLocations.Length;
+        //                            for (int p = 0; p < sol; p++)
+        //                            {
+        //                                debugField = $"42,{i},{j},{k},{l},{m},{n},{o},{p}";
+        //                                GenerateMapLocation();
+        //                                count += depthLocations.Length;
+        //                            }
+        //                        }
+        //                    }
+        //                }
+        //            }
+        //        }
+        //    }
+        //}
+        //Debug.Log(Time.realtimeSinceStartup - start);
+        //Debug.Log($"Total landable locations: {count}");
+        Debug.Log("If you really want to do that uncomment to the level your computer can handle.");
     }
     #endregion
 
@@ -1195,12 +1195,12 @@ public class Main : MonoBehaviour
                 break;
             case UniverseDepth.SolarSystem:
                 SpawnAmount = NormalizeRandom(-14, 16);
-                SetUpSpaceEncounter(8, SpawnAmount);
+                SetUpSpaceEncounter(SpawnAmount);
                 break;
             case UniverseDepth.PlanetMoon:
                 OnWorldMap?.Invoke(true);
                 SpawnAmount = NormalizeRandom(-14, 16);
-                SetUpSpaceEncounter(10, 9, SpawnAmount);
+                SetUpSpaceEncounter(11, 10, SpawnAmount);
                 SaveLocationAddressBook();
                 break;
             case UniverseDepth.Planet:
@@ -1248,6 +1248,26 @@ public class Main : MonoBehaviour
                 objs.Add(obj);
             }
         }
+
+        SetupDepthLocationsArray(objs);
+    }
+    public void SetUpSpaceEncounter(int spawnAmount)
+    {
+        List<GameObject> objs = new();
+        List<Transform> orbitals = new();
+
+        GameObject Go = Instantiate(depthPrefabs[8], new Vector3(0f, 0f, 0f), Quaternion.identity, universeTransform);
+        Go.transform.position = new(0f, 0f, 10f);
+        objs.Add(Go);
+       
+        for(int i = 0; i < spawnAmount; i++)
+        {
+            GameObject obj = Instantiate(depthPrefabs[9], Go.transform);
+            orbitals.Add(obj.transform);
+            objs.Add(obj);
+        }
+
+        Go.GetComponent<Orbital>().SetOrbitalLocations(orbitals.ToArray());
 
         SetupDepthLocationsArray(objs);
     }
