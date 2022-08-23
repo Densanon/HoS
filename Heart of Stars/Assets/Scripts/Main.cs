@@ -18,9 +18,6 @@ public class Main : MonoBehaviour
     public enum UniverseDepth {Universe, GalaxyFilament, SuperCluster, GalaxyCluster, Galaxy, GlobularCluster, StarCluster, Constellation, SolarSystem, PlanetMoon, Planet, Moon}
     public static UniverseDepth currentDepth = UniverseDepth.Universe;
 
-    public enum TerrainType { River, Ocean, Lake, Lava, ToxicSea, Desert, Dune, SaltFlat, Oasis, DriedMud, Soil, Swamp, Grassland, Forest, Jungle, 
-        ConcreteRoad, Road, Mountain, Canyon, Hill, Cliff, Butte, Valley, FloatingIslands, BoulderLaden, Glacier, ArcticTundra, AlpineTundra, Arctic, Snow, Volcano}
-
     [SerializeField]
     TMP_Text areaText;
     [SerializeField]
@@ -53,14 +50,17 @@ public class Main : MonoBehaviour
     ItemData[] ItemLibrary;
     ItemData[] BasicItemLibrary;
     List<string> LocationAddresses;
+    public static Trait[] AtmosphericTraits;
+    public static Trait[] TerrainTraits;
+    public static Trait[] PlanetaryTraits;
+    public static string[] TraitNameReference;
 
     public string universeAdress;
     string activePlanetAddress;
     public int landStartingPointsForSpawning;
-    [Range(0.34f, 1.0f)]
+    [Range(0.0f, 0.41f)]
     public float frequencyForLandSpawning; 
     public int landFormationOdds;
-    AtmosphericTraits atmosphericValues;
 
     string[] ItemNameReferenceIndex;
 
@@ -71,7 +71,7 @@ public class Main : MonoBehaviour
     public GameObject BuildableResourceButtonPrefab;
     public GameObject Canvas;
 
-    public static int highestLevelOfView = 7; //0 = universe 8 = planet/moon
+    public static int highestLevelOfView = 9; //0 = universe 10 = planet/moon
     public static bool canSeeIntoPlanets = false;
     public static bool isVisitedPlanet = false;
     public static bool isViewingPlanetOnly = false;
@@ -97,6 +97,7 @@ public class Main : MonoBehaviour
     HexTileInfo debugTile;
 
     public static float camCancelUI = 4f;
+    public static bool isDebuggingTile = false;
     
     [Tooltip("Percentage to spawn on tiles.")]
     [SerializeField][Range(0f, 1.0f)]
@@ -331,7 +332,7 @@ public class Main : MonoBehaviour
     }
     public void GenerateMapLocation() //Using the Universal Debug Field type in the universe address and it will create and take you there
     {
-        //42,2,5,7,5,8,0,4,4,0  Current planet working inside of
+        //42,1,3,1,1,5,4,0,8,5,0  Current planet working inside of
         fromMemoryOfLocation = true;
         universeAdress = debugField;
         OnWorldMap?.Invoke(true);
@@ -347,6 +348,78 @@ public class Main : MonoBehaviour
     {
         shipsManager.SetAllShipSpeeds(float.Parse(debugField));
     }
+    public void ToggleTileDebuggingOnClick() //Sets whether you can click a tile and get its, items and terrain values
+    {
+        isDebuggingTile = !isDebuggingTile;
+    }
+    public void CalculateAllLandablePositions() //This will freeze unity until the calculation is done, it may also melt your computer or run out of memory
+    {
+        float start = Time.realtimeSinceStartup;
+        int galF = 0;
+        int sup = 0;
+        int galC = 0;
+        int gal = 0;
+        int glob = 0;
+        int star = 0;
+        int cons = 0;
+        int sol = 0;
+
+        long count = 0;
+        debugField = "42";
+        GenerateMapLocation();
+        galF = depthLocations.Length;
+        for (int i = 0; i < galF; i++) // 100 - 0.001886368
+        {
+            debugField = "42," + i;
+            GenerateMapLocation();
+            sup = depthLocations.Length;
+            for (int j = 0; j < sup; j++) // 1,775 - 0.01888037
+            {
+                debugField = $"42,{i},{j}";
+                GenerateMapLocation();
+                galC = depthLocations.Length;
+                for (int k = 0; k < galC; k++) //17,547 - 0.197854
+                {
+                    debugField = $"42,{i},{j},{k}";
+                    GenerateMapLocation();
+                    gal = depthLocations.Length;
+                    for (int l = 0; l < gal; l++) // 204,221 - 7.336893
+                    {
+                        debugField = $"42,{i},{j},{k},{l}";
+                        GenerateMapLocation();
+                        glob = depthLocations.Length;
+                        for (int m = 0; m < glob; m++) // 2,359,802 - 440.7656
+                        {
+                            debugField = $"42,{i},{j},{k},{l},{m}";
+                            GenerateMapLocation();
+                            star = depthLocations.Length;
+                            for (int n = 0; n < star; n++)
+                            {
+                                //debugField = $"42,{i},{j},{k},{l},{m},{n}";
+                                //GenerateMapLocation();
+                                //cons = depthLocations.Length;
+                                //for (int o = 0; o < cons; o++)
+                                //{
+                                //    debugField = $"42,{i},{j},{k},{l},{m},{n},{o}";
+                                //    GenerateMapLocation();
+                                //    sol = depthLocations.Length;
+                                //    for (int p = 0; p < sol; p++)
+                                //    {
+                                //        debugField = $"42,{i},{j},{k},{l},{m},{n},{o},{p}";
+                                //        GenerateMapLocation();
+                                //        count += depthLocations.Length;
+                                //    }
+                                //}
+                                count += depthLocations.Length;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        Debug.Log(Time.realtimeSinceStartup - start);
+        Debug.Log($"Total landable locations: {count}");
+    }
     #endregion
 
     #region Unity Methods
@@ -358,11 +431,23 @@ public class Main : MonoBehaviour
         }
 
         UnityEngine.Random.InitState(42);
-        
-        SheetData = SheetReader.GetSheetData();
-        itemPanelInfoPieces = new List<GameObject>();
 
-        
+        SheetReader.SheetID = "1GfspRzN1_YodlNqW-p0T65rXXeoLob6OV67ND6urQuM";
+        SheetReader.Range = "A2:Z1000";
+        SheetData = SheetReader.GetSheetData();
+        if (SheetData != null)
+        {
+            BuildAtmosphereAndTerrainTraits();
+        }
+        else
+        {
+            BuildAtmosphereAndTerrainTraitsFromMemory();
+        }
+
+        SheetReader.SheetID = "1fwpQNO9ajJxneCR3Hi3kr5SL6pFDPLb1LkLEpIqjZ4Q";
+        SheetReader.Range = "A2:Z1000";
+        SheetData = SheetReader.GetSheetData();
+        itemPanelInfoPieces = new List<GameObject>();       
         if(SheetData != null) //This will build the template we will use for all items
         {
             BuildGenericResourceInformation();
@@ -371,8 +456,6 @@ public class Main : MonoBehaviour
         {
             BuildGenericResourceInformationFromMemory();
         }
-
-        //BuildTerrainDictionary();
 
         string s = SaveSystem.LoadFile("/address_nissi");
         if (s != null)
@@ -394,6 +477,7 @@ public class Main : MonoBehaviour
 
         DontDestroyOnLoad(this.gameObject);
     }
+
     private void Start()
     {
         GenerateUniverseLocation(UniverseDepth.Universe, 42); //If there is no loaded location we will start at the universe level
@@ -722,19 +806,10 @@ public class Main : MonoBehaviour
         string s = SaveSystem.LoadFile("/" + universeAdress);
         return s?.Split("|");// Checking for a save of the planet
     }
-    AtmosphericTraits BuildAtmosphericValues()
-    {
-        return new AtmosphericTraits(UnityEngine.Random.Range(0, 4), UnityEngine.Random.Range(0, 4), UnityEngine.Random.Range(0, 4), 
-            UnityEngine.Random.Range(0, 4), UnityEngine.Random.Range(0, 4), UnityEngine.Random.Range(0, 4), UnityEngine.Random.Range(0, 4),
-            UnityEngine.Random.Range(0, 4), UnityEngine.Random.Range(0, 4), UnityEngine.Random.Range(0, 4), UnityEngine.Random.Range(0, 4), 
-            UnityEngine.Random.Range(0, 4), UnityEngine.Random.Range(0, 4), UnityEngine.Random.Range(0, 4), UnityEngine.Random.Range(0, 4), 
-            UnityEngine.Random.Range(0, 4), UnityEngine.Random.Range(0, 4), UnityEngine.Random.Range(0, 4));
-    }
     #endregion
 
     public void SaveItemLibrarys()
     {
-        Debug.Log("Saving ItemLibrary");
         for (int i = 0; i < ItemLibrary.Length; i++)
         {
             if (i != (ItemLibrary.Length - 1))
@@ -749,7 +824,6 @@ public class Main : MonoBehaviour
 
         if (BasicItemLibrary == null) return;
 
-        Debug.Log("Saving the BasicItemLibrary");
         for (int i = 0; i < BasicItemLibrary.Length; i++)
         {
             if (i != (BasicItemLibrary.Length - 1))
@@ -818,8 +892,9 @@ public class Main : MonoBehaviour
 
         SaveItemLibrarys();
         LoadedData.Clear();
+        itemNames.Clear();
     }
-    private bool CheckBasicItemNeeds(string requirements)
+    bool CheckBasicItemNeeds(string requirements)
     {
         if (requirements == "nothing=0") return false;
         string[] ar = requirements.Split(" ");
@@ -835,37 +910,145 @@ public class Main : MonoBehaviour
         {
             array = ar[0].Split("<");
         }
-        return array[0] switch
+        return Array.Exists(TraitNameReference, s => s == array[0]);
+    }
+    void BuildAtmosphereAndTerrainTraits()
+    {
+        List<Trait> atmosTemp = new(); 
+        List<Trait> terTemp = new();
+        List<Trait> planetTemp = new();
+        List<string> nameRef = new();
+
+        foreach(string[] ar in SheetData)
         {
-            "Acidity" => true,
-            "AcousticAbsorbtion" => true,
-            "Compressability" => true,
-            "Density" => true,
-            "ElectricalCharge" => true,
-            "FrequencyEmission" => true,
-            "Flammability" => true,
-            "Luminescence" => true,
-            "Temperature" => true,
-            "Magnetism" => true,
-            "Pressure" => true,
-            "Radioactivity" => true,
-            "Refelctivity" => true,
-            "Smell" => true,
-            "Transparency" => true,
-            "BoilingPoint" => true,
-            "Brittleness" => true,
-            "Elasticity" => true,
-            "FluctuationOfSteepness" => true,
-            "Gravity" => true,
-            "Hardness" => true,
-            "LiquidToxicity" => true,
-            "Sharpness" => true,
-            "SolidityLiquidity" => true,
-            "SteepnessOfTopography" => true,
-            "Structure" => true,
-            "Vegitation" => true,
-            _ => false,
-        };
+            nameRef.Add(ar[0]);
+            Trait trait;
+            if (ar[0].ToLower().Contains("color"))
+            {
+                trait = new(ar[0], ar[1]);
+            }
+            else
+            {
+                bool hasName = false, hasElement = false, hasRange = false, hasDescription = false, hasRequirement = false, hasWeighted = false;
+                string str;
+                string[] sAr = new string[0];
+                try{
+                    str = ar[0];
+                    hasName = true;
+                }catch(IndexOutOfRangeException){}
+                try
+                {
+                    str = ar[1];
+                    hasElement = true;
+                }
+                catch (IndexOutOfRangeException) { }
+                try
+                {
+                    str = ar[2];
+                    hasRange = true;
+                    sAr = ar[2].Split("-");
+                }
+                catch (IndexOutOfRangeException) { }
+                try
+                {
+                    str = ar[3];
+                    hasDescription = true;
+                }
+                catch (IndexOutOfRangeException) { }
+                try
+                {
+                    str = ar[4];
+                    hasRequirement = true;
+                }
+                catch (IndexOutOfRangeException) { }
+                try
+                {
+                    str = ar[5];
+                    hasWeighted = true;
+                }
+                catch (IndexOutOfRangeException) { }
+
+                trait = new(hasName ? ar[0] : "", hasElement?ar[1]:"", hasRange&&sAr.Length>1?int.Parse(sAr[0]) : 0, hasRange && sAr.Length > 1 ? int.Parse(sAr[1]) : 0, hasDescription? ar[3]:"", hasRequirement? ar[4]:"", hasWeighted ? ar[5] : "");
+            }
+            if(trait.GameElement == "atmosphericTrait")
+            {
+                atmosTemp.Add(trait);
+            }else if(trait.GameElement == "terrainTrait")
+            {
+                terTemp.Add(trait);
+            }else if(trait.GameElement == "planetaryTrait")
+            {
+                planetTemp.Add(trait);
+            }
+        }
+
+        AtmosphericTraits = atmosTemp.ToArray();
+        TerrainTraits = terTemp.ToArray();
+        PlanetaryTraits = planetTemp.ToArray();
+        TraitNameReference = nameRef.ToArray();
+
+        SaveSystem.WipeString();
+        foreach(Trait trait in atmosTemp)
+        {
+            SaveSystem.SaveTrait(trait.DigitizeForSerialization(),false);
+        }
+        foreach (Trait trait in terTemp)
+        {
+            SaveSystem.SaveTrait(trait.DigitizeForSerialization(),false);
+        }
+        foreach (Trait trait in planetTemp)
+        {
+            if(ReferenceEquals(trait, planetTemp[^1]))
+            {
+                SaveSystem.SaveTrait(trait.DigitizeForSerialization(),true);
+                continue;
+            }
+            SaveSystem.SaveTrait(trait.DigitizeForSerialization(),false);
+        }
+        SaveSystem.SaveTraitLists();
+    }
+    void BuildAtmosphereAndTerrainTraitsFromMemory()
+    {
+        List<Trait> atmosTemp = new();
+        List<Trait> terTemp = new();
+        List<Trait> planetTemp = new();
+
+        string memory = SaveSystem.LoadFile("/traits_shammah");
+        if (!string.IsNullOrEmpty(memory))
+        {
+            string[] traits = memory.Split(";");
+            foreach(string s in traits)
+            {
+                Trait trait;
+                string[] values = s.Split(",");
+                if (values[0].ToLower().Contains("color"))
+                {
+                    trait = new(values[0], values[1]);
+                }
+                else
+                {
+                    trait = new(values[0], values[1], int.Parse(values[2]), int.Parse(values[3]), int.Parse(values[4]), string.IsNullOrEmpty(values[5]) ? "" : values[5], string.IsNullOrEmpty(values[6]) ? "" : values[6], string.IsNullOrEmpty(values[7]) ? "" : values[7]);
+                }
+                if (trait.GameElement == "atmosphericTrait")
+                {
+                    atmosTemp.Add(trait);
+                }
+                else if (trait.GameElement == "terrainTrait")
+                {
+                    terTemp.Add(trait);
+                }
+                else if (trait.GameElement == "planetaryTrait")
+                {
+                    planetTemp.Add(trait);
+                }
+            }
+
+            AtmosphericTraits = atmosTemp.ToArray();
+            TerrainTraits = terTemp.ToArray();
+            PlanetaryTraits = planetTemp.ToArray();
+            return;
+        }
+        Debug.Log("There wasn't a saved file for the Traits we need to connect to the network.");
     }
     void BuildGenericResourceInformationFromMemory()
     {       
@@ -1034,7 +1217,6 @@ public class Main : MonoBehaviour
     }
     private void SetUpSpaceEncounter(int prefabIndex, int spawnAmount)
     {
-        Debug.Log("Generating Space Encounter.");
         List<GameObject> objs = new();
         
         if(depthPrefabs[prefabIndex] != null)
@@ -1136,8 +1318,8 @@ public class Main : MonoBehaviour
             spawnEnemyDensityMax = 15;
             //Min0 Max14 Average7
         }
-        activeBrain.SetLandConfiguration(frequencyForLandSpawning,landFormationOdds,spawnEnemyRatio, spawnEnemyDensityMin, spawnEnemyDensityMax);
-        activeBrain.BuildPlanetData(TryLoadLevel(), universeAdress,(isLanding) ? false:isViewingPlanetOnly, BuildAtmosphericValues());
+        activeBrain.SetLandConfiguration(landStartingPointsForSpawning,frequencyForLandSpawning,landFormationOdds,spawnEnemyRatio, spawnEnemyDensityMin, spawnEnemyDensityMax);
+        activeBrain.BuildPlanetData(TryLoadLevel(), universeAdress,(isLanding) ? false:isViewingPlanetOnly);
         isLanding = false;
 
         #region Diamond Map
@@ -1267,10 +1449,10 @@ public class Main : MonoBehaviour
         switch (currentDepth)
         {
             case UniverseDepth.Universe:
-                currentDepth = UniverseDepth.SuperCluster;
+                currentDepth = UniverseDepth.GalaxyFilament;
                 break;
             case UniverseDepth.GalaxyFilament:
-                currentDepth = UniverseDepth.StarCluster;
+                currentDepth = UniverseDepth.SuperCluster;
                 break;
             case UniverseDepth.SuperCluster:
                 currentDepth = UniverseDepth.GalaxyCluster;

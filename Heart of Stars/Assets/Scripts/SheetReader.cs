@@ -19,6 +19,9 @@ using Data = Google.Apis.Sheets.v4.Data;
 
 public class SheetReader
 {
+    public static string SheetID;
+    public static string Range;
+
     static private string jsonPath = "/Resources/Creds-key.json";
 
     public static List<string[]> GetSheetData()
@@ -34,10 +37,10 @@ public class SheetReader
         });
 
         // The ID of the spreadsheet to retrieve data from.
-        string spreadsheetId = "1fwpQNO9ajJxneCR3Hi3kr5SL6pFDPLb1LkLEpIqjZ4Q";  // TODO: Update placeholder value.
+        //string spreadsheetId = "1fwpQNO9ajJxneCR3Hi3kr5SL6pFDPLb1LkLEpIqjZ4Q";  // TODO: Update placeholder value.
 
         // The A1 notation of the values to retrieve.
-        string range = "A2:Z1000";  // TODO: Update placeholder value.
+        //string range = "A2:Z1000";  // TODO: Update placeholder value.
 
         // How values should be represented in the output.
         // The default render option is ValueRenderOption.FORMATTED_VALUE.
@@ -49,7 +52,7 @@ public class SheetReader
         // The default dateTime render option is [DateTimeRenderOption.SERIAL_NUMBER].
         ///SpreadsheetsResource.ValuesResource.GetRequest.DateTimeRenderOptionEnum dateTimeRenderOption = (SpreadsheetsResource.ValuesResource.GetRequest.DateTimeRenderOptionEnum)0;  // TODO: Update placeholder value.
 
-        SpreadsheetsResource.ValuesResource.GetRequest request = sheetsService.Spreadsheets.Values.Get(spreadsheetId, range);
+        SpreadsheetsResource.ValuesResource.GetRequest request = sheetsService.Spreadsheets.Values.Get(SheetID, Range);
         request.ValueRenderOption = valueRenderOption;
 
         try

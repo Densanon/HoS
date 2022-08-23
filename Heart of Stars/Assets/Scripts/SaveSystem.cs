@@ -71,6 +71,21 @@ public static class SaveSystem
         FileData = locations;
         SaveFile("/locations_jireh");
     }
+    public static void SaveTraitLists()
+    {
+        SaveFile("/traits_shammah");
+    }
+    public static void SaveTrait(string trait, bool last)
+    {
+        if (last)
+        {
+            string s = trait;
+            s = s.Remove(s.Length - 1);
+            FileData += trait;
+            return;
+        }
+        FileData += trait;
+    }
     public static void SaveFile(string file)
     {
         if (string.IsNullOrEmpty(FileData)) return;

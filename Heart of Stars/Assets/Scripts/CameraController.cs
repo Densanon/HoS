@@ -186,8 +186,7 @@ public class CameraController : MonoBehaviour
             return;
         }
 
-        myTransform.Rotate(45f, 0f, 0f);
-        myTransform.position = new Vector3(0f, 10f, -.5f);
+        myTransform.SetPositionAndRotation(new Vector3(0f, 10f, -.5f), Quaternion.Euler(45f, 0f, 0f));
         myCamera.orthographicSize = 1.75f;
         inMap = true;
     }

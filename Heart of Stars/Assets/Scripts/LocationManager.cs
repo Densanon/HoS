@@ -17,7 +17,6 @@ public class LocationManager : MonoBehaviour
     Spacecraft mySpaceship;
 
     public string myAddress;
-    public AtmosphericTraits MyAtmosphericTraits;
     public HexTileInfo[][] tileInfoList;
     HexTileInfo starter;
     Vector2[] TileLocations;
@@ -31,10 +30,10 @@ public class LocationManager : MonoBehaviour
     int enemyDensityMax;
     bool isViewing;
     int landLeftToConquer;
+    Dictionary<string, Trait> PlanetaryTraits;
 
     #region Debuging
     public static Action<Vector2> OnTurnAllLandConquered = delegate { };
-
     public HexTileInfo GetTile(Vector2 tileLocation)
     {
         return tileInfoList[Mathf.RoundToInt(tileLocation.x)][Mathf.RoundToInt(tileLocation.y)];
@@ -50,6 +49,11 @@ public class LocationManager : MonoBehaviour
     {
         Main.OnWorldMap += TurnOffVisibility;
         canvas = GameObject.Find("Canvas").transform;
+        PlanetaryTraits = new();
+        foreach(Trait trait in Main.PlanetaryTraits)
+        {
+            PlanetaryTraits.Add(trait.UniqueName, new(trait));
+        }
     }
     private void OnEnable()
     {
@@ -74,8 +78,9 @@ public class LocationManager : MonoBehaviour
     {
         main = m;
     }
-    public void SetLandConfiguration(float landFrequency, int formationFrequency, float ratio, int densityMin, int densityMax)
+    public void SetLandConfiguration(int landStarters, float landFrequency, int formationFrequency, float ratio, int densityMin, int densityMax)
     {
+        landStartingPointsForSpawning = landStarters;
         frequencyForLandSpawning = landFrequency;
         landFormationOdds = formationFrequency;
         enemyRatio = ratio;
@@ -87,21 +92,17 @@ public class LocationManager : MonoBehaviour
     {
         mySpaceship = ship;
     }
-    public void BuildPlanetData(string[] hextiles, string address, bool viewing, AtmosphericTraits traits)
+    public void BuildPlanetData(string[] hextiles, string address, bool viewing)
     {
         myAddress = address;
         isViewing = viewing;
-        MyAtmosphericTraits = traits;
 
         BuildTileBase();
 
-        if (hextiles != null)
-        {
-            SetHexTileInformationFromMemory(hextiles);
-            return;
-        }
-
         OrganizePieces();
+
+        if(hextiles != null)
+            SetHexTileInformationFromMemory(hextiles);
 
         if (!viewing)
         {
@@ -130,7 +131,7 @@ public class LocationManager : MonoBehaviour
                 tf.SetManager(this);
                 tf.SetMain(main);
                 tf.SetUpTileLocation(x, y);
-                tf.SetLandConfiguration(MyAtmosphericTraits, frequencyForLandSpawning, landFormationOdds, enemyRatio, enemyDensityMin, enemyDensityMax);
+                tf.SetLandConfiguration(frequencyForLandSpawning, landFormationOdds, enemyRatio, enemyDensityMin, enemyDensityMax);
                 temp.Add(tf);
                 locs.Add(tf.myPositionInTheArray);
             }
@@ -156,12 +157,9 @@ public class LocationManager : MonoBehaviour
                 y = 0;
             }
             string[] ar = s.Split(":");
-            tileInfoList[x][y].SetAllTileInfoFromMemory(ar[0], int.Parse(ar[1]), ar[2], (ar[3] == "True"), ar[4], ar[5], ar[6]);
-            if (ar[3] == "True") starter = tileInfoList[x][y];
+            tileInfoList[x][y].SetAllTileInfoFromMemory(ar[0], int.Parse(ar[1]), ar[2]);
             y++;
         }
-        OnGreetManagers?.Invoke(this);
-        OnCameraLookAtStarter?.Invoke(starter.transform);
     }
     public void OrganizePieces()
     {

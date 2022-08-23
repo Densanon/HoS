@@ -99,8 +99,8 @@ public class HexTileInfo : MonoBehaviour
     int enemyDensityMax;
 
     //Traits
-    AtmosphericTraits PlanetTraits;
-    TerrainTraits MyGroundTraits;
+    Dictionary<string,Trait> AtmosphericTraits;
+    Dictionary<string,Trait> TerrainTraits;
     string TopographicalName;
 
     #region Debugging
@@ -160,6 +160,29 @@ public class HexTileInfo : MonoBehaviour
             OnTakeover -= CheckForPlayability;
             OnTakeover(myPositionInTheArray);
         }
+    }
+    void GetNameAndValues()
+    {
+        string s = "";
+        foreach (ItemData item in myItemData)
+        {
+            if (item.itemName != "soldier" && item.itemName != "enemy")
+            {
+                s += item.itemName + ",";
+            }
+        }
+        if(TerrainTraits != null)
+        {
+            foreach(KeyValuePair<string, Trait> trait in TerrainTraits)
+            {
+                s += $"{trait.Value.UniqueName}:{trait.Value.RangeValue},";
+            }
+        }
+        else
+        {
+            s += "Ocean";
+        }
+        Debug.Log(s);
     }
     #endregion
 
@@ -267,9 +290,8 @@ public class HexTileInfo : MonoBehaviour
     {
         return topographySprites.Length + 1;
     }
-    public void SetLandConfiguration(AtmosphericTraits aTraits, float landDistribution, int formationOdds, float ratio, int densityMin, int densityMax)
+    public void SetLandConfiguration(float landDistribution, int formationOdds, float ratio, int densityMin, int densityMax)
     {
-        PlanetTraits = aTraits;
         frequencyOfLandDistribution = landDistribution;
         oddsOfTerraFormation = formationOdds;
         enemyRatio = ratio;
@@ -307,12 +329,21 @@ public class HexTileInfo : MonoBehaviour
     #region Topography Visuals
     private void CreateTerrainTraits()
     {
-        MyGroundTraits = new();
-        MyGroundTraits.SetGeneralTraits(PlanetTraits);
-        MyGroundTraits.SetTerrainTraits(UnityEngine.Random.Range(0, 4), UnityEngine.Random.Range(0, 4), UnityEngine.Random.Range(0, 4),
-            UnityEngine.Random.Range(0, 4), UnityEngine.Random.Range(0, 4), UnityEngine.Random.Range(0, 4), UnityEngine.Random.Range(0, 4),
-            UnityEngine.Random.Range(0, 4), UnityEngine.Random.Range(0, 4), UnityEngine.Random.Range(0, 4), UnityEngine.Random.Range(0, 4),
-            UnityEngine.Random.Range(0, 4));
+        AtmosphericTraits = new();
+        foreach (Trait trait in Main.AtmosphericTraits)
+        {
+            AtmosphericTraits.Add(trait.UniqueName, new(trait));
+        }
+        TerrainTraits = new();
+        foreach (Trait trait in Main.TerrainTraits)
+        {
+            TerrainTraits.Add(trait.UniqueName, new(trait));
+        }
+
+        foreach (KeyValuePair<string,Trait> trait in TerrainTraits)
+        {
+            trait.Value.Randomize();
+        }
     }
     private void CreateTerrain()
     {
@@ -330,59 +361,15 @@ public class HexTileInfo : MonoBehaviour
 
     private void AssembleTemperature()
     {
-        switch (MyGroundTraits.Temperature)
-        {
-            case 0:
-                TopographicalName += "Frozen ";
-                myRenderers[0].material.mainTexture = tileTextures[6];
-                break;
-            case 1:
-                TopographicalName += "Frosted ";
-                break;
-            case 2:
-                TopographicalName += "Warm ";
-                break;
-            case 3:
-                TopographicalName += "Blistering ";
-                myRenderers[0].material.mainTexture = tileTextures[4];
-                break;
-        }
+       
     }
     private void AssembleToxicity()
     {
-        if(MyGroundTraits.SolidityLiquidity > 0)
-        {
-            switch (MyGroundTraits.LiquidToxicity)
-            {
-                case 1:
-                    TopographicalName += "Noxious ";
-                    break;
-                case 2:
-                    TopographicalName += "Toxic ";
-                    break;
-                case 3:
-                    TopographicalName += "Deadly ";
-                    break;
-            }
-        }
+        
     }
     private void AssembleVegitaion()
     {        
-        switch (MyGroundTraits.Vegitation)
-        {
-            case 0:
-                TopographicalName += "Barren";
-                break;
-            case 1:
-                TopographicalName += "Lush";
-                break;
-            case 2:
-                TopographicalName += "Dense";
-                break;
-            case 3:
-                TopographicalName += "Overgrown";
-                break;
-        }
+        
     }
     private void AssembleItems()
     {
@@ -401,185 +388,17 @@ public class HexTileInfo : MonoBehaviour
     private void AssembleTopography()
     {
         //River, Lava, Oasis, Valley, FloatingIslands,
-        switch (MyGroundTraits.SteepnessOfTopography)
-        {
-            case 0:
-                if (MyGroundTraits.SolidityLiquidity == 0 && MyGroundTraits.Vegitation == 0)
-                {
-                    if(MyGroundTraits.FluctuationOfSteepness == 0)
-                    {
-                        TopographicalName += " Flats";
-                        break;
-                    }
-                    TopographicalName += " Desert";
-                    break;
-                }
-                else if (MyGroundTraits.SolidityLiquidity == 0 && MyGroundTraits.Vegitation == 1)
-                {
-                    TopographicalName += " Grasslands";
-                    break;
-                }
-                else if (MyGroundTraits.SolidityLiquidity == 0 && MyGroundTraits.Vegitation > 1)
-                {
-                    TopographicalName += " Forest";
-                    break;
-                }
-                else if (MyGroundTraits.SolidityLiquidity == 1 && MyGroundTraits.Vegitation > 1)
-                {
-                    if(MyGroundTraits.Vegitation == 3)
-                    {
-                        TopographicalName += " Jungle";
-                        break;
-                    }
-                    TopographicalName += " Marshlands";
-                    break;
-                }
-                else if (MyGroundTraits.SolidityLiquidity == 2 && MyGroundTraits.Vegitation > 1)
-                {
-                    TopographicalName += " Swamps";
-                    break;
-                }
-                else if (MyGroundTraits.SolidityLiquidity == 3)
-                {
-                    TopographicalName += " Lakes";
-                    break;
-                }
-                else if (MyGroundTraits.Temperature < 1)
-                {
-                    TopographicalName += " Tundra";
-                    break;
-                }
-                else
-                {
-                    TopographicalName += " Plains";
-                    break;
-                }
-            case 1:
-                if (MyGroundTraits.FluctuationOfSteepness == 1 && MyGroundTraits.SolidityLiquidity > 1 && MyGroundTraits.Temperature == 0)
-                {
-                    TopographicalName += " Glaciers";
-                    break;
-                }
-                else if (MyGroundTraits.FluctuationOfSteepness == 1)
-                {
-                    TopographicalName += " Mounds";
-                    break;
-                }
-                else if (MyGroundTraits.FluctuationOfSteepness == 2)
-                {
-                    if(MyGroundTraits.Vegitation == 0)
-                    {
-                        TopographicalName += " Dunes";
-                        break;
-                    }
-                    TopographicalName += " Hills";
-                    break;
-                }
-                else if (MyGroundTraits.FluctuationOfSteepness == 3)
-                {
-                    TopographicalName += " Rolling Hills";
-                    break;
-                }
-                else
-                {
-                    TopographicalName += " Butte";
-                    break;
-                }
-            case 2:
-                if(MyGroundTraits.SolidityLiquidity == 1)
-                {
-                    TopographicalName += " Waterfalls";
-                    break;
-                }else if (MyGroundTraits.SolidityLiquidity == 2)
-                {
-                    TopographicalName += " Mudslides";
-                    break;
-                }
-                else if (MyGroundTraits.SolidityLiquidity < 2 && MyGroundTraits.FluctuationOfSteepness > 1)
-                {
-                    TopographicalName += " Canyons";
-                    break;
-                }
-                else
-                {
-                    TopographicalName += " Cliffs";
-                    break;
-                }
-            case 3:
-                if (MyGroundTraits.Vegitation == 0 && MyGroundTraits.Temperature > 1)
-                {
-                    TopographicalName += " Valcano";
-                    break;
-                }
-                else if (MyGroundTraits.Vegitation == 3)
-                {
-                    TopographicalName += " Forest covered Mountains";
-                    break;
-                }
-                else
-                {
-                    TopographicalName += " Mountains";
-                    break;
-                }
-        }
     }
     public bool CheckTileIsEmpty()
     {
-        if (MyGroundTraits == null) return false;
-        return MyGroundTraits.SteepnessOfTopography == 0 && MyGroundTraits.SolidityLiquidity == 0 && MyGroundTraits.Vegitation == 0;
+        if(myState == TileStates.UnPlayable)
+            return false;
+
+        return true;
     }
     private void SetTopographyGraphic()
     {
-        myRenderers[2].enabled = true;
-        SpriteRenderer s = myRenderers[2].GetComponent<SpriteRenderer>();
-        switch (MyGroundTraits.SteepnessOfTopography)
-        {
-            case 0:
-                switch (MyGroundTraits.Vegitation)
-                {
-                    case 0:
-                        myRenderers[2].enabled = false;
-                        myTileType = GetBlankTileIndex();
-                        break;
-                    case 1:
-                        s.sprite = topographySprites[3];
-                        break;
-                    case 2:
-                        s.sprite = topographySprites[4];
-                        break;
-                    case 3:
-                        s.sprite = topographySprites[5];
-                        break;
-                }
-                break;
-            case 1:
-                s.sprite = topographySprites[0];
-                break;
-            case 2:
-                s.sprite = topographySprites[1];
-                break;
-            case 3:
-                s.sprite = topographySprites[2];
-                break;
-        }
-
-        myRenderers[1].enabled = true;
-        Material m = myRenderers[1].material;
-        switch (MyGroundTraits.LiquidToxicity)
-        {
-            case 0:
-                myRenderers[1].enabled = false;
-                break;
-            case 1:
-                m.mainTexture = tileTextures[7];
-                break;
-            case 2:
-                m.mainTexture = tileTextures[9];
-                break;
-            case 3:
-                m.mainTexture = tileTextures[18];
-                break;
-        }
+        
     }
     #endregion
 
@@ -629,24 +448,17 @@ public class HexTileInfo : MonoBehaviour
     #endregion
 
     #region Setup Tiles From Memory
-    public void SetAllTileInfoFromMemory(string state, int tileType, string neighbors, bool isStart, string resources, string topographicVisual, string terrainValues)
+    public void SetAllTileInfoFromMemory(string state, int tileType, string resources)
     {
         SetTileStateFromString(state);
 
         myTileType = tileType;
 
-        SetNeighborsFromString(neighbors);
-
         BuildItemsFromMemory(resources);
 
         CreateQueElements();
-
-        if (isStart) SetAsStartingPoint();
-
-        MyGroundTraits = new(terrainValues);
-        TopographicalName = topographicVisual;
-        SetTopographyGraphic();
     }
+
     void SetTileStateFromString(string state)
     {
         switch (state)
@@ -671,23 +483,6 @@ public class HexTileInfo : MonoBehaviour
                 myState = TileStates.Conquered;
                 OnTakeover -= CheckForPlayability;
                 break;
-        }
-    }
-    void SetNeighborsFromString(string neighbors)
-    {
-        List<Vector2> temp = new();
-        string[] ar = neighbors.Split("'");
-        foreach (string s in ar)
-        {
-            string[] st = s.Split(",");
-            Vector2 v = new(float.Parse(st[0]), float.Parse(st[1].Remove(0, 1)));
-            temp.Add(v);
-        }
-
-        myNeighbors = new Vector2[temp.Count];
-        for (int i = 0; i < myNeighbors.Length; i++)
-        {
-            myNeighbors[i] = temp[i];
         }
     }
     void BuildItemsFromMemory(string items)
@@ -904,9 +699,10 @@ public class HexTileInfo : MonoBehaviour
     }
     private void OnMouseDown()
     {
+        if (Main.isDebuggingTile) GetNameAndValues();
+
         if (isMousePresent && isInteractable && !UIOverrideListener.isOverUI)
         {
-            GetNameAndValues();
             if(myState == TileStates.Conquered && myCamera.orthographicSize < 4.25f)
             {
                 CheckCanvasContainerAndCreateTileOptions();
@@ -926,18 +722,6 @@ public class HexTileInfo : MonoBehaviour
         }
     }
     #endregion
-
-    void GetNameAndValues()
-    {
-        Debug.Log($"{TopographicalName} Steep: {MyGroundTraits.SteepnessOfTopography}, Veg: {MyGroundTraits.Vegitation}, Rad: {MyGroundTraits.Radioactivity}, Water: {MyGroundTraits.SolidityLiquidity}");
-        foreach(ItemData item in myItemData)
-        {
-            if(item.itemName != "soldier" && item.itemName != "enemy")
-            {
-                Debug.Log(item.itemName);
-            }
-        }
-    }
 
     #region Unit Management
     public void AdjustUnits(int amount)
@@ -1275,101 +1059,9 @@ public class HexTileInfo : MonoBehaviour
     {
         return valueAccessor switch
         {
-            '=' => name switch
-            {
-                "Acidity" => MyGroundTraits.Acidity == int.Parse(value),
-                "AcousticAbsorbtion" => MyGroundTraits.AcousticAbsorption == int.Parse(value),
-                "Compressability" => MyGroundTraits.Compressability == int.Parse(value),
-                "Density" => MyGroundTraits.Density == int.Parse(value),
-                "ElectricalCharge" => MyGroundTraits.ElectricalCharge == int.Parse(value),
-                "FrequencyEmission" => MyGroundTraits.FrequencyEmission == int.Parse(value),
-                "Flammability" => MyGroundTraits.Flammability == int.Parse(value),
-                "Luminescence" => MyGroundTraits.Luminescence == int.Parse(value),
-                "Temperature" => MyGroundTraits.Temperature == int.Parse(value),
-                "Magnetism" => MyGroundTraits.Magnetism == int.Parse(value),
-                "Pressure" => MyGroundTraits.Pressure == int.Parse(value),
-                "Radioactivity" => MyGroundTraits.Radioactivity == int.Parse(value),
-                "Refelctivity" => MyGroundTraits.Reflectivity == int.Parse(value),
-                "Smell" => MyGroundTraits.Smell == int.Parse(value),
-                "Transparency" => MyGroundTraits.Transparency == int.Parse(value),
-                "BoilingPoint" => MyGroundTraits.BoilingPoint == int.Parse(value),
-                "Brittleness" => MyGroundTraits.Brittleness == int.Parse(value),
-                "Elasticity" => MyGroundTraits.Elasticity == int.Parse(value),
-                "FluctuationOfSteepness" => MyGroundTraits.FluctuationOfSteepness == int.Parse(value),
-                "Gravity" => MyGroundTraits.Gravity == int.Parse(value),
-                "Hardness" => MyGroundTraits.Hardness == int.Parse(value),
-                "LiquidToxicity" => MyGroundTraits.LiquidToxicity == int.Parse(value),
-                "Sharpness" => MyGroundTraits.Sharpness == int.Parse(value),
-                "SolidityLiquidity" => MyGroundTraits.SolidityLiquidity == int.Parse(value),
-                "SteepnessOfTopography" => MyGroundTraits.SteepnessOfTopography == int.Parse(value),
-                "Structure" => MyGroundTraits.Structure == int.Parse(value),
-                "Vegitation" => MyGroundTraits.Vegitation == int.Parse(value),
-                _ => false,
-            },
-            //Greater than
-            '>' => name switch
-            {
-                "Acidity" => MyGroundTraits.Acidity > int.Parse(value),
-                "AcousticAbsorbtion" => MyGroundTraits.AcousticAbsorption > int.Parse(value),
-                "Compressability" => MyGroundTraits.Compressability > int.Parse(value),
-                "Density" => MyGroundTraits.Density > int.Parse(value),
-                "ElectricalCharge" => MyGroundTraits.ElectricalCharge > int.Parse(value),
-                "FrequencyEmission" => MyGroundTraits.FrequencyEmission > int.Parse(value),
-                "Flammability" => MyGroundTraits.Flammability > int.Parse(value),
-                "Luminescence" => MyGroundTraits.Luminescence > int.Parse(value),
-                "Temperature" => MyGroundTraits.Temperature > int.Parse(value),
-                "Magnetism" => MyGroundTraits.Magnetism > int.Parse(value),
-                "Pressure" => MyGroundTraits.Pressure > int.Parse(value),
-                "Radioactivity" => MyGroundTraits.Radioactivity > int.Parse(value),
-                "Refelctivity" => MyGroundTraits.Reflectivity > int.Parse(value),
-                "Smell" => MyGroundTraits.Smell > int.Parse(value),
-                "Transparency" => MyGroundTraits.Transparency > int.Parse(value),
-                "BoilingPoint" => MyGroundTraits.BoilingPoint > int.Parse(value),
-                "Brittleness" => MyGroundTraits.Brittleness > int.Parse(value),
-                "Elasticity" => MyGroundTraits.Elasticity > int.Parse(value),
-                "FluctuationOfSteepness" => MyGroundTraits.FluctuationOfSteepness > int.Parse(value),
-                "Gravity" => MyGroundTraits.Gravity > int.Parse(value),
-                "Hardness" => MyGroundTraits.Hardness > int.Parse(value),
-                "LiquidToxicity" => MyGroundTraits.LiquidToxicity > int.Parse(value),
-                "Sharpness" => MyGroundTraits.Sharpness > int.Parse(value),
-                "SolidityLiquidity" => MyGroundTraits.SolidityLiquidity > int.Parse(value),
-                "SteepnessOfTopography" => MyGroundTraits.SteepnessOfTopography > int.Parse(value),
-                "Structure" => MyGroundTraits.Structure > int.Parse(value),
-                "Vegitation" => MyGroundTraits.Vegitation > int.Parse(value),
-                _ => false,
-            },
-            //Less than
-            '<' => name switch
-            {
-                "Acidity" => MyGroundTraits.Acidity < int.Parse(value),
-                "AcousticAbsorbtion" => MyGroundTraits.AcousticAbsorption < int.Parse(value),
-                "Compressability" => MyGroundTraits.Compressability < int.Parse(value),
-                "Density" => MyGroundTraits.Density < int.Parse(value),
-                "ElectricalCharge" => MyGroundTraits.ElectricalCharge < int.Parse(value),
-                "FrequencyEmission" => MyGroundTraits.FrequencyEmission < int.Parse(value),
-                "Flammability" => MyGroundTraits.Flammability < int.Parse(value),
-                "Luminescence" => MyGroundTraits.Luminescence < int.Parse(value),
-                "Temperature" => MyGroundTraits.Temperature < int.Parse(value),
-                "Magnetism" => MyGroundTraits.Magnetism < int.Parse(value),
-                "Pressure" => MyGroundTraits.Pressure < int.Parse(value),
-                "Radioactivity" => MyGroundTraits.Radioactivity < int.Parse(value),
-                "Refelctivity" => MyGroundTraits.Reflectivity < int.Parse(value),
-                "Smell" => MyGroundTraits.Smell < int.Parse(value),
-                "Transparency" => MyGroundTraits.Transparency < int.Parse(value),
-                "BoilingPoint" => MyGroundTraits.BoilingPoint < int.Parse(value),
-                "Brittleness" => MyGroundTraits.Brittleness < int.Parse(value),
-                "Elasticity" => MyGroundTraits.Elasticity < int.Parse(value),
-                "FluctuationOfSteepness" => MyGroundTraits.FluctuationOfSteepness < int.Parse(value),
-                "Gravity" => MyGroundTraits.Gravity < int.Parse(value),
-                "Hardness" => MyGroundTraits.Hardness < int.Parse(value),
-                "LiquidToxicity" => MyGroundTraits.LiquidToxicity < int.Parse(value),
-                "Sharpness" => MyGroundTraits.Sharpness < int.Parse(value),
-                "SolidityLiquidity" => MyGroundTraits.SolidityLiquidity < int.Parse(value),
-                "SteepnessOfTopography" => MyGroundTraits.SteepnessOfTopography < int.Parse(value),
-                "Structure" => MyGroundTraits.Structure < int.Parse(value),
-                "Vegitation" => MyGroundTraits.Vegitation < int.Parse(value),
-                _ => false,
-            },
+            '=' => TerrainTraits[name].RangeValue == int.Parse(value),
+            '>' => TerrainTraits[name].RangeValue > int.Parse(value),
+            '<' => TerrainTraits[name].RangeValue < int.Parse(value),
             _ => false,
         };
     }
@@ -1498,17 +1190,6 @@ public class HexTileInfo : MonoBehaviour
     {
         if (myState == TileStates.ReturnTile) ResetFromGeneralsInteraction(myPositionInTheArray);
 
-        string s = "";
-        bool first = true;
-        foreach(Vector2 vec in myNeighbors)
-        {
-            string st = $"{vec}";
-            st = st.Remove(0, 1);
-            st = st.Remove(st.Length - 1);
-            s = (first) ? s + st : s + "'" + st;
-            first = false;
-        }
-
         string str = "";
         if(myItemData.Length != 0)
         {
@@ -1522,11 +1203,7 @@ public class HexTileInfo : MonoBehaviour
             }
         }
 
-        if (MyGroundTraits == null) MyGroundTraits = new();
-
-        TopographicalName = string.IsNullOrEmpty(TopographicalName) ? "Ocean" : TopographicalName;
-
-        return $"{myState}:{myTileType}:{s}:{isStartingPoint}:{str}:{TopographicalName}:{MyGroundTraits.DigitizeForSerialization()}|";
+        return $"{myState}:{myTileType}:{str}|";
     }
     #endregion
 }
