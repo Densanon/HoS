@@ -13,7 +13,6 @@ public class LocationManager : MonoBehaviour
 
     Main main;
     UIItemManager activeManager;
-    Transform canvas;
     Spacecraft mySpaceship;
 
     public string myAddress;
@@ -24,13 +23,12 @@ public class LocationManager : MonoBehaviour
     public int locationYBounds;
     public int landStartingPointsForSpawning;
     public float frequencyForLandSpawning;
-    public int landFormationOdds;
     float enemyRatio;
     int enemyDensityMin;
     int enemyDensityMax;
     bool isViewing;
     int landLeftToConquer;
-    Dictionary<string, Trait> PlanetaryTraits;
+    public Dictionary<string, Trait> PlanetaryTraits;
 
     #region Debuging
     public static Action<Vector2> OnTurnAllLandConquered = delegate { };
@@ -48,11 +46,17 @@ public class LocationManager : MonoBehaviour
     private void Awake()
     {
         Main.OnWorldMap += TurnOffVisibility;
-        canvas = GameObject.Find("Canvas").transform;
         PlanetaryTraits = new();
         foreach(Trait trait in Main.PlanetaryTraits)
         {
             PlanetaryTraits.Add(trait.UniqueName, new(trait));
+        }
+        PlanetaryTraits.Add("temperature", new (Main.TraitLibrary[Array.IndexOf(Main.TraitNameReference, "temperature")]));
+        PlanetaryTraits.Add("groundCoverType", new (Main.TraitLibrary[Array.IndexOf(Main.TraitNameReference, "groundCoverType")]));
+
+        foreach(KeyValuePair<string, Trait>trait in PlanetaryTraits)
+        {
+            trait.Value.Randomize();
         }
     }
     private void OnEnable()
@@ -78,16 +82,14 @@ public class LocationManager : MonoBehaviour
     {
         main = m;
     }
-    public void SetLandConfiguration(int landStarters, float landFrequency, int formationFrequency, float ratio, int densityMin, int densityMax)
+    public void SetLandConfiguration(int landStarters, float landFrequency, float ratio, int densityMin, int densityMax)
     {
         landStartingPointsForSpawning = landStarters;
         frequencyForLandSpawning = landFrequency;
-        landFormationOdds = formationFrequency;
         enemyRatio = ratio;
         enemyDensityMin = densityMin;
         enemyDensityMax = densityMax;
     }
-
     public void FirstPlanetaryEncounter(Spacecraft ship)
     {
         mySpaceship = ship;
@@ -102,14 +104,20 @@ public class LocationManager : MonoBehaviour
         OrganizePieces();
 
         if(hextiles != null)
+        {
             SetHexTileInformationFromMemory(hextiles);
+        }
+        else
+        {
+            GetStarter();
+        }
 
         if (!viewing)
         {
             SaveLocationInfo();
             main.SaveLocationAddressBook();
             OnGreetManagers?.Invoke(this);
-            OnCameraLookAtStarter?.Invoke(starter.transform);
+            if(starter != null)OnCameraLookAtStarter?.Invoke(starter.transform);
         }
     }
     void BuildTileBase()
@@ -117,9 +125,19 @@ public class LocationManager : MonoBehaviour
         List<HexTileInfo[]> mainTemp = new();
         List<Vector2> locs = new();
 
-        locationXBounds = UnityEngine.Random.Range(30, 45);
-        locationYBounds = UnityEngine.Random.Range(20, 35);
+        if (main.isPlanet)
+        {
+            locationXBounds = UnityEngine.Random.Range(30, 45);
+            locationYBounds = UnityEngine.Random.Range(25, 35);
+        }
+        else
+        {
+            locationXBounds = UnityEngine.Random.Range(20, 35);
+            locationYBounds = UnityEngine.Random.Range(10, 25);
+            PlanetaryTraits["groundCoverType"].SetValue(4);
+        }
 
+        int tempVariation = UnityEngine.Random.Range(1, 4);
         for (int x = 0; x < locationXBounds; x++)
         {
             List<HexTileInfo> temp = new();
@@ -131,7 +149,8 @@ public class LocationManager : MonoBehaviour
                 tf.SetManager(this);
                 tf.SetMain(main);
                 tf.SetUpTileLocation(x, y);
-                tf.SetLandConfiguration(frequencyForLandSpawning, landFormationOdds, enemyRatio, enemyDensityMin, enemyDensityMax);
+                tf.SetLandConfiguration(GetIdUsingPerlin(x, y), frequencyForLandSpawning, enemyRatio, enemyDensityMin, enemyDensityMax);
+                tf.SetTemperatureDistribution(tempVariation);
                 temp.Add(tf);
                 locs.Add(tf.myPositionInTheArray);
             }
@@ -157,59 +176,108 @@ public class LocationManager : MonoBehaviour
                 y = 0;
             }
             string[] ar = s.Split(":");
-            tileInfoList[x][y].SetAllTileInfoFromMemory(ar[0], int.Parse(ar[1]), ar[2]);
+            tileInfoList[x][y].SetAllTileInfoFromMemory(ar[0], ar[1]);
             y++;
         }
     }
     public void OrganizePieces()
     {
-        PickStartingLandPoints();
-
-        bool start = false;
+        SetNeighbors();
+        SetVegitation();
+        SetIdenticalEdges();
+        SetAllTopographics();
+        SetUpItems();
+    }
+    private void SetNeighbors()
+    {
         foreach (HexTileInfo[] tileArray in tileInfoList)
         {
             foreach (HexTileInfo tile in tileArray)
             {
                 tile.SetNeighbors(FindNeighbors(tile.myPositionInTheArray));
-                if (!start && tile.CheckTileIsEmpty() && !isViewing)
+            }
+        }
+    }
+    private void SetVegitation()
+    {
+        int planetVeg = PlanetaryTraits["groundCoverType"].RangeValue;
+        for (int i = 0; i < planetVeg*2; i++){
+            bool suitable = false;
+            while (!suitable)
+            {
+                int j = UnityEngine.Random.Range(0, TileLocations.Length);
+                int[] ar = new int[]{Mathf.RoundToInt(TileLocations[j].x), Mathf.RoundToInt(TileLocations[j].y)};
+                HexTileInfo tile = tileInfoList[ar[0]][ar[1]];
+                if (tile.GetTerrainHeight() > 1)
                 {
-                    tile.SetAsStartingPoint(mySpaceship);
-                    start = true;
-                    starter = tile;
+                    int Veg = UnityEngine.Random.Range(1, planetVeg+1);
+                    tile.SetVegitation(Veg, true);
+                    suitable = true;
                 }
             }
         }
     }
-    private void PickStartingLandPoints()
+    private void SetIdenticalEdges()
     {
-        for (int p = 0; p < landStartingPointsForSpawning; p++)
+        for (int i = 0; i < tileInfoList.Length; i++)
         {
-            FindSuitableLandPiece(p);
+            tileInfoList[i][locationYBounds - 1].SetTopographicLevel();
+        }
+        for (int i = 0; i < tileInfoList[0].Length; i++)
+        {
+            tileInfoList[locationXBounds - 1][i].SetTopographicLevel();
         }
     }
-    private void FindSuitableLandPiece(int point)
+    private void SetAllTopographics()
     {
-        float l = locationXBounds * locationYBounds;
-        float q = (float)point / (float)landStartingPointsForSpawning * l;
-        float f = (float)(point + 1) / (float)landStartingPointsForSpawning * l;
-        int d = 0, r = 0;
-        bool suitable = false;
-        while (!suitable)
+        foreach (HexTileInfo[] tileArray in tileInfoList)
         {
-            int k = UnityEngine.Random.Range(Mathf.RoundToInt(q), Mathf.RoundToInt(f));
-            d = Mathf.FloorToInt(k / locationYBounds);
-            r = k % locationYBounds;
-            Vector2 target = tileInfoList[d][r].myPositionInTheArray;
-            if (target.x != 0 && target.x != locationXBounds - 1 &&
-               target.y != 0 && target.y != locationYBounds - 1 &&
-               tileInfoList[d][r].myTileType == 0)
+            foreach (HexTileInfo tile in tileArray)
             {
-                suitable = true;
+                tile.SetTopographyGraphic();
             }
         }
-
-        tileInfoList[d][r].TurnLand();
-    }  
+    }
+    private void SetUpItems()
+    {
+        foreach (HexTileInfo[] tileArray in tileInfoList)
+        {
+            foreach (HexTileInfo tile in tileArray)
+            {
+                tile.CreateMyItems();
+            }
+        }
+    }
+    private void GetStarter()
+    {
+        if (!isViewing)
+        {
+            bool suitable = false;
+            while (!suitable)
+            {
+                int tileIndex = UnityEngine.Random.Range(0, TileLocations.Length + 1);
+                Vector2 ar = TileLocations[tileIndex];
+                HexTileInfo tile = tileInfoList[Mathf.RoundToInt(ar.x)][Mathf.RoundToInt(ar.y)];
+                if(tile.GetTerrainHeight() == 2 && tile.GetTerrainVegitation() == 0)
+                {
+                    tile.SetAsStartingPoint(mySpaceship);
+                    starter = tile;
+                    suitable = true;
+                }
+            }
+        }
+    }
+    int GetIdUsingPerlin(int x, int y)
+    {
+        float rawPerlin = Mathf.PerlinNoise(
+            (x+main.xOffset)/main.magnification,
+            (y+main.yOffset)/main.magnification
+            );
+        float clampPerlin = Mathf.Clamp(rawPerlin, 0.0f, 1.0f);
+        float scalePerlin = clampPerlin * Main.TraitLibrary[Array.IndexOf(Main.TraitNameReference,"steepness")].RangeMaximum;//steepness level
+        if(scalePerlin == 5) scalePerlin = 4;
+        return Mathf.FloorToInt(scalePerlin);
+    }
     public void GiveATileAShip(Spacecraft ship, Vector2 tile, bool startLanding)
     {
         mySpaceship = ship;
@@ -227,7 +295,7 @@ public class LocationManager : MonoBehaviour
         {
             foreach(HexTileInfo tile in ar)
             {
-                if(tile.myTileType == tile.GetBlankTileIndex() && !tile.hasShip && tile.enemies.currentAmount == 0)
+                if(tile.CheckTileIsEmpty() && !tile.hasShip && tile.enemies.currentAmount == 0)
                 {
                     return tile.myPositionInTheArray;
                 }
@@ -359,7 +427,7 @@ public class LocationManager : MonoBehaviour
             activeManager.ActivateSelf();
             activeManager.ResetUI();
         }
-        activeManager.transform.SetSiblingIndex(canvas.childCount-1); //Ensures that it is the highest in the hierarchy
+        activeManager.transform.SetAsLastSibling(); //Ensures that it is the highest in the hierarchy
     }
     #endregion
 

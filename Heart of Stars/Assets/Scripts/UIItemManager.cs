@@ -67,7 +67,6 @@ public class UIItemManager : MonoBehaviour
     {
         Main.OnDestroyLevel -= TurnAndBurn;
         ShipInventoryPanel.OnUpdateSliderForShip -= UpdateStorageUI;
-
     }
     private void Update()
     {
@@ -89,7 +88,7 @@ public class UIItemManager : MonoBehaviour
         foreach (ItemData data in myTile.myItemData)
         {
             if (data.itemName == "soldier" || data.itemName == "enemy") continue; // These resources will be managed other ways.
-            
+
             GameObject obs = Instantiate(dependenceButtonPrefab, UIPivot);
 
             //This creates a fanning effect.
@@ -110,7 +109,7 @@ public class UIItemManager : MonoBehaviour
             item.ResetRotation();
         }
     }
-    public void CheckResourceButtons()
+    public void CheckResourceButtons() //Accessed via button
     {
         if(itemButtons.Count != myTile.myItemData.Length - 2)
         {
@@ -243,6 +242,7 @@ public class UIItemManager : MonoBehaviour
     }
     private void TurnAndBurn()
     {
+        Main.OnDestroyLevel -= TurnAndBurn;
         Destroy(this.gameObject);
     }
     #endregion

@@ -85,6 +85,10 @@ public class Trait
         ColorUtility.TryParseHtmlString(colorCode, out Color color);
         TraitColor = color;
     }
+    public void SetValue(int value)
+    {
+        RangeValue = value;
+    }
 
     public string DigitizeForSerialization()
     {

@@ -51,9 +51,7 @@ public class HexTileInfo : MonoBehaviour
     public Transform myCanvasContainer;
 
     // Basic Values
-    public int myTileType = 0;
     float frequencyOfLandDistribution;
-    int oddsOfTerraFormation; //always 1 in number set
     public Vector2 myPositionInTheArray;
     Vector3 tileTruePosition;
     public bool isStartingPoint;
@@ -122,6 +120,62 @@ public class HexTileInfo : MonoBehaviour
         FloatingText.gameObject.SetActive(true);
         FloatingText.text = $"{myPositionInTheArray}";
     }
+    private void ShowTopographicHeight()
+    {
+        CheckNullUIManager();
+        if (!FloatingText.gameObject.activeInHierarchy)
+        {
+            FloatingText.text = $"{TerrainTraits["steepness"].RangeValue}";
+            FloatingText.gameObject.SetActive(true);
+            return;
+        }
+        FloatingText.gameObject.SetActive(false);
+    }
+    private void ShowTemperatureDistribution()
+    {
+        CheckNullUIManager();
+        if (!FloatingText.gameObject.activeInHierarchy)
+        {
+            FloatingText.text = $"{TerrainTraits["temperature"].RangeValue}";
+            FloatingText.gameObject.SetActive(true);
+            return;
+        }
+        FloatingText.gameObject.SetActive(false);
+    }
+    private void ShowVegitationDistribution()
+    {
+        CheckNullUIManager();
+        if (!FloatingText.gameObject.activeInHierarchy)
+        {
+            FloatingText.text = $"{TerrainTraits["groundCoverType"].RangeValue}";
+            FloatingText.gameObject.SetActive(true);
+            return;
+        }
+        FloatingText.gameObject.SetActive(false);
+    }
+    private void ShowItemDistribution()
+    {
+        if(myItemData.Length > 2)
+        {
+            CheckNullUIManager();
+            if (!FloatingText.gameObject.activeInHierarchy)
+            {
+                string item = "";
+                foreach(ItemData data in myItemData)
+                {
+                    if(data.itemName != "soldier" && data.itemName != "enemy")
+                    {
+                        item = data.itemName;
+                        break;
+                    }
+                }
+                FloatingText.text = $"{item}";
+                FloatingText.gameObject.SetActive(true);
+                return;
+            }
+            FloatingText.gameObject.SetActive(false);
+        }
+    }
     private void RevealEnemies()
     {
         if (CheckEnemyAmount() > 0)
@@ -164,16 +218,14 @@ public class HexTileInfo : MonoBehaviour
     void GetNameAndValues()
     {
         string s = "";
+        s += TopographicalName + ": ";
         foreach (ItemData item in myItemData)
         {
-            if (item.itemName != "soldier" && item.itemName != "enemy")
-            {
                 s += item.itemName + ",";
-            }
         }
-        if(TerrainTraits != null)
+        if (TerrainTraits != null)
         {
-            foreach(KeyValuePair<string, Trait> trait in TerrainTraits)
+            foreach (KeyValuePair<string, Trait> trait in TerrainTraits)
             {
                 s += $"{trait.Value.UniqueName}:{trait.Value.RangeValue},";
             }
@@ -206,6 +258,10 @@ public class HexTileInfo : MonoBehaviour
         Main.OnRevealTileLocations += RevealTileLocation;
         Main.OnRevealTileSpecificInformation += RevealTileInfoInConsole;
         Main.OnRevealEnemies += RevealEnemies;
+        Main.OnRevealHeights += ShowTopographicHeight;
+        Main.OnRevealTemperature += ShowTemperatureDistribution;
+        Main.OnRevealVegitation += ShowVegitationDistribution;
+        Main.OnRevealItems += ShowItemDistribution;
         LocationManager.OnTurnAllLandConquered += TurnLandConquered;
     }
     private void OnDisable()
@@ -227,6 +283,10 @@ public class HexTileInfo : MonoBehaviour
         Main.OnRevealTileLocations -= RevealTileLocation;
         Main.OnRevealTileSpecificInformation -= RevealTileInfoInConsole;
         Main.OnRevealEnemies -= RevealEnemies;
+        Main.OnRevealHeights -= ShowTopographicHeight;
+        Main.OnRevealTemperature -= ShowTemperatureDistribution;
+        Main.OnRevealVegitation -= ShowVegitationDistribution;
+        Main.OnRevealItems -= ShowItemDistribution;
         LocationManager.OnTurnAllLandConquered -= TurnLandConquered;
     }
     private void Update()
@@ -290,13 +350,61 @@ public class HexTileInfo : MonoBehaviour
     {
         return topographySprites.Length + 1;
     }
-    public void SetLandConfiguration(float landDistribution, int formationOdds, float ratio, int densityMin, int densityMax)
+    public void SetLandConfiguration(int steepness, float landDistribution, float ratio, int densityMin, int densityMax)
     {
         frequencyOfLandDistribution = landDistribution;
-        oddsOfTerraFormation = formationOdds;
         enemyRatio = ratio;
         enemyDensityMin = densityMin;
         enemyDensityMax = densityMax;
+        CreateTerrainTraits(steepness);
+    }
+    public void SetTemperatureDistribution(int variation)
+    {
+        switch (variation)
+        {
+            case 1://planet wide - use pockets?
+                TerrainTraits["temperature"].SetValue(myLocationManager.PlanetaryTraits["temperature"].RangeValue);
+                break;
+            case 2://split top middle bottom
+                int triad = Mathf.FloorToInt(myLocationManager.locationYBounds / 3f);
+                if (myPositionInTheArray.y < triad || myPositionInTheArray.y > triad * 2)
+                {
+                    TerrainTraits["temperature"].SetValue(myLocationManager.PlanetaryTraits["temperature"].RangeValue-1);
+                    break;
+                }
+                TerrainTraits["temperature"].SetValue(myLocationManager.PlanetaryTraits["temperature"].RangeValue);
+                break;
+            case 3://5 level split
+                int pent = Mathf.FloorToInt(myLocationManager.locationYBounds / 5f);
+                if (myPositionInTheArray.y < pent || myPositionInTheArray.y > pent * 4)
+                {
+                    TerrainTraits["temperature"].SetValue(myLocationManager.PlanetaryTraits["temperature"].RangeValue - 2);
+                    break;
+                }
+                else if (myPositionInTheArray.y <= pent*2 || myPositionInTheArray.y >= pent * 3)
+                {
+                    TerrainTraits["temperature"].SetValue(myLocationManager.PlanetaryTraits["temperature"].RangeValue - 1);
+                    break;
+                }
+                TerrainTraits["temperature"].SetValue(myLocationManager.PlanetaryTraits["temperature"].RangeValue);
+                break;
+        }
+        
+        //ShowTemperatureDistribution();
+    }
+    public void SetVegitation(int value, bool initial)
+    {
+        if(TerrainTraits["steepness"].RangeValue > 1 && TerrainTraits["groundCoverType"].RangeValue == 0)
+        {
+            TerrainTraits["groundCoverType"].SetValue(value);
+            if (initial || 1f-frequencyOfLandDistribution < UnityEngine.Random.Range(0f, 1f))
+            {
+                foreach(Vector2 neighbor in myNeighbors)
+                {
+                    myLocationManager.tileInfoList[Mathf.RoundToInt(neighbor.x)][Mathf.RoundToInt(neighbor.y)].SetVegitation(value, false);
+                }
+            }
+        }
     }
     #endregion
 
@@ -322,12 +430,11 @@ public class HexTileInfo : MonoBehaviour
         OnLandToConquer?.Invoke();
         myState = TileStates.UnClickable;
         myRenderers[0].material.mainTexture = tileTextures[1];
-        CreateTerrainTraits();
         CreateTerrain();        
     }
 
     #region Topography Visuals
-    private void CreateTerrainTraits()
+    private void CreateTerrainTraits(int height)
     {
         AtmosphericTraits = new();
         foreach (Trait trait in Main.AtmosphericTraits)
@@ -342,21 +449,48 @@ public class HexTileInfo : MonoBehaviour
 
         foreach (KeyValuePair<string,Trait> trait in TerrainTraits)
         {
+            if (trait.Value.UniqueName == "steepness")
+            {
+                trait.Value.SetValue(height);
+                continue;
+            }
+            else if (trait.Value.UniqueName == "temperature") continue;
+            else if (trait.Value.UniqueName == "groundCoverType") continue;
             trait.Value.Randomize();
         }
+    }
+    public void SetTopographicLevel()
+    {      
+        if (myPositionInTheArray.x == myLocationManager.locationXBounds - 1)
+        {
+            int value = myLocationManager.tileInfoList[0][Mathf.RoundToInt(myPositionInTheArray.y)].GetTerrainHeight();
+            TerrainTraits["steepness"].SetValue(value);
+        }
+        else if (myPositionInTheArray.y == myLocationManager.locationYBounds - 1)
+        {
+            int value = myLocationManager.tileInfoList[Mathf.RoundToInt(myPositionInTheArray.x)][0].GetTerrainHeight();
+            TerrainTraits["steepness"].SetValue(value);
+        }
+    }
+    public int GetTerrainHeight()
+    {
+        return TerrainTraits["steepness"].RangeValue;
+    }
+    public int GetTerrainVegitation()
+    {
+        return TerrainTraits["groundCoverType"].RangeValue;
     }
     private void CreateTerrain()
     {
         //Adjective order:
         //quantity, opinion, size, physical quality, age, shape, colour, pattern, origin, material, type, purpose
         //Ex:12,    unusual, big,        thin,     young, round, blue, checkered, American, metal,four-sided, hammer
-        CreateMyItems();
+        //CreateMyItems();
         AssembleTemperature(); //physical quality
         AssembleToxicity(); //physical quality
         AssembleVegitaion(); //physical quality
         AssembleItems();//material
         AssembleTopography(); //purpose
-        SetTopographyGraphic();
     }
 
     private void AssembleTemperature()
@@ -377,7 +511,7 @@ public class HexTileInfo : MonoBehaviour
         {
             foreach(ItemData item in myItemData)
             {
-                if(item.itemName != "soldier" || item.itemName != "enemy")
+                if(item.itemName != "soldier" && item.itemName != "enemy")
                 {
                     TopographicalName += $" {item.displayName} filled";
                     break;
@@ -391,14 +525,123 @@ public class HexTileInfo : MonoBehaviour
     }
     public bool CheckTileIsEmpty()
     {
-        if(myState == TileStates.UnPlayable)
+        if(myState == TileStates.UnPlayable && TerrainTraits["steepness"].RangeValue == 0 && TerrainTraits["groundCoverType"].RangeValue == 0)
             return false;
 
         return true;
     }
-    private void SetTopographyGraphic()
+    public void SetTopographyGraphic()
     {
-        
+        TopographicalName = "";
+        SpriteRenderer rend = myRenderers[2].GetComponent<SpriteRenderer>();
+        switch (TerrainTraits["steepness"].RangeValue)
+        {
+            case 0://deep water
+                myRenderers[0].material.mainTexture = tileTextures[0];
+                myRenderers[1].enabled = false;
+                myState = TileStates.UnPlayable;
+                rend.enabled = false;
+                break;
+            case 1://water
+                myRenderers[0].material.mainTexture = tileTextures[0];
+                myRenderers[1].enabled = true;
+                myRenderers[1].material.mainTexture = tileTextures[24];
+                myState = TileStates.UnPlayable;
+                rend.enabled = false;
+                break;
+            case 2://plain
+                rend.enabled = true;
+                //rend.sprite = topographySprites[3];
+                myState = TileStates.UnClickable;
+                myRenderers[0].material.mainTexture = tileTextures[1];
+                myRenderers[1].enabled = false;
+                switch (TerrainTraits["groundCoverType"].RangeValue)
+                {
+                    case 0:
+                        TopographicalName += "Baren Plain";
+                        rend.enabled = false;
+                        break;
+                    case 1:
+                        TopographicalName += "Grasslands";
+                        rend.sprite = topographySprites[3];
+                        break;
+                    case 2:
+                        TopographicalName += "Forest";
+                        rend.sprite = topographySprites[4];
+                        break;
+                    case 3:
+                        TopographicalName += "Dense Forest";
+                        rend.sprite = topographySprites[5];
+                        break;
+                    case 4:
+                        TopographicalName += "Boulder Laden Plains";
+                        rend.sprite = topographySprites[0];
+                        break;
+                }
+                break;
+            case 3://hill
+                rend.enabled = true;
+                //rend.sprite = topographySprites[1];
+                myState = TileStates.UnClickable;
+                myRenderers[0].material.mainTexture = tileTextures[1];
+                myRenderers[1].enabled = false;
+                switch (TerrainTraits["groundCoverType"].RangeValue)
+                {
+                    case 0:
+                        TopographicalName += "Baren Hills";
+                        rend.sprite = topographySprites[1];
+                        break;
+                    case 1:
+                        TopographicalName += "Rolling Hills";
+                        rend.sprite = topographySprites[3];
+                        break;
+                    case 2:
+                        TopographicalName += "Hilly Forests";
+                        rend.sprite = topographySprites[4];
+                        break;
+                    case 3:
+                        TopographicalName += "Dense Hilly Forests";
+                        rend.sprite = topographySprites[5];
+                        break;
+                    case 4:
+                        TopographicalName += "Boulder Laden Hills";
+                        rend.sprite = topographySprites[0];
+                        break;
+                }
+                break;
+            case 4://mountain
+                rend.enabled = true;
+                //rend.sprite = topographySprites[2];
+                myState = TileStates.UnClickable;
+                myRenderers[0].material.mainTexture = tileTextures[1];
+                myRenderers[1].enabled = false;
+                switch (TerrainTraits["groundCoverType"].RangeValue)
+                {
+                    case 0:
+                        TopographicalName += "Baren Mountains";
+                        rend.sprite = topographySprites[2];
+                        break;
+                    case 1:
+                        TopographicalName += "Bush Covered Mountains";
+                        rend.sprite = topographySprites[4];
+                        break;
+                    case 2:
+                        TopographicalName += "Forest Covered Mountains";
+                        rend.sprite = topographySprites[5];
+                        break;
+                    case 3:
+                        TerrainTraits["groundCoverType"].SetValue(2);
+                        TopographicalName += "Forest Covered Mountains";
+                        rend.sprite = topographySprites[5];
+                        break;
+                    case 4:
+                        TerrainTraits["groundCoverType"].SetValue(1);
+                        TopographicalName += "Bush Covered Mountains";
+                        rend.sprite = topographySprites[4];
+                        break;
+                }
+                break;
+        }
     }
     #endregion
 
@@ -448,17 +691,16 @@ public class HexTileInfo : MonoBehaviour
     #endregion
 
     #region Setup Tiles From Memory
-    public void SetAllTileInfoFromMemory(string state, int tileType, string resources)
+    public void SetAllTileInfoFromMemory(string state, string resources)
     {
         SetTileStateFromString(state);
-
-        myTileType = tileType;
 
         BuildItemsFromMemory(resources);
 
         CreateQueElements();
-    }
 
+        //ShowItemDistribution();
+    }
     void SetTileStateFromString(string state)
     {
         switch (state)
@@ -903,6 +1145,10 @@ public class HexTileInfo : MonoBehaviour
     #endregion
 
     #region Item Specific Methods
+    public bool CheckIfRequirementIsTerrain(string requirement)
+    {
+        return TerrainTraits.ContainsKey(requirement);
+    }
     public ItemData CheckIfAndUseOwnItems(ItemData item)
     {
         foreach(ItemData data in myItemData)
@@ -976,11 +1222,10 @@ public class HexTileInfo : MonoBehaviour
 
         myItemData = temp.ToArray();
     }
-    void CreateMyItems()
+    public void CreateMyItems()
     {
         List<ItemData> tempToPermanent = new();
         List<ItemData> locationTypeOptionList = new();
-
         foreach (ItemData item in main.GetItemLibrary("BasicItemLibrary")) // Need all terrain types outlined
         {
             string[] ar = item.nonConsumableRequirements.Split(" ");
@@ -1029,7 +1274,7 @@ public class HexTileInfo : MonoBehaviour
                 tempToPermanent.Add(units);
                 continue;
             }
-            if (item.itemName == "enemy") //Universal item  && myTileType != 0
+            if (item.itemName == "enemy") //Universal item  
             {
                 enemies = new ItemData(item);
                 tempToPermanent.Add(enemies);
@@ -1110,7 +1355,7 @@ public class HexTileInfo : MonoBehaviour
     }
     void CreateTileOptions()
     {
-        myCanvasContainer = GameObject.Find("Canvas").transform;
+        myCanvasContainer = GameObject.Find("TileMenusContainer").transform;
         GameObject obj = Instantiate(canvasContainerPrefab, myCanvasContainer);
         myCanvasContainer = obj.transform;
         myUIManager = obj.GetComponent<UIItemManager>();
@@ -1203,7 +1448,7 @@ public class HexTileInfo : MonoBehaviour
             }
         }
 
-        return $"{myState}:{myTileType}:{str}|";
+        return $"{myState}:{str}|";
     }
     #endregion
 }

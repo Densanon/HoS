@@ -77,15 +77,18 @@ public class Item : MonoBehaviour
         }
 
         //check for nonconsumable dependencies
-        str = source.nonConsumableRequirements.Split("-");
-        if (source.nonConsumableRequirements != "nothing")
+        str = source.nonConsumableRequirements.Split(" ");
+        if (str[0] != "nothing" && !tile.CheckIfRequirementIsTerrain(str[0]))
         {
             foreach (string s in str)
             {
-                string[] tAr = s.Split('=');
-                temp.Add(main.FindItemFromString(tAr[0]));
-                tempIndices.Add(1);
-                tempNames.Add(tAr[0]);
+                if (s.Contains("="))
+                {
+                    string[] tAr = s.Split('=');
+                    temp.Add(main.FindItemFromString(tAr[0]));
+                    tempIndices.Add(1);
+                    tempNames.Add(tAr[0]);
+                }
             }
         }
 

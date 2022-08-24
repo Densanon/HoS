@@ -79,9 +79,8 @@ public static class SaveSystem
     {
         if (last)
         {
-            string s = trait;
-            s = s.Remove(s.Length - 1);
-            FileData += trait;
+            string s = trait.Remove(trait.Length - 1);
+            FileData += s;
             return;
         }
         FileData += trait;
@@ -132,6 +131,34 @@ public static class SaveSystem
         }
     }
 
+    public static void SeriouslyDeleteAllSaveFiles()
+    {
+        string path = Application.persistentDataPath + "/item_shalom";
+        if (File.Exists(path))
+        {
+            File.Delete(path);
+            Debug.Log("I deleted items.");
+        }
+
+        SafeReset();
+    }
+    public static void SafeReset()
+    {
+        string path = Application.persistentDataPath + "/address_nissi";
+        if (File.Exists(path))
+        {
+            File.Delete(path);
+            Debug.Log("I deleted the universe address.");
+        }
+        path = Application.persistentDataPath + "/ships_raah";
+        if (File.Exists(path))
+        {
+            File.Delete(path);
+            Debug.Log("I deleted Ships.");
+        }
+
+        DeleteAllLocationInformation();
+    }
     public static void DeleteAllLocationInformation()
     {
         string path;
@@ -157,39 +184,5 @@ public static class SaveSystem
             File.Delete(path);
             Debug.Log("I deleted the address book.");
         }
-    }
-    public static void SeriouslyDeleteAllSaveFiles()
-    {
-        string path = Application.persistentDataPath + "/item_shalom";
-        if (File.Exists(path))
-        {
-            File.Delete(path);
-            Debug.Log("I deleted items.");
-        }
-        path = Application.persistentDataPath + "/basic_shalom";
-        if (File.Exists(path))
-        {
-            File.Delete(path);
-            Debug.Log("I deleted basic items.");
-        }
-
-        SafeReset();
-    }
-    public static void SafeReset()
-    {
-        string path = Application.persistentDataPath + "/address_nissi";
-        if (File.Exists(path))
-        {
-            File.Delete(path);
-            Debug.Log("I deleted the universe address.");
-        }
-        path = Application.persistentDataPath + "/ships_raah";
-        if (File.Exists(path))
-        {
-            File.Delete(path);
-            Debug.Log("I deleted Ships.");
-        }
-
-        DeleteAllLocationInformation();
     }
 }

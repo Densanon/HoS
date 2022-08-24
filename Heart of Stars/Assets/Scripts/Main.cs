@@ -41,7 +41,7 @@ public class Main : MonoBehaviour
     HexTileInfo[] tileInfoList;
 
     bool fromMemoryOfLocation = false;
-    bool isPlanet = false;
+    public bool isPlanet = false;
     bool canZoomContinue = false;
 
     List<string[]> SheetData;
@@ -50,6 +50,7 @@ public class Main : MonoBehaviour
     ItemData[] ItemLibrary;
     ItemData[] BasicItemLibrary;
     List<string> LocationAddresses;
+    public static Trait[] TraitLibrary;
     public static Trait[] AtmosphericTraits;
     public static Trait[] TerrainTraits;
     public static Trait[] PlanetaryTraits;
@@ -60,7 +61,6 @@ public class Main : MonoBehaviour
     public int landStartingPointsForSpawning;
     [Range(0.0f, 0.41f)]
     public float frequencyForLandSpawning; 
-    public int landFormationOdds;
 
     string[] ItemNameReferenceIndex;
 
@@ -69,7 +69,6 @@ public class Main : MonoBehaviour
     public List<GameObject> itemPanelInfoPieces;
 
     public GameObject BuildableResourceButtonPrefab;
-    public GameObject Canvas;
 
     public static int highestLevelOfView = 9; //0 = universe 10 = planet/moon
     public static bool canSeeIntoPlanets = false;
@@ -83,18 +82,26 @@ public class Main : MonoBehaviour
 
     public static bool isInitialized = false;
 
-    WeightedRandomBag<ItemData> dropTypes = new(); //Needs to be implemented for item drops
+    readonly WeightedRandomBag<ItemData> dropTypes = new(); //Needs to be implemented for item drops
 
     #region Debug Values
     public static Action OnRevealTileLocations = delegate { };
     public static Action<Vector2> OnRevealTileSpecificInformation = delegate { };
     public static Action OnRevealEnemies = delegate { };
     public static Action OnDestroyLevel = delegate { };
+    public static Action OnRevealHeights = delegate { };
+    public static Action OnRevealVegitation = delegate { };
+    public static Action OnRevealTemperature = delegate { };
+    public static Action OnRevealItems = delegate { };
 
     [Header("Debug Values")]
     [SerializeField]
     GameObject debugPanel;
     HexTileInfo debugTile;
+
+    public float magnification;
+    public int xOffset;
+    public int yOffset;
 
     public static float camCancelUI = 4f;
     public static bool isDebuggingTile = false;
@@ -226,7 +233,7 @@ public class Main : MonoBehaviour
 
         CreateItemPanelInfo("all", "");
 
-        SaveItemLibrarys();
+        SaveItemLibrary();
         SaveSystem.SaveFile("/item_shalom");
         LoadedData.Clear();
     }
@@ -264,11 +271,27 @@ public class Main : MonoBehaviour
     {
         OnRevealEnemies?.Invoke();
     }
+    public void RevealHeights()
+    {
+        OnRevealHeights?.Invoke();
+    }
+    public void RevealVeg()
+    {
+        OnRevealVegitation?.Invoke();
+    }
+    public void RevealTemp()
+    {
+        OnRevealTemperature?.Invoke();
+    }
+    public void RevealItemDistribution()
+    {
+        OnRevealItems?.Invoke();
+    }
     public void ChangeCameraZoomToggleUI() //Sets the distance the camera can zoom before the UI turn off
     {
         camCancelUI = float.Parse(debugField);
     }
-    public void ResetLevelWithNewValues() //Actually resets the game to initial values and destroys all things
+    public void ResetAll() //Actually resets the game to initial values and destroys all things
     {
         OnDestroyLevel?.Invoke();
         ResetTheInitialEncounter();
@@ -450,11 +473,13 @@ public class Main : MonoBehaviour
         itemPanelInfoPieces = new List<GameObject>();       
         if(SheetData != null) //This will build the template we will use for all items
         {
-            BuildGenericResourceInformation();
+            Debug.Log("Online building fresh Items.");
+            BuildItemInformation();
         }
         else
         {
-            BuildGenericResourceInformationFromMemory();
+            Debug.Log("Offline building from memory.");
+            BuildItemInformationFromMemory();
         }
 
         string s = SaveSystem.LoadFile("/address_nissi");
@@ -477,7 +502,6 @@ public class Main : MonoBehaviour
 
         DontDestroyOnLoad(this.gameObject);
     }
-
     private void Start()
     {
         GenerateUniverseLocation(UniverseDepth.Universe, 42); //If there is no loaded location we will start at the universe level
@@ -619,6 +643,34 @@ public class Main : MonoBehaviour
             }
         }
         return deps.ToArray();
+    }
+    public static int NormalizeRandom(int minValue, int maxValue) //Normal distribution
+    {
+        //-4&17 = 12 average
+        //-14&16 = 8 average
+
+        float mean = (minValue + maxValue) / 2;
+        float sigma = (maxValue - mean);
+        int ret = Mathf.RoundToInt(UnityEngine.Random.value * sigma + mean);
+        if (ret > maxValue - 1) ret = maxValue - 1;
+
+        return ret;
+    }
+    public ItemData[] GetItemLibrary(string library)
+    {
+        if (library == "BasicItemLibrary")
+        {
+            return BasicItemLibrary;
+        }
+        else if (library == "ItemLibrary")
+        {
+            return ItemLibrary;
+        }
+        return null;
+    }
+    public LocationManager GetActiveLocation()
+    {
+        return activeBrain;
     }
     #endregion
 
@@ -808,7 +860,8 @@ public class Main : MonoBehaviour
     }
     #endregion
 
-    public void SaveItemLibrarys()
+    #region Items and Traits
+    public void SaveItemLibrary()
     {
         for (int i = 0; i < ItemLibrary.Length; i++)
         {
@@ -821,22 +874,8 @@ public class Main : MonoBehaviour
         }
         SaveSystem.SaveItemLibrary("/item_shalom");
         SaveSystem.WipeString();
-
-        if (BasicItemLibrary == null) return;
-
-        for (int i = 0; i < BasicItemLibrary.Length; i++)
-        {
-            if (i != (BasicItemLibrary.Length - 1))
-            {
-                SaveSystem.SaveItem(BasicItemLibrary[i], false);
-                continue;
-            }
-            SaveSystem.SaveItem(BasicItemLibrary[i], true);
-        }
-        SaveSystem.SaveItemLibrary("/basic_shalom");
-        SaveSystem.WipeString();
     }
-    void BuildGenericResourceInformation()
+    void BuildItemInformation()
     {
         ItemLibrary = new ItemData[SheetData.Count];
         ItemNameReferenceIndex = new string[SheetData.Count];
@@ -844,44 +883,42 @@ public class Main : MonoBehaviour
         itemNames = new List<string>();
         List<ItemData> basicItems = new();
 
-        BuildLoadedData(SaveSystem.LoadFile("/item_shalom"));
+        BuildLoadedData(SaveSystem.LoadFile("/item_shalom"), true);
 
         for (int j = 0; j < SheetData.Count; j++)
         {
             if (itemNames.Contains(SheetData[j][0]))
             {
-                BuildItemLibraryFromMemoryAtIndex(j, "ItemLibrary");
+                BuildItemLibraryFromMemoryAtIndex(j);
 
                 try
                 {
                     if (SheetData[j][14] == "TRUE")
                     {
                         needCompareForUpdatedValues = true;
-                        CompareIndividualItemValues(this,ItemLibrary[j]);
+                        CompareIndividualItemValues(this, ItemLibrary[j]);
                     }
                 }
-                catch{ }
+                catch { }
+            }
+            else
+            {
+                CreateItemForLibraryAtIndex(j);
 
-                continue;
+                
+                if (ItemLibrary[j].groups == "tool") //If it is a tool, we need to set it's max amount to whatever the given max amount will be
+                {
+                    string[] ra = SheetData[j][7].Split(" ");
+                    string[] k = ra[1].Split("=");
+                    ItemLibrary[j].SetAtMost(int.Parse(k[1]));
+                }
             }
 
-            CreateItemForLibraryAtIndex(j);
-
-            //If it is a basic resource we need it to start visible
-            if (CheckBasicItemNeeds(SheetData[j][3]))
+            
+            if (SheetData[j][1] == "basic") //If it is a basic resource we need it to start visible
             {
                 ItemLibrary[j].AdjustVisibility(true);
                 basicItems.Add(ItemLibrary[j]);
-            }
-
-            if (SheetData[j][0] == "barracks") ItemLibrary[j].AdjustVisibility(true);
-
-            //If it is a tool, we need to set it's max amount to whatever the given max amount will be
-            if (ItemLibrary[j].groups == "tool")
-            {
-                string[] ra = SheetData[j][7].Split(" ");
-                string[] k = ra[1].Split("=");
-                ItemLibrary[j].SetAtMost(int.Parse(k[1]));
             }
 
             ItemNameReferenceIndex[j] = ItemLibrary[j].displayName;
@@ -890,30 +927,71 @@ public class Main : MonoBehaviour
 
         CreateOrResetAllBuildableStrings();
 
-        SaveItemLibrarys();
+        SaveItemLibrary();
         LoadedData.Clear();
         itemNames.Clear();
     }
-    bool CheckBasicItemNeeds(string requirements)
+    void BuildItemInformationFromMemory()
     {
-        if (requirements == "nothing=0") return false;
-        string[] ar = requirements.Split(" ");
-        string[] array = new string[1];
-        if (ar[0].Contains("="))
+        LoadedData = new();
+        itemNames = new();
+        List<ItemData> basic = new();
+
+        BuildLoadedData(SaveSystem.LoadFile("/item_shalom"), false);
+
+        ItemLibrary = new ItemData[LoadedData.Count];
+        ItemNameReferenceIndex = new string[LoadedData.Count];
+
+        for (int j = 0; j < LoadedData.Count; j++)
         {
-            array = ar[0].Split("=");
-        }else if (ar[0].Contains(">"))
-        {
-            array = ar[0].Split(">");
+            BuildItemLibraryFromMemoryAtIndex(j);
+            if(ItemLibrary[j].gameElementType == "basic")
+            {
+                basic.Add(ItemLibrary[j]);
+            }
         }
-        else if (ar[0].Contains("<"))
+        BasicItemLibrary = basic.ToArray();
+
+        CreateOrResetAllBuildableStrings();
+        LoadedData.Clear();
+    }
+    private void BuildLoadedData(string fileInfo, bool firstTime)
+    {
+        if (fileInfo != null)
         {
-            array = ar[0].Split("<");
+            string[] ar = fileInfo.Split(";");
+            foreach (string str in ar)
+            {
+                string[] final = str.Split(',');
+                LoadedData.Add(final);
+                itemNames.Add(final[0]);
+            }
+            return;
         }
-        return Array.Exists(TraitNameReference, s => s == array[0]);
+        if(!firstTime)
+            PushMessage("Error File Not Found", "You are trying to access the ItemLibrary file when there isn't one. You must connect to online in order to build it first.");
+    }
+    private void BuildItemLibraryFromMemoryAtIndex(int j)
+    {
+        ItemLibrary[j] = new ItemData(LoadedData[j][0], LoadedData[j][1], LoadedData[j][2], LoadedData[j][3], LoadedData[j][4], LoadedData[j][5], LoadedData[j][6],
+                        LoadedData[j][7] == "True", int.Parse(LoadedData[j][8]), int.Parse(LoadedData[j][9]), float.Parse(LoadedData[j][10]), LoadedData[j][11], LoadedData[j][12],
+                        LoadedData[j][13], LoadedData[j][14], LoadedData[j][15], LoadedData[j][16], int.Parse(LoadedData[j][17]), LoadedData[j][18]);
+
+        ItemNameReferenceIndex[j] = ItemLibrary[j].displayName;
+    }
+    private void CreateItemForLibraryAtIndex(int j)
+    {
+        //name, desc, dis, gr, eType, req, nonReq, vis, cur, autA, timer, created,
+        //coms, createComs, im, snd, ach, most
+        ItemLibrary[j] = new ItemData(SheetData[j][0], SheetData[j][8],
+                        SheetData[j][9], SheetData[j][10], SheetData[j][1], SheetData[j][2],
+                        SheetData[j][3], false, 0, 0, float.Parse(SheetData[j][4]), SheetData[j][5],
+                        SheetData[j][6], SheetData[j][7], SheetData[j][11], SheetData[j][12],
+                        SheetData[j][13], 0, "");
     }
     void BuildAtmosphereAndTerrainTraits()
     {
+        List<Trait> libTemp = new();
         List<Trait> atmosTemp = new(); 
         List<Trait> terTemp = new();
         List<Trait> planetTemp = new();
@@ -980,35 +1058,26 @@ public class Main : MonoBehaviour
             {
                 planetTemp.Add(trait);
             }
+            libTemp.Add(trait);
         }
 
+        TraitLibrary = libTemp.ToArray();
         AtmosphericTraits = atmosTemp.ToArray();
         TerrainTraits = terTemp.ToArray();
         PlanetaryTraits = planetTemp.ToArray();
         TraitNameReference = nameRef.ToArray();
 
         SaveSystem.WipeString();
-        foreach(Trait trait in atmosTemp)
+        foreach(Trait trait in TraitLibrary)
         {
-            SaveSystem.SaveTrait(trait.DigitizeForSerialization(),false);
-        }
-        foreach (Trait trait in terTemp)
-        {
-            SaveSystem.SaveTrait(trait.DigitizeForSerialization(),false);
-        }
-        foreach (Trait trait in planetTemp)
-        {
-            if(ReferenceEquals(trait, planetTemp[^1]))
-            {
-                SaveSystem.SaveTrait(trait.DigitizeForSerialization(),true);
-                continue;
-            }
+            if(ReferenceEquals(trait, TraitLibrary[^1])) SaveSystem.SaveTrait(trait.DigitizeForSerialization(), true);
             SaveSystem.SaveTrait(trait.DigitizeForSerialization(),false);
         }
         SaveSystem.SaveTraitLists();
     }
     void BuildAtmosphereAndTerrainTraitsFromMemory()
     {
+        List<Trait> libTemp = new();
         List<Trait> atmosTemp = new();
         List<Trait> terTemp = new();
         List<Trait> planetTemp = new();
@@ -1041,8 +1110,10 @@ public class Main : MonoBehaviour
                 {
                     planetTemp.Add(trait);
                 }
+                libTemp.Add(trait);
             }
 
+            TraitLibrary = libTemp.ToArray();
             AtmosphericTraits = atmosTemp.ToArray();
             TerrainTraits = terTemp.ToArray();
             PlanetaryTraits = planetTemp.ToArray();
@@ -1050,86 +1121,7 @@ public class Main : MonoBehaviour
         }
         Debug.Log("There wasn't a saved file for the Traits we need to connect to the network.");
     }
-    void BuildGenericResourceInformationFromMemory()
-    {       
-        BuildBasicItemLibraryFromMemory();
-        BuildGenericItemListFromMemory();
-    }
-    void BuildGenericItemListFromMemory()
-    {
-        LoadedData = new();
-        itemNames = new();
-
-        BuildLoadedData(SaveSystem.LoadFile("/item_shalom"));
-
-        ItemLibrary = new ItemData[LoadedData.Count];
-        ItemNameReferenceIndex = new string[LoadedData.Count];
-
-        for (int j = 0; j < LoadedData.Count; j++)
-        {
-            BuildItemLibraryFromMemoryAtIndex(j, "ItemLibrary");
-        }
-
-        CreateOrResetAllBuildableStrings();
-        LoadedData.Clear();
-    }
-    void BuildBasicItemLibraryFromMemory()
-    {
-        LoadedData = new();
-        itemNames = new();
-
-        BuildLoadedData(SaveSystem.LoadFile("/basic_shalom"));
-
-        BasicItemLibrary = new ItemData[LoadedData.Count];
-        ItemNameReferenceIndex = new string[LoadedData.Count];
-
-        for (int j = 0; j < LoadedData.Count; j++)
-        {
-            BuildItemLibraryFromMemoryAtIndex(j, "BasicItemLibrary");
-        }
-    }
-    private void BuildLoadedData(string fileInfo)
-    {
-        if (fileInfo != null)
-        {
-            string[] ar = fileInfo.Split(";");
-            foreach (string str in ar)
-            {
-                string[] final = str.Split(',');
-                LoadedData.Add(final);
-                itemNames.Add(final[0]);
-            }
-        }
-    }
-    private void BuildItemLibraryFromMemoryAtIndex(int j, string library)
-    {
-        if(library == "BasicItemLibrary")
-        {
-            BasicItemLibrary[j] = new ItemData(LoadedData[j][0], LoadedData[j][1], LoadedData[j][2], LoadedData[j][3], LoadedData[j][4], LoadedData[j][5], LoadedData[j][6],
-                            LoadedData[j][7] == "True", int.Parse(LoadedData[j][8]), int.Parse(LoadedData[j][9]), float.Parse(LoadedData[j][10]), LoadedData[j][11], LoadedData[j][12],
-                            LoadedData[j][13], LoadedData[j][14], LoadedData[j][15], LoadedData[j][16], int.Parse(LoadedData[j][17]), LoadedData[j][18]);
-
-            ItemNameReferenceIndex[j] = BasicItemLibrary[j].displayName;
-        }
-        else if (library == "ItemLibrary")
-        {
-            ItemLibrary[j] = new ItemData(LoadedData[j][0], LoadedData[j][1], LoadedData[j][2], LoadedData[j][3], LoadedData[j][4], LoadedData[j][5], LoadedData[j][6],
-                            LoadedData[j][7] == "True", int.Parse(LoadedData[j][8]), int.Parse(LoadedData[j][9]), float.Parse(LoadedData[j][10]), LoadedData[j][11], LoadedData[j][12],
-                            LoadedData[j][13], LoadedData[j][14], LoadedData[j][15], LoadedData[j][16], int.Parse(LoadedData[j][17]), LoadedData[j][18]);
-
-            ItemNameReferenceIndex[j] = ItemLibrary[j].displayName;
-        }
-    }
-    private void CreateItemForLibraryAtIndex(int j)
-    {
-        //name, desc, dis, gr, eType, req, nonReq, vis, cur, autA, timer, created,
-        //coms, createComs, im, snd, ach, most
-        ItemLibrary[j] = new ItemData(SheetData[j][0], SheetData[j][8],
-                        SheetData[j][9], SheetData[j][10], SheetData[j][1], SheetData[j][2],
-                        SheetData[j][3], false, 0, 0, float.Parse(SheetData[j][4]), SheetData[j][5],
-                        SheetData[j][6], SheetData[j][7], SheetData[j][11], SheetData[j][12],
-                        SheetData[j][13], 0, "");
-    }
+    #endregion
     #endregion
 
     #region Map
@@ -1149,6 +1141,7 @@ public class Main : MonoBehaviour
             }
             else
             {
+                isPlanet = currentDepth == UniverseDepth.Planet;
                 universeAdress += $",{index}";
                 UnityEngine.Random.InitState(universeAdress.GetHashCode());
             }
@@ -1205,10 +1198,12 @@ public class Main : MonoBehaviour
                 break;
             case UniverseDepth.Planet:
                 OnWorldMap?.Invoke(false);
+                isPlanet = true;
                 SetUpPlanetaryEncounter();
                 break;
             case UniverseDepth.Moon:
                 OnWorldMap?.Invoke(false);
+                isPlanet = false;
                 SetUpPlanetaryEncounter();
                 break;
         }
@@ -1338,7 +1333,7 @@ public class Main : MonoBehaviour
             spawnEnemyDensityMax = 15;
             //Min0 Max14 Average7
         }
-        activeBrain.SetLandConfiguration(landStartingPointsForSpawning,frequencyForLandSpawning,landFormationOdds,spawnEnemyRatio, spawnEnemyDensityMin, spawnEnemyDensityMax);
+        activeBrain.SetLandConfiguration(landStartingPointsForSpawning,frequencyForLandSpawning,spawnEnemyRatio, spawnEnemyDensityMin, spawnEnemyDensityMax);
         activeBrain.BuildPlanetData(TryLoadLevel(), universeAdress,(isLanding) ? false:isViewingPlanetOnly);
         isLanding = false;
 
@@ -1570,33 +1565,6 @@ public class Main : MonoBehaviour
         
         GenerateUniverseLocation(currentDepth, index);
         OnGoingToHigherLevel?.Invoke(depthLocations[int.Parse(ar[^1])]);
-    }
-    public static int NormalizeRandom(int minValue, int maxValue) //Normal distribution
-    {
-        //-4&17 = 12 average
-        //-14&16 = 8 average
-
-        float mean = (minValue + maxValue) / 2;
-        float sigma = (maxValue - mean) ;
-        int ret = Mathf.RoundToInt(UnityEngine.Random.value * sigma + mean);
-        if(ret > maxValue -1) ret = maxValue -1;
-        
-        return ret;
-    }
-    public ItemData[] GetItemLibrary(string library)
-    {
-        if(library == "BasicItemLibrary")
-        {
-            return BasicItemLibrary;
-        }else if(library == "ItemLibrary")
-        {
-            return ItemLibrary;
-        }
-        return null;
-    }
-    public LocationManager GetActiveLocation()
-    {
-        return activeBrain;
     }
     #endregion
 
