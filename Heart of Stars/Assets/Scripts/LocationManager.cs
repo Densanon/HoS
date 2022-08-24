@@ -183,7 +183,7 @@ public class LocationManager : MonoBehaviour
     public void OrganizePieces()
     {
         SetNeighbors();
-        SetVegitation();
+        SetVegetation();
         SetIdenticalEdges();
         SetAllTopographics();
         SetUpItems();
@@ -198,7 +198,7 @@ public class LocationManager : MonoBehaviour
             }
         }
     }
-    private void SetVegitation()
+    private void SetVegetation()
     {
         int planetVeg = PlanetaryTraits["groundCoverType"].RangeValue;
         for (int i = 0; i < planetVeg*2; i++){
@@ -211,7 +211,7 @@ public class LocationManager : MonoBehaviour
                 if (tile.GetTerrainHeight() > 1)
                 {
                     int Veg = UnityEngine.Random.Range(1, planetVeg+1);
-                    tile.SetVegitation(Veg, true);
+                    tile.SetVegetation(Veg, true);
                     suitable = true;
                 }
             }
@@ -258,7 +258,7 @@ public class LocationManager : MonoBehaviour
                 int tileIndex = UnityEngine.Random.Range(0, TileLocations.Length + 1);
                 Vector2 ar = TileLocations[tileIndex];
                 HexTileInfo tile = tileInfoList[Mathf.RoundToInt(ar.x)][Mathf.RoundToInt(ar.y)];
-                if(tile.GetTerrainHeight() == 2 && tile.GetTerrainVegitation() == 0)
+                if(tile.GetTerrainHeight() == 2 && tile.GetTerrainVegetation() == 0)
                 {
                     tile.SetAsStartingPoint(mySpaceship);
                     starter = tile;

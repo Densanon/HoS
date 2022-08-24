@@ -3770,7 +3770,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_text: Show Vegitation
+  m_text: Show Vegetation
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
   m_sharedMaterial: {fileID: 2180264, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
@@ -9611,7 +9611,6 @@ MonoBehaviour:
   universeAdress: 
   landStartingPointsForSpawning: 1
   frequencyForLandSpawning: 0.41
-  landFormationOdds: 0
   ResourePanelPrefab: {fileID: 2604220087197297246, guid: e46a0c07b04ffe449bb46c34bf3b8bdc, type: 3}
   ItemPanelTransform: {fileID: 2009751318}
   itemPanelInfoPieces: []
@@ -17118,7 +17117,7 @@ GameObject:
   - component: {fileID: 2040714823}
   - component: {fileID: 2040714822}
   m_Layer: 5
-  m_Name: ShowVegitation_button
+  m_Name: ShowVegetation_button
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0

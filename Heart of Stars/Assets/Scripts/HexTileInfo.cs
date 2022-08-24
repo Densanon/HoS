@@ -142,7 +142,7 @@ public class HexTileInfo : MonoBehaviour
         }
         FloatingText.gameObject.SetActive(false);
     }
-    private void ShowVegitationDistribution()
+    private void ShowVegetationDistribution()
     {
         CheckNullUIManager();
         if (!FloatingText.gameObject.activeInHierarchy)
@@ -260,7 +260,7 @@ public class HexTileInfo : MonoBehaviour
         Main.OnRevealEnemies += RevealEnemies;
         Main.OnRevealHeights += ShowTopographicHeight;
         Main.OnRevealTemperature += ShowTemperatureDistribution;
-        Main.OnRevealVegitation += ShowVegitationDistribution;
+        Main.OnRevealVegetation += ShowVegetationDistribution;
         Main.OnRevealItems += ShowItemDistribution;
         LocationManager.OnTurnAllLandConquered += TurnLandConquered;
     }
@@ -285,7 +285,7 @@ public class HexTileInfo : MonoBehaviour
         Main.OnRevealEnemies -= RevealEnemies;
         Main.OnRevealHeights -= ShowTopographicHeight;
         Main.OnRevealTemperature -= ShowTemperatureDistribution;
-        Main.OnRevealVegitation -= ShowVegitationDistribution;
+        Main.OnRevealVegetation -= ShowVegetationDistribution;
         Main.OnRevealItems -= ShowItemDistribution;
         LocationManager.OnTurnAllLandConquered -= TurnLandConquered;
     }
@@ -392,7 +392,7 @@ public class HexTileInfo : MonoBehaviour
         
         //ShowTemperatureDistribution();
     }
-    public void SetVegitation(int value, bool initial)
+    public void SetVegetation(int value, bool initial)
     {
         if(TerrainTraits["steepness"].RangeValue > 1 && TerrainTraits["groundCoverType"].RangeValue == 0)
         {
@@ -401,7 +401,7 @@ public class HexTileInfo : MonoBehaviour
             {
                 foreach(Vector2 neighbor in myNeighbors)
                 {
-                    myLocationManager.tileInfoList[Mathf.RoundToInt(neighbor.x)][Mathf.RoundToInt(neighbor.y)].SetVegitation(value, false);
+                    myLocationManager.tileInfoList[Mathf.RoundToInt(neighbor.x)][Mathf.RoundToInt(neighbor.y)].SetVegetation(value, false);
                 }
             }
         }
@@ -476,7 +476,7 @@ public class HexTileInfo : MonoBehaviour
     {
         return TerrainTraits["steepness"].RangeValue;
     }
-    public int GetTerrainVegitation()
+    public int GetTerrainVegetation()
     {
         return TerrainTraits["groundCoverType"].RangeValue;
     }

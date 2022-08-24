@@ -90,7 +90,7 @@ public class Main : MonoBehaviour
     public static Action OnRevealEnemies = delegate { };
     public static Action OnDestroyLevel = delegate { };
     public static Action OnRevealHeights = delegate { };
-    public static Action OnRevealVegitation = delegate { };
+    public static Action OnRevealVegetation = delegate { };
     public static Action OnRevealTemperature = delegate { };
     public static Action OnRevealItems = delegate { };
 
@@ -277,7 +277,7 @@ public class Main : MonoBehaviour
     }
     public void RevealVeg()
     {
-        OnRevealVegitation?.Invoke();
+        OnRevealVegetation?.Invoke();
     }
     public void RevealTemp()
     {
